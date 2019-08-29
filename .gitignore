@@ -15,5 +15,5 @@
 .DS_Store
 
 # Test Env
-test*/
 env*.sh
+env*/

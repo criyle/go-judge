@@ -9,9 +9,10 @@ The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) i
 Brokers and interfaces:
 
 + client: receive pushed judge tasks from website (web-socket / socket.io / RabbitMQ)
-+ run_queue: send and receive run task to a queue (GO channel / RabbitMQ)
-+ test_data: download, cache and access files from website
-+ exec_files: upload / download executable files from compile task (local / Redis)
++ data: interface to download, cache and access test files from website
++ taskqueue: send to and receive from a queue to run task (GO channel / RabbitMQ)
++ file: general file interface including upload / download executable files from compile task (local / Redis)
++ language: language configuration for runner
 
 Workers:
 
@@ -24,7 +25,6 @@ Models:
 + JudgeSetting: problem setting (from yaml) and JudgeCase
 + RunTask: run task parameters send to run_queue
 + RunResult: run task result sent back from queue
-+ Language: defines exec parameters
 
 Utilities:
 

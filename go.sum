@@ -1,0 +1,5 @@
+github.com/criyle/go-sandbox v0.0.0-20190825033256-1ccd9f13f823 h1:G8mFyOJ2pMcy4Y5wX+oqpzneciV2MQ860hbjtg2r0Wg=
+github.com/criyle/go-sandbox v0.0.0-20190825033256-1ccd9f13f823/go.mod h1:OTg3xEi5r8+RrL+dLqkR9uCWsN0D4rYXeS8Thso2TCU=
+github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
+golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a h1:aYOabOQFp6Vj6W1F80affTUvO9UxmJRx8K0gsfABByQ=
+golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

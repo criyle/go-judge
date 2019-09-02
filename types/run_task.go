@@ -2,9 +2,8 @@ package types
 
 import "github.com/criyle/go-judge/file"
 
-// RunTask is used to send task into RunQueue
-// file interface should registed to gob in order
-// to encode and decode
+// RunTask is used to send task into RunQueue,
+// if taskqueue is a remote queue, taskqueue need to store / retrive files
 type RunTask struct {
 	Type string
 
@@ -14,8 +13,8 @@ type RunTask struct {
 	ExtraFiles []file.File
 
 	// Used for run tasks
-	TimeLimit   uint64
-	MemoryLimit uint64
+	TimeLimit   uint64 // ms
+	MemoryLimit uint64 // kb
 	Executables []file.File
 	InputFile   file.File
 	AnswerFile  file.File
@@ -38,8 +37,8 @@ type RunTaskResult struct {
 	// error
 	Error string
 	// details
-	Time        uint64
-	Memory      uint64
+	Time        uint64 // ms
+	Memory      uint64 // kb
 	Input       []byte
 	Answer      []byte
 	UserOutput  []byte

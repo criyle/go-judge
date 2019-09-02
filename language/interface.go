@@ -2,7 +2,7 @@ package language
 
 // Language defines the way to run program
 type Language interface {
-	Get(language, t string) ExecParam
+	Get(string, string) ExecParam // Get execparam for specific language and type (compile / run)
 }
 
 // ExecParam defines specs to compile / run program

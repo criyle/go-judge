@@ -7,18 +7,19 @@ import (
 
 // Runner is the task runner
 type Runner struct {
-	Queue    taskqueue.TaskQueue
+	Queue    taskqueue.Queue
 	Language language.Language
 	Root     string
+	pool     *pool
 }
 
 // Loop status a runner in a forever loop, waiting for task and execute
+// call it in new goroutine
 func (r *Runner) Loop(done <-chan struct{}) error {
-	c := r.Queue.C()
-	i, err := r.newInstance()
-	if err != nil {
-		return err
+	if r.pool == nil {
+		r.pool = newPool(r.Root)
 	}
+	c := r.Queue.C()
 loop:
 	for {
 		select {
@@ -29,7 +30,7 @@ loop:
 			case <-done:
 				break loop
 			default:
-				task.Finish(i.run(done, task.Task()))
+				task.Finish(r.run(done, task.Task()))
 			}
 		}
 	}

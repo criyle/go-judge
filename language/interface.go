@@ -1,15 +1,26 @@
 package language
 
+// Type defines compile / exec
+type Type int
+
+// Defines the exec type
+const (
+	TypeCompile Type = iota + 1
+	TypeExec
+)
+
 // Language defines the way to run program
 type Language interface {
-	Get(string, string) ExecParam // Get execparam for specific language and type (compile / run)
+	Get(string, Type) ExecParam // Get execparam for specific language and type (compile / run)
 }
 
 // ExecParam defines specs to compile / run program
 type ExecParam struct {
-	SourceFileName    string
-	Args              []string
-	CompiledFileNames []string
+	Args []string
+
+	// Compile
+	SourceFileName    string   // put code when compile
+	CompiledFileNames []string // exec files
 
 	// limits
 	TimeLimit   uint64

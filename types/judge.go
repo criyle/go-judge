@@ -21,6 +21,7 @@ type JudgeProgress struct {
 // JudgeResult contains final result of current task
 type JudgeResult struct {
 	SubTasks []JudgeSubTaskResult
+	Error    string
 }
 
 // JudgeSubTaskResult contains result for single sub-task

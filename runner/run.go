@@ -1,13 +1,17 @@
 package runner
 
 import (
+	"io/ioutil"
 	"time"
 
-	"github.com/criyle/go-sandbox/deamon"
+	"github.com/criyle/go-sandbox/daemon"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/pipe"
 	stypes "github.com/criyle/go-sandbox/types"
 
+	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-judge/file/memfile"
+	"github.com/criyle/go-judge/language"
 	"github.com/criyle/go-judge/types"
 )
 
@@ -19,7 +23,11 @@ const checkIntervalMS = 50
 var env = []string{"PATH=/usr/local/bin:/usr/bin:/bin"}
 
 func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskResult {
-	param := r.Language.Get(task.Language, task.Type)
+	t := language.TypeExec
+	if task.Type == "compile" {
+		t = language.TypeCompile
+	}
+	param := r.Language.Get(task.Language, t)
 
 	// init input / output / error files
 	inputFile, err := task.InputFile.Open()
@@ -47,10 +55,10 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	}
 	defer cg.Destroy()
 
-	// get deamon runner
+	// get daemon runner
 	m, err := r.pool.Get()
 	if err != nil {
-		return errResult("failed to get deamon instance")
+		return errResult("failed to get daemon instance")
 	}
 	defer r.pool.Put(m)
 
@@ -64,7 +72,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	cg.SetPidsMax(param.ProcLimit)
 
 	// set running parameters
-	execParam := deamon.ExecveParam{
+	execParam := daemon.ExecveParam{
 		Args:     param.Args,
 		Envv:     env,
 		Fds:      []uintptr{inputFile.Fd(), outputPipe.W.Fd(), errorPipe.W.Fd()},
@@ -72,7 +80,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	}
 
 	// cancellable signal channel
-	cancelC := newCancelableChannel()
+	cancelC := newCancellableChannel()
 	defer cancelC.cancel()
 
 	// start the process
@@ -169,6 +177,27 @@ loop:
 	}
 
 	inputContent, _ := task.InputFile.Content()
+
+	// If compile read compiled files
+	var exec []file.File
+	if task.Type == "compile" {
+		for _, fn := range param.CompiledFileNames {
+			f, err := m.Open(fn)
+			if err != nil {
+				return errResult(err.Error())
+			}
+			defer f.Close()
+
+			c, err := ioutil.ReadAll(f)
+			if err != nil {
+				return errResult(err.Error())
+			}
+			exec = append(exec, memfile.New(fn, c))
+		}
+	}
+
+	// TODO: diff
+
 	return &types.RunTaskResult{
 		Status:     status,
 		Time:       cpuUsage / uint64(time.Millisecond),
@@ -176,6 +205,7 @@ loop:
 		Input:      inputContent,
 		UserOutput: outputPipe.Buffer.Bytes(),
 		UserError:  errorPipe.Buffer.Bytes(),
+		ExecFiles:  exec,
 	}
 }
 
@@ -186,18 +216,18 @@ func errResult(err string) *types.RunTaskResult {
 	}
 }
 
-type cancelableChannel struct {
+type cancellableChannel struct {
 	Done     chan struct{}
 	canceled bool
 }
 
-func newCancelableChannel() *cancelableChannel {
-	return &cancelableChannel{
+func newCancellableChannel() *cancellableChannel {
+	return &cancellableChannel{
 		Done: make(chan struct{}),
 	}
 }
 
-func (c *cancelableChannel) cancel() {
+func (c *cancellableChannel) cancel() {
 	if !c.canceled {
 		close(c.Done)
 		c.canceled = true

@@ -1,5 +1,6 @@
-github.com/criyle/go-sandbox v0.0.0-20190902024918-1df3228aec4d h1:JpdxvAKkHYskHPGuVm7hPnndOBuCygkOxc1p8V1rPeI=
-github.com/criyle/go-sandbox v0.0.0-20190902024918-1df3228aec4d/go.mod h1:RZ6jui4DXDFZHojTt5pNxr6FXUbCcW+TLITDSANJllk=
+github.com/criyle/go-sandbox v0.0.0-20190906040622-be668a5e7548 h1:5JzsTB6UUHCoZkgjBmU68WYhIdbs189xtkUHJs+qu4c=
+github.com/criyle/go-sandbox v0.0.0-20190906040622-be668a5e7548/go.mod h1:gkn5TWck4A8kKs8xX0q1+yLA0WnV2e7ECm/OmYigDCI=
 github.com/seccomp/libseccomp-golang v0.9.1/go.mod h1:GbW5+tmTXfcxTToHLXlScSlAvWlF4P2Ca7zGrPiEpWo=
-golang.org/x/sys v0.0.0-20190830142957-1e83adbbebd0 h1:7z820YPX9pxWR59qM7BE5+fglp4D/mKqAwCvGt11b+8=
-golang.org/x/sys v0.0.0-20190830142957-1e83adbbebd0/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20190904005037-43c01164e931/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20190907184412-d223b2b6db03 h1:b3JiLYVaG9kHjTcOQIoUh978YMCO7oVTQQBLudU47zY=
+golang.org/x/sys v0.0.0-20190907184412-d223b2b6db03/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

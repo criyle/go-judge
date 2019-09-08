@@ -25,6 +25,6 @@ type SubTask struct {
 
 // Case defines single judge case
 type Case struct {
-	Input  []file.File
-	Answer []file.File
+	Input  file.File
+	Answer file.File
 }

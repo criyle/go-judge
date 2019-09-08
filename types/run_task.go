@@ -36,6 +36,8 @@ type RunTaskResult struct {
 	Status string
 	// error
 	Error string
+	// compile result
+	ExecFiles []file.File
 	// details
 	Time        uint64 // ms
 	Memory      uint64 // kb

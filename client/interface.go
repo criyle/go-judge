@@ -13,5 +13,5 @@ type Task interface {
 // it should sent received work through go channel (have background goroutine(s))
 type Client interface {
 	// C should return channel to receive works
-	C() <-chan types.JudgeTask
+	C() <-chan Task
 }

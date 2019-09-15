@@ -79,6 +79,19 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 		SyncFunc: cg.AddProc,
 	}
 
+	// copyin source code
+	if t == language.TypeCompile {
+		source := memfile.New("source", []byte(task.Code))
+		sourceFile, err := source.Open()
+		if err != nil {
+			return errResult(err.Error())
+		}
+		defer sourceFile.Close()
+		if err := m.CopyIn(sourceFile, param.SourceFileName); err != nil {
+			return errResult(err.Error())
+		}
+	}
+
 	// cancellable signal channel
 	cancelC := newCancellableChannel()
 	defer cancelC.cancel()

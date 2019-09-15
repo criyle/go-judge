@@ -32,6 +32,7 @@ func (p *pool) Get() (*daemon.Master, error) {
 }
 
 func (p *pool) Put(master *daemon.Master) {
+	master.Reset()
 	p.queue <- master
 }
 

@@ -2,6 +2,7 @@ package runner
 
 import (
 	"io/ioutil"
+	"sync"
 	"time"
 
 	"github.com/criyle/go-sandbox/daemon"
@@ -79,7 +80,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 		SyncFunc: cg.AddProc,
 	}
 
-	// copyin source code
+	// copyin source code for compile or executables for exec
 	if t == language.TypeCompile {
 		source := memfile.New("source", []byte(task.Code))
 		sourceFile, err := source.Open()
@@ -89,6 +90,17 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 		defer sourceFile.Close()
 		if err := m.CopyIn(sourceFile, param.SourceFileName); err != nil {
 			return errResult(err.Error())
+		}
+	} else {
+		for _, f := range task.Executables {
+			execFile, err := f.Open()
+			if err != nil {
+				return errResult(err.Error())
+			}
+			defer execFile.Close()
+			if err := m.CopyIn(execFile, f.Name()); err != nil {
+				return errResult(err.Error())
+			}
 		}
 	}
 
@@ -191,6 +203,10 @@ loop:
 
 	inputContent, _ := task.InputFile.Content()
 
+	// join with pipe reader
+	<-outputPipe.Done
+	<-errorPipe.Done
+
 	// If compile read compiled files
 	var exec []file.File
 	if task.Type == "compile" {
@@ -230,8 +246,8 @@ func errResult(err string) *types.RunTaskResult {
 }
 
 type cancellableChannel struct {
-	Done     chan struct{}
-	canceled bool
+	Done chan struct{}
+	once sync.Once
 }
 
 func newCancellableChannel() *cancellableChannel {
@@ -241,10 +257,9 @@ func newCancellableChannel() *cancellableChannel {
 }
 
 func (c *cancellableChannel) cancel() {
-	if !c.canceled {
+	c.once.Do(func() {
 		close(c.Done)
-		c.canceled = true
-	}
+	})
 }
 
 func durationMax(a, b time.Duration) time.Duration {

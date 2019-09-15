@@ -1,6 +1,8 @@
 package runner
 
 import (
+	"sync"
+
 	"github.com/criyle/go-judge/language"
 	"github.com/criyle/go-judge/taskqueue"
 )
@@ -11,14 +13,17 @@ type Runner struct {
 	Language language.Language
 	Root     string
 	pool     *pool
+	once     sync.Once
+}
+
+func (r *Runner) init() {
+	r.pool = newPool(r.Root)
 }
 
 // Loop status a runner in a forever loop, waiting for task and execute
 // call it in new goroutine
 func (r *Runner) Loop(done <-chan struct{}) error {
-	if r.pool == nil {
-		r.pool = newPool(r.Root)
-	}
+	r.once.Do(r.init)
 	c := r.Queue.C()
 loop:
 	for {

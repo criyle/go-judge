@@ -210,6 +210,16 @@ loop:
 	// If compile read compiled files
 	var exec []file.File
 	if task.Type == "compile" {
+		if rt.ExitStatus != 0 {
+			return &types.RunTaskResult{
+				Status:     "RE",
+				Time:       cpuUsage / uint64(time.Millisecond),
+				Memory:     memoryUsage >> 10,
+				Input:      inputContent,
+				UserOutput: outputPipe.Buffer.Bytes(),
+				UserError:  errorPipe.Buffer.Bytes(),
+			}
+		}
 		for _, fn := range param.CompiledFileNames {
 			f, err := m.Open(fn)
 			if err != nil {

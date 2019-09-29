@@ -3,23 +3,26 @@ package localfile
 import (
 	"io/ioutil"
 	"os"
+
+	"github.com/criyle/go-judge/file"
 )
 
 // File stores a path to represent a local file
 type File struct {
-	path string
+	name, path string
 }
 
-// New creats a wrapper to path
-func New(path string) *File {
+// New creates a wrapper to file system by path
+func New(name, path string) file.File {
 	return &File{
+		name: name,
 		path: path,
 	}
 }
 
 // Name get the path
 func (f *File) Name() string {
-	return f.path
+	return f.name
 }
 
 // Content reads file content

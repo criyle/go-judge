@@ -9,6 +9,6 @@ import (
 // Judger receives task from client and translate to task for runner
 type Judger struct {
 	client.Client
-	taskqueue.Queue
+	taskqueue.Sender
 	problem.Builder
 }

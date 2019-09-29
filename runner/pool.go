@@ -7,17 +7,17 @@ import (
 )
 
 type pool struct {
-	queue chan *daemon.Master
-	count int32
-	root  string
+	builder *daemon.Builder
+	queue   chan *daemon.Master
+	count   int32
 }
 
 const maxPoolSize = 64
 
-func newPool(root string) *pool {
+func newPool(builder *daemon.Builder) *pool {
 	return &pool{
-		queue: make(chan *daemon.Master, maxPoolSize),
-		root:  root,
+		queue:   make(chan *daemon.Master, maxPoolSize),
+		builder: builder,
 	}
 }
 
@@ -28,7 +28,7 @@ func (p *pool) Get() (*daemon.Master, error) {
 	default:
 	}
 	atomic.AddInt32(&p.count, 1)
-	return daemon.New(p.root)
+	return p.builder.Build()
 }
 
 func (p *pool) Put(master *daemon.Master) {

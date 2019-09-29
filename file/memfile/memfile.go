@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 
+	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-sandbox/pkg/memfd"
 )
 
@@ -13,9 +14,8 @@ type File struct {
 	content []byte
 }
 
-// New create a file interface, content should not be modified after
-// NewMemFile
-func New(name string, content []byte) *File {
+// New create a file interface from content and content should not be modified afterwards
+func New(name string, content []byte) file.File {
 	return &File{
 		name:    name,
 		content: content,

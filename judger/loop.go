@@ -30,11 +30,11 @@ loop:
 	}
 }
 
-func (j *Judger) run(done <-chan struct{}, t client.Task) types.JudgeResult {
+func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 	var result types.JudgeResult
-	errResult := func(err error) types.JudgeResult {
+	errResult := func(err error) *types.JudgeResult {
 		result.Error = err.Error()
-		return result
+		return &result
 	}
 
 	p := t.Param()
@@ -45,7 +45,7 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) types.JudgeResult {
 
 	// compile
 	compileRet := make(chan types.RunTaskResult)
-	err = j.Enqueue(types.RunTask{
+	err = j.Send(types.RunTask{
 		Type:       "compile",
 		Language:   p.Language,
 		Code:       p.Code,
@@ -78,7 +78,7 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) types.JudgeResult {
 	for range pconf.Subtasks {
 		result.SubTasks = append(result.SubTasks, <-subTaskResult)
 	}
-	return result
+	return &result
 }
 
 type problemJudger struct {
@@ -94,12 +94,12 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, exec []file.File, s *t
 	var result types.JudgeSubTaskResult
 	caseResult := make(chan types.RunTaskResult, len(s.Cases))
 	for _, c := range s.Cases {
-		pj.Enqueue(types.RunTask{
+		pj.Send(types.RunTask{
 			Type:        pj.ProblemConfig.Type,
 			Language:    pj.Language,
 			TimeLimit:   pj.TileLimit,
 			MemoryLimit: pj.MemoryLimit,
-			Executables: exec,
+			ExtraFiles:  exec,
 			InputFile:   c.Input,
 			AnswerFile:  c.Answer,
 		}, caseResult)
@@ -121,7 +121,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, exec []file.File, s *t
 		result.Score += rt.ScoringRate
 		// report prograss
 		atomic.AddInt32(&pj.count, 1)
-		pj.Progress(types.JudgeProgress{
+		pj.Progress(&types.JudgeProgress{
 			Message: fmt.Sprintf("%d/%d", pj.count, pj.total),
 		})
 	}

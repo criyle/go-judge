@@ -15,17 +15,17 @@ type RunTask struct {
 	// Used for run tasks
 	TimeLimit   uint64 // ms
 	MemoryLimit uint64 // kb
-	Executables []file.File
+	ExecFiles   []file.File
 	InputFile   file.File
 	AnswerFile  file.File
 
 	// Used for standard run task
-	SpjLanguage    string
-	SpjExecutables []file.File
+	SpjLanguage  string
+	SpjExecFiles []file.File
 
 	// Used for interaction run task
-	InteractorLanguage    string
-	InteractorExecutables []file.File
+	InteractorLanguage  string
+	InteractorExecFiles []file.File
 
 	// Used for answer submission run task
 	UserAnswer file.File

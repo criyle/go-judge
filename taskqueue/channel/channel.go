@@ -7,20 +7,20 @@ import (
 
 const buffSize = 512
 
-// Queue implements taskqueue by go channel
+// Queue implements taskqueue by buffered go channel
 type Queue struct {
 	queue chan taskqueue.Task
 }
 
-// New craetes new Queue with buffed go channel
-func New() *Queue {
+// New creates new Queue with buffed go channel
+func New() taskqueue.Queue {
 	return &Queue{
 		queue: make(chan taskqueue.Task, buffSize),
 	}
 }
 
-// Enqueue puts task into run queue
-func (q *Queue) Enqueue(t types.RunTask, r chan<- types.RunTaskResult) error {
+// Send puts task into run queue
+func (q *Queue) Send(t types.RunTask, r chan<- types.RunTaskResult) error {
 	q.queue <- Task{
 		task:   t,
 		result: r,
@@ -28,8 +28,8 @@ func (q *Queue) Enqueue(t types.RunTask, r chan<- types.RunTaskResult) error {
 	return nil
 }
 
-// C returns the underlying channel
-func (q *Queue) C() <-chan taskqueue.Task {
+// ReceiveC returns the underlying channel
+func (q *Queue) ReceiveC() <-chan taskqueue.Task {
 	return q.queue
 }
 
@@ -44,7 +44,7 @@ func (t Task) Task() *types.RunTask {
 	return &t.task
 }
 
-// Finish returns the run task result
-func (t Task) Finish(r *types.RunTaskResult) {
+// Done returns the run task result
+func (t Task) Done(r *types.RunTaskResult) {
 	t.result <- *r
 }

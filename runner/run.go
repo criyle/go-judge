@@ -21,7 +21,9 @@ const cgroupPrefix = "go-judge"
 const minCPUPercent = 40 // 40%
 const checkIntervalMS = 50
 
-var env = []string{"PATH=/usr/local/bin:/usr/bin:/bin"}
+var env = []string{
+	"PATH=/usr/local/bin:/usr/bin:/bin",
+}
 
 func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskResult {
 	t := language.TypeExec
@@ -80,7 +82,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 		SyncFunc: cg.AddProc,
 	}
 
-	// copyin source code for compile or executables for exec
+	// copyin source code for compile or exec files for exec
 	if t == language.TypeCompile {
 		source := memfile.New("source", []byte(task.Code))
 		sourceFile, err := source.Open()
@@ -92,7 +94,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 			return errResult(err.Error())
 		}
 	} else {
-		for _, f := range task.Executables {
+		for _, f := range task.ExecFiles {
 			execFile, err := f.Open()
 			if err != nil {
 				return errResult(err.Error())
@@ -131,7 +133,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	var lastCPUUsage uint64
 	var totalTime time.Duration
 	var rt stypes.Result
-	var rtreceived bool
+	var rtReceived bool
 	lastCheckTime := time.Now()
 
 	// wait task finish
@@ -156,7 +158,7 @@ loop:
 			lastCPUUsage = cpuUsage
 
 		case rt = <-rc: // returned
-			rtreceived = true
+			rtReceived = true
 			break loop
 
 		case <-outputPipe.Done: // outputlimit exceeded
@@ -169,7 +171,7 @@ loop:
 
 	// get result if did not received
 	cancelC.cancel()
-	if !rtreceived {
+	if !rtReceived {
 		rt = <-rc
 	}
 

@@ -7,14 +7,14 @@ import (
 )
 
 type pool struct {
-	builder *daemon.Builder
+	builder DaemonBuilder
 	queue   chan *daemon.Master
 	count   int32
 }
 
 const maxPoolSize = 64
 
-func newPool(builder *daemon.Builder) *pool {
+func newPool(builder DaemonBuilder) *pool {
 	return &pool{
 		queue:   make(chan *daemon.Master, maxPoolSize),
 		builder: builder,

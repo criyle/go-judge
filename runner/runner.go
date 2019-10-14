@@ -8,13 +8,18 @@ import (
 	"github.com/criyle/go-sandbox/daemon"
 )
 
+// DaemonBuilder defines the abstract builder for daemon
+type DaemonBuilder interface {
+	Build() (*daemon.Master, error)
+}
+
 // Runner is the task runner
 type Runner struct {
 	// Queue is the message queue to receive run tasks
 	Queue taskqueue.Receiver
 
 	// Builder builds the sandbox runner
-	Builder *daemon.Builder
+	Builder DaemonBuilder
 
 	Language language.Language
 

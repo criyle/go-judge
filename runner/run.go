@@ -77,7 +77,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	// set running parameters
 	execParam := daemon.ExecveParam{
 		Args:     param.Args,
-		Envv:     env,
+		Env:      env,
 		Fds:      []uintptr{inputFile.Fd(), outputPipe.W.Fd(), errorPipe.W.Fd()},
 		SyncFunc: cg.AddProc,
 	}
@@ -130,10 +130,16 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 		timeLimit = time.Duration(task.TimeLimit) * time.Millisecond
 	}
 
+	// Wait for result
+	var rt stypes.Result
+	finish := make(chan struct{})
+	go func() {
+		defer close(finish)
+		rt = <-rc
+	}()
+
 	var lastCPUUsage uint64
 	var totalTime time.Duration
-	var rt stypes.Result
-	var rtReceived bool
 	lastCheckTime := time.Now()
 
 	// wait task finish
@@ -157,8 +163,7 @@ loop:
 			lastCheckTime = now
 			lastCPUUsage = cpuUsage
 
-		case rt = <-rc: // returned
-			rtReceived = true
+		case <-finish: // returned
 			break loop
 
 		case <-outputPipe.Done: // outputlimit exceeded
@@ -171,9 +176,7 @@ loop:
 
 	// get result if did not received
 	cancelC.cancel()
-	if !rtReceived {
-		rt = <-rc
-	}
+	<-finish
 
 	// generate resource usage
 	cpuUsage, err := cg.CpuacctUsage()

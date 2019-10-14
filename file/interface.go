@@ -2,16 +2,26 @@ package file
 
 import "os"
 
+// Opener opens the file in readonly mode
+// caller should close afterwards
+type Opener interface {
+	Open() (*os.File, error)
+}
+
+// Contenter reads the file content
+type Contenter interface {
+	Content() ([]byte, error)
+}
+
+// Namer get the file name
+type Namer interface {
+	Name() string
+}
+
 // File defines file name with its content
 // file could on file system or memory
 type File interface {
-	// Name get the file name
-	Name() string
-
-	// Content reads the file content
-	Content() ([]byte, error)
-
-	// Open opens the file in readonly mode
-	// caller should close afterwards
-	Open() (*os.File, error)
+	Opener
+	Contenter
+	Namer
 }

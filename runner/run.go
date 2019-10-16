@@ -21,10 +21,6 @@ const cgroupPrefix = "go-judge"
 const minCPUPercent = 40 // 40%
 const checkIntervalMS = 50
 
-var env = []string{
-	"PATH=/usr/local/bin:/usr/bin:/bin",
-}
-
 func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskResult {
 	t := language.TypeExec
 	if task.Type == "compile" {
@@ -35,33 +31,33 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	// init input / output / error files
 	inputFile, err := task.InputFile.Open()
 	if err != nil {
-		return errResult("failed to initialize input file")
+		return errResult("initialize input file" + err.Error())
 	}
 	defer inputFile.Close()
 
 	outputPipe, err := pipe.NewBuffer(maxOutput)
 	if err != nil {
-		return errResult("failed to initialize output pipe")
+		return errResult("initialize output pipe" + err.Error())
 	}
 	defer outputPipe.W.Close()
 
 	errorPipe, err := pipe.NewBuffer(maxOutput)
 	if err != nil {
-		return errResult("failed to initialize output pipe")
+		return errResult("initialize output pipe: " + err.Error())
 	}
 	defer errorPipe.W.Close()
 
 	// init cgroup
 	cg, err := cgroup.NewCGroup(cgroupPrefix)
 	if err != nil {
-		return errResult("failed to initialize cgroup")
+		return errResult("initialize cgroup: " + err.Error())
 	}
 	defer cg.Destroy()
 
 	// get daemon runner
 	m, err := r.pool.Get()
 	if err != nil {
-		return errResult("failed to get daemon instance")
+		return errResult("get daemon instance: " + err.Error())
 	}
 	defer r.pool.Put(m)
 
@@ -77,7 +73,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	// set running parameters
 	execParam := daemon.ExecveParam{
 		Args:     param.Args,
-		Env:      env,
+		Env:      param.Env,
 		Fds:      []uintptr{inputFile.Fd(), outputPipe.W.Fd(), errorPipe.W.Fd()},
 		SyncFunc: cg.AddProc,
 	}

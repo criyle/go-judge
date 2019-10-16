@@ -17,6 +17,7 @@ type Language interface {
 // ExecParam defines specs to compile / run program
 type ExecParam struct {
 	Args []string
+	Env  []string
 
 	// Compile
 	SourceFileName    string   // put code when compile

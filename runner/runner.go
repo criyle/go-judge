@@ -6,11 +6,17 @@ import (
 	"github.com/criyle/go-judge/language"
 	"github.com/criyle/go-judge/taskqueue"
 	"github.com/criyle/go-sandbox/daemon"
+	"github.com/criyle/go-sandbox/pkg/cgroup"
 )
 
 // DaemonBuilder defines the abstract builder for daemon
 type DaemonBuilder interface {
 	Build() (*daemon.Master, error)
+}
+
+// CgroupBuilder builds cgroup for runner
+type CgroupBuilder interface {
+	Build() (cg *cgroup.CGroup, err error)
 }
 
 // Runner is the task runner
@@ -20,6 +26,9 @@ type Runner struct {
 
 	// Builder builds the sandbox runner
 	Builder DaemonBuilder
+
+	// Builder for cgroups
+	CgroupBuilder CgroupBuilder
 
 	Language language.Language
 

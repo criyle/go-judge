@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/criyle/go-sandbox/daemon"
-	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/pipe"
 	stypes "github.com/criyle/go-sandbox/types"
 
@@ -17,8 +16,7 @@ import (
 )
 
 const maxOutput = 4 << 20 // 4M
-const cgroupPrefix = "go-judge"
-const minCPUPercent = 40 // 40%
+const minCPUPercent = 40  // 40%
 const checkIntervalMS = 50
 
 func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskResult {
@@ -48,7 +46,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	defer errorPipe.W.Close()
 
 	// init cgroup
-	cg, err := cgroup.NewCGroup(cgroupPrefix)
+	cg, err := r.CgroupBuilder.Build()
 	if err != nil {
 		return errResult("initialize cgroup: " + err.Error())
 	}

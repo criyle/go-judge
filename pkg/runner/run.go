@@ -128,6 +128,7 @@ func (r *Runner) Run() ([]Result, error) {
 		}(i, c)
 	}
 	wg.Wait()
+	fileToClose = nil // already closed by runOne
 
 	// collect potential error
 	select {

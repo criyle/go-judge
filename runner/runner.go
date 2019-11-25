@@ -34,7 +34,9 @@ type Runner struct {
 
 	// pool of sandbox to use
 	pool *pool
-	once sync.Once
+
+	// ensure init / shutdown only once
+	onceInit, onceShutdown sync.Once
 }
 
 func (r *Runner) init() {
@@ -43,8 +45,8 @@ func (r *Runner) init() {
 
 // Loop status a runner in a forever loop, waiting for task and execute
 // call it in new goroutine
-func (r *Runner) Loop(done <-chan struct{}) error {
-	r.once.Do(r.init)
+func (r *Runner) Loop(done <-chan struct{}) {
+	r.onceInit.Do(r.init)
 	c := r.Queue.ReceiveC()
 loop:
 	for {
@@ -64,5 +66,5 @@ loop:
 		default:
 		}
 	}
-	return nil
+	r.onceShutdown.Do(r.pool.Shutdown)
 }

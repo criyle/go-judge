@@ -46,14 +46,15 @@ func (p *pool) Release() {
 		select {
 		case m := <-p.queue:
 			p.Destroy(m)
+
 		default:
 			return
 		}
 	}
 }
 
-func (p *pool) DestroyAllAndWait() {
-	for p.count > 0 {
+func (p *pool) Shutdown() {
+	for atomic.LoadInt32(&p.count) > 0 {
 		m := <-p.queue
 		p.Destroy(m)
 	}

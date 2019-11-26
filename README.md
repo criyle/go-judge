@@ -37,3 +37,13 @@ Models:
 Utilities:
 
 + Config: read client config from TOML file
++ pkg/runner: run a group of programs in parallel
+
+## TODO
+
++ judge_v3 protocol socket.io client
++ syzoj problem yml parser
++ syzoj compile configuration
++ diff
++ interact problem support
++ answer submit problem support

@@ -32,6 +32,11 @@ type Pipe struct {
 	In, Out PipeIndex
 }
 
+// CPUAcctor access process cpu usage in ns
+type CPUAcctor interface {
+	CpuacctUsage() (uint64, error)
+}
+
 // Cmd defines instruction to run a program in daemon
 type Cmd struct {
 	// argument, environment
@@ -58,7 +63,7 @@ type Cmd struct {
 	// Waiter is called after cmd starts and it should return
 	// once time limit exceeded.
 	// return true to as TLE and false as normal exits
-	Waiter func(chan struct{}, *cgroup.CGroup) bool
+	Waiter func(chan struct{}, CPUAcctor) bool
 }
 
 // CgroupBuilder builds cgroup for runner

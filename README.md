@@ -44,6 +44,6 @@ Utilities:
 + judge_v3 protocol socket.io client
 + syzoj problem yml parser
 + syzoj compile configuration
-+ diff
++ special differ
 + interact problem support
 + answer submit problem support

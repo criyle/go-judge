@@ -1,6 +1,7 @@
 package localfile
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -33,4 +34,9 @@ func (f *File) Content() ([]byte, error) {
 // Open opens the file
 func (f *File) Open() (*os.File, error) {
 	return os.Open(f.path)
+}
+
+// String stringer
+func (f *File) String() string {
+	return fmt.Sprintf("[localfile:%v(%v)]", f.path, f.name)
 }

@@ -2,10 +2,12 @@ package judger
 
 import (
 	"fmt"
+	"os"
 	"sync/atomic"
 
 	"github.com/criyle/go-judge/client"
 	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-judge/file/localfile"
 	"github.com/criyle/go-judge/types"
 )
 
@@ -17,8 +19,10 @@ loop:
 	for {
 		select {
 		case t := <-c:
+			t.Progress(&types.JudgeProgress{types.ProgressStart, ""})
 			rt := j.run(done, t)
 			t.Finish(rt)
+
 			select {
 			case <-done:
 				break loop
@@ -43,6 +47,9 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 		return errResult(err)
 	}
 
+	// started
+	t.Progress(&types.JudgeProgress{Type: types.ProgressStart, Message: ""})
+
 	// compile
 	compileRet := make(chan types.RunTaskResult)
 	err = j.Send(types.RunTask{
@@ -50,15 +57,19 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 		Language:   p.Language,
 		Code:       p.Code,
 		ExtraFiles: pconf.ExtraFiles,
+		InputFile:  localfile.New("null", os.DevNull),
 	}, compileRet)
 	if err != nil {
 		return errResult(err)
 	}
 	compileTaskResult := <-compileRet
 	if compileTaskResult.Error != "" {
-		return errResult(err)
+		return errResult(fmt.Errorf("compile error: %s", compileTaskResult.Error))
 	}
 	execFiles := compileTaskResult.ExecFiles
+
+	// compiled
+	t.Progress(&types.JudgeProgress{Type: types.ProgressCompiled, Message: ""})
 
 	// run
 	subTaskResult := make(chan types.JudgeSubTaskResult, len(pconf.Subtasks))
@@ -99,7 +110,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, exec []file.File, s *t
 			Language:    pj.Language,
 			TimeLimit:   pj.TileLimit,
 			MemoryLimit: pj.MemoryLimit,
-			ExtraFiles:  exec,
+			ExecFiles:   exec,
 			InputFile:   c.Input,
 			AnswerFile:  c.Answer,
 		}, caseResult)
@@ -119,10 +130,12 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, exec []file.File, s *t
 			SpjOutput:  rt.SpjOutput,
 		})
 		result.Score += rt.ScoringRate
+
 		// report prograss
 		atomic.AddInt32(&pj.count, 1)
 		pj.Progress(&types.JudgeProgress{
-			Message: fmt.Sprintf("%d/%d", pj.count, pj.total),
+			Type:    types.ProgressProgress,
+			Message: fmt.Sprintf("%d/%d", atomic.LoadInt32(&pj.count), pj.total),
 		})
 	}
 	return result

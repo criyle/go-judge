@@ -41,7 +41,8 @@ Utilities:
 
 ## TODO
 
-+ judge_v3 protocol socket.io client
++ socket.io client with namespace
++ judge_v3 protocol
 + syzoj problem yml parser
 + syzoj compile configuration
 + special differ

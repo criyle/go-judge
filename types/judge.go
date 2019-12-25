@@ -13,8 +13,21 @@ type JudgeTask struct {
 	Extra       map[string]interface{} // extra parameters
 }
 
+// ProgressType defines type of progress message
+type ProgressType int
+
+// ProgressType defines type of progress messages
+const (
+	ProgressStart ProgressType = iota + 1
+	ProgressCompiled
+	ProgressProgress
+	ProgressFinished
+	ProgressReported
+)
+
 // JudgeProgress contains progress of current task
 type JudgeProgress struct {
+	Type    ProgressType
 	Message string
 }
 

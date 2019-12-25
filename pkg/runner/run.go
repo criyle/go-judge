@@ -2,6 +2,7 @@ package runner
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"sync"
@@ -138,6 +139,13 @@ func (r *Runner) Run() ([]Result, error) {
 	return result, err
 }
 
+func writeErrorC(errC chan error, err error) {
+	select {
+	case errC <- err:
+	default:
+	}
+}
+
 // fds will be closed
 func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []pipeBuff) (<-chan Result, error) {
 	fdToClose := fds
@@ -149,14 +157,59 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	cg.SetMemoryLimitInBytes(c.MemoryLimit + memoryLimitExtra)
 	cg.SetPidsMax(c.PidLimit)
 
-	// copyin files
-	for n, f := range c.CopyIn {
-		fi, err := f.Open()
+	// copyin
+	if len(c.CopyIn) > 0 {
+		// open copyin files
+		openCmd := make([]daemon.OpenCmd, 0, len(c.CopyIn))
+		files := make([]file.File, 0, len(c.CopyIn))
+		for n, f := range c.CopyIn {
+			openCmd = append(openCmd, daemon.OpenCmd{
+				Path: n,
+				Flag: os.O_CREATE | os.O_RDWR | os.O_TRUNC,
+				Perm: 0777,
+			})
+			files = append(files, f)
+		}
+
+		// open files from container
+		cFiles, err := m.Open(openCmd)
 		if err != nil {
 			return nil, err
 		}
-		m.CopyIn(fi, n)
-		fi.Close()
+
+		// copyin in parallel
+		var wg sync.WaitGroup
+		errC := make(chan error, 1)
+		wg.Add(len(files))
+		for i, f := range files {
+			go func(cFile *os.File, hFile file.File) {
+				defer wg.Done()
+				defer cFile.Close()
+
+				// open host file
+				hf, err := hFile.Open()
+				if err != nil {
+					writeErrorC(errC, err)
+					return
+				}
+				defer hf.Close()
+
+				// copy to container
+				_, err = io.Copy(cFile, hf)
+				if err != nil {
+					writeErrorC(errC, err)
+					return
+				}
+			}(cFiles[i], f)
+		}
+		wg.Wait()
+
+		// check error
+		select {
+		case err := <-errC:
+			return nil, err
+		default:
+		}
 	}
 
 	// set running parameters
@@ -179,11 +232,11 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	closeFiles(fds)
 	fdToClose = nil
 	result := make(chan Result, 1)
-	var tle bool
 
 	// wait to finish
 	// 1. cmd exit first, signal waiter to exit
 	// 2. waiter exit first, signal proc to exit
+	var tle bool
 	go func() {
 		tle = c.Waiter(finish, cg)
 		close(done)
@@ -242,46 +295,48 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 }
 
 func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]file.File, error) {
-	rt := make(map[string]file.File)
-	fc := make(chan file.File)
-	errC := make(chan error, 1) // collect only 1 error
-	collected := make(chan struct{})
-	// collect to map
-	go func() {
-		for f := range fc {
-			name := f.Name()
-			rt[name] = f
-		}
-		close(collected)
-	}()
-	// wait to complete
-	var wg sync.WaitGroup
-	wg.Add(len(c.CopyOut) + len(ptc))
+	total := len(c.CopyOut) + len(ptc)
 
-	putErr := func(err error) {
-		select {
-		case errC <- err:
-		default:
+	fc := make(chan file.File, total)
+	errC := make(chan error, 1) // collect only 1 error
+
+	var (
+		cFiles []*os.File
+		err    error
+	)
+	if len(c.CopyOut) > 0 {
+		// prepare open param
+		openCmd := make([]daemon.OpenCmd, 0, len(c.CopyOut))
+		for _, n := range c.CopyOut {
+			openCmd = append(openCmd, daemon.OpenCmd{
+				Path: n,
+				Flag: os.O_RDONLY,
+			})
+		}
+
+		// open all
+		cFiles, err = m.Open(openCmd)
+		if err != nil {
+			return nil, err
 		}
 	}
 
+	// wait to complete
+	var wg sync.WaitGroup
+	wg.Add(total)
+
 	// copy out
-	for _, n := range c.CopyOut {
-		go func(n string) {
+	for i, n := range c.CopyOut {
+		go func(cFile *os.File, n string) {
 			defer wg.Done()
-			f, err := m.Open(n)
+			defer cFile.Close()
+			c, err := ioutil.ReadAll(cFile)
 			if err != nil {
-				putErr(err)
-				return
-			}
-			defer f.Close()
-			c, err := ioutil.ReadAll(f)
-			if err != nil {
-				putErr(err)
+				writeErrorC(errC, err)
 				return
 			}
 			fc <- memfile.New(n, c)
-		}(n)
+		}(cFiles[i], n)
 	}
 
 	// collect pipe
@@ -290,24 +345,31 @@ func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]fil
 			defer wg.Done()
 			<-p.buff.Done
 			if int64(p.buff.Buffer.Len()) > p.buff.Max {
-				putErr(types.StatusOLE)
+				writeErrorC(errC, types.StatusOLE)
 			}
 			fc <- memfile.New(p.name, p.buff.Buffer.Bytes())
 		}(p)
 	}
 
+	// wait to finish
 	wg.Wait()
+
+	// collect to map
 	close(fc)
+	rt := make(map[string]file.File)
+	for f := range fc {
+		name := f.Name()
+		rt[name] = f
+	}
 
 	// check error
-	var err error
 	select {
-	case err = <-errC:
+	case err := <-errC:
+		return rt, err
 	default:
 	}
-	// wait collected
-	<-collected
-	return rt, err
+
+	return rt, nil
 }
 
 func getFdArray(fd []*os.File) []uintptr {

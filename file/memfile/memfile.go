@@ -2,6 +2,7 @@ package memfile
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 
 	"github.com/criyle/go-judge/file"
@@ -35,4 +36,9 @@ func (m *File) Content() ([]byte, error) {
 // Open creates a memfd file
 func (m *File) Open() (*os.File, error) {
 	return memfd.DupToMemfd(m.name, bytes.NewReader(m.content))
+}
+
+// String stringer
+func (m *File) String() string {
+	return fmt.Sprintf("[memfile:%v,%p]", m.name, m.content)
 }

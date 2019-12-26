@@ -22,7 +22,7 @@ const (
 )
 
 var dialar = &engineio.Dialer{
-	Transports: []transport.Transport{websocket.Default, polling.Default},
+	Transports: []transport.Transport{polling.Default, websocket.Default},
 }
 
 type ack struct {

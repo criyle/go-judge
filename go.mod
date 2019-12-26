@@ -7,7 +7,9 @@ require (
 	github.com/googollee/go-engine.io v1.4.2
 	github.com/googollee/go-socket.io v1.4.2
 	github.com/ugorji/go/codec v1.1.7
-	golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e // indirect
 )
+
+// use modified socket.io with longer timeout
+replace github.com/googollee/go-engine.io => github.com/criyle/go-engine.io v1.4.3-0.20191226121441-e9662a4bcdfa
 
 //replace github.com/criyle/go-sandbox => ../go-sandbox

@@ -2,6 +2,13 @@ package types
 
 import "github.com/criyle/go-judge/file"
 
+// SourceCode defines source code with its language
+type SourceCode struct {
+	Language   string
+	Code       file.File
+	ExtraFiles []file.File
+}
+
 // JudgeTask contains task received from server
 type JudgeTask struct {
 	Type        string      // defines problem type
@@ -50,9 +57,11 @@ type JudgeCaseResult struct {
 	ScoreRate float64
 	Error     string
 
-	// Details
-	Time       uint64
-	Memory     uint64
+	// detail stats
+	Time   uint64 // ms
+	Memory uint64 // kb
+
+	// detail outputs
 	Input      []byte
 	Answer     []byte
 	UserOutput []byte

@@ -1,7 +1,6 @@
 package syzojclient
 
 import (
-	"log"
 	"net/http"
 	"reflect"
 
@@ -227,8 +226,6 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 		TileLimit:   msg.Content.Param.TimeLimit,
 		MemoryLimit: msg.Content.Param.MemoryLimit << 10,
 	}
-
-	log.Println(msg)
 
 	return &Task{
 		client: c,

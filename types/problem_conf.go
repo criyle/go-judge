@@ -4,16 +4,13 @@ import "github.com/criyle/go-judge/file"
 
 // ProblemConfig defines a problem
 type ProblemConfig struct {
-	Type     string
-	Subtasks []SubTask
+	Type     string    // Problem type
+	Subtasks []SubTask // SubTasks
 
-	SpjLanguage string
-	SpjCode     *file.File
+	SPJ        SourceCode // Special Judge
+	Interactor SourceCode // Interactor
 
-	InteractorLanguage string
-	InteractorCode     *file.File
-
-	ExtraFiles []file.File
+	ExtraFiles []file.File // Extra Files
 }
 
 // SubTask defines multiple judger tasks

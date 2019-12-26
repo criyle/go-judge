@@ -19,7 +19,7 @@ loop:
 	for {
 		select {
 		case t := <-c:
-			t.Progress(&types.JudgeProgress{types.ProgressStart, ""})
+			t.Progress(&types.JudgeProgress{Type: types.ProgressStart, Message: ""})
 			rt := j.run(done, t)
 			t.Finish(rt)
 
@@ -53,7 +53,7 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 	// compile
 	compileRet := make(chan types.RunTaskResult)
 	err = j.Send(types.RunTask{
-		Type:       "compile",
+		Type:       types.Compile,
 		Language:   p.Language,
 		Code:       p.Code,
 		ExtraFiles: pconf.ExtraFiles,

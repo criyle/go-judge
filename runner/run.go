@@ -16,7 +16,7 @@ const maxOutput = 4 << 20 // 4M
 
 func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskResult {
 	t := language.TypeExec
-	if task.Type == "compile" {
+	if task.Type == types.Compile {
 		t = language.TypeCompile
 	}
 	param := r.Language.Get(task.Language, t)
@@ -42,6 +42,9 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 	// copyin source code for compile or exec files for exec
 	if t == language.TypeCompile {
 		copyIn[param.SourceFileName] = memfile.New("source", []byte(task.Code))
+		for _, f := range task.ExtraFiles {
+			copyIn[f.Name()] = f
+		}
 	} else {
 		for _, f := range task.ExecFiles {
 			copyIn[f.Name()] = f
@@ -50,7 +53,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 
 	// copyout files: If compile read compiled files
 	var copyOut []string
-	if task.Type == "compile" {
+	if task.Type == types.Compile {
 		copyOut = param.CompiledFileNames
 	}
 
@@ -95,7 +98,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 
 	// compile copyout
 	var exec []file.File
-	if task.Type == "compile" {
+	if task.Type == types.Compile {
 		for _, n := range param.CompiledFileNames {
 			exec = append(exec, r0.Files[n])
 		}
@@ -107,7 +110,7 @@ func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskRe
 		spjOutput []byte
 		scoreRate float64 = 1
 	)
-	if task.Type != "compile" {
+	if task.Type != types.Compile {
 		ans, err := task.AnswerFile.Content()
 		if err != nil {
 			return errResult("FileError", err.Error())

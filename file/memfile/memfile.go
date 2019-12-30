@@ -40,5 +40,5 @@ func (m *File) Open() (*os.File, error) {
 
 // String stringer
 func (m *File) String() string {
-	return fmt.Sprintf("[memfile:%v,%p]", m.name, m.content)
+	return fmt.Sprintf("[memfile:%v,%d]", m.name, len(m.content))
 }

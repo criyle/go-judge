@@ -5,52 +5,41 @@ import "github.com/criyle/go-judge/file"
 // RunTask is used to send task into RunQueue,
 // if taskqueue is a remote queue, taskqueue need to store / retrive files
 type RunTask struct {
-	Type     string // compile / standard / interactive / answer_submit
-	Language string // task programming language
+	Type string // compile / standard / interactive / answer_submit
 
 	// Used for compile task
-	Code       string
-	ExtraFiles []file.File
+	Compile *CompileTask
 
-	// Used for run tasks
-	TimeLimit   uint64 // ms
-	MemoryLimit uint64 // kb
-	ExecFiles   []file.File
-	InputFile   file.File
-	AnswerFile  file.File
-
-	// Used for standard run task
-	SPJ SourceCode
-
-	// Used for interaction run task
-	Interactor SourceCode
-
-	// Used for answer submission run task
-	UserAnswer file.File
+	// Used for exec tasks
+	Exec *ExecTask
 }
 
-// RunTaskResult return the result for run task RPC
-type RunTaskResult struct {
-	// status
-	Status string
+// CompileTask defines compile task
+type CompileTask SourceCode
 
-	// score
-	ScoringRate float64
+// ExecTask defines run tasks
+type ExecTask struct {
+	// Executable
+	Exec *CompiledExec
 
-	// error
-	Error string
+	// Run limits
+	TimeLimit   uint64 // ms
+	MemoryLimit uint64 // kb
 
-	// compile result
-	ExecFiles []file.File
+	// Input / Output
+	InputFile  file.File
+	AnswerFile file.File
 
-	// detail stats
-	Time   uint64 // ms
-	Memory uint64 // kb
+	// File I/O file names if not empty
+	InputFileName  *string
+	OutputFileName *string
 
-	// detail outputs
-	Input      []byte
-	Answer     []byte
-	UserOutput []byte
-	UserError  []byte
-	SpjOutput  []byte
+	// Special Judge
+	SPJ *CompiledExec
+
+	// Interactor for interactive type
+	Interactor *CompiledExec
+
+	// UserAnswers for answer submission run task
+	UserAnswer []file.File
 }

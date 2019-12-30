@@ -7,10 +7,16 @@ type Task interface {
 	// Param get the judge task
 	Param() *types.JudgeTask
 
-	// Progress emits current progress to website
-	Progress(*types.JudgeProgress)
+	// Parsed called when problem data have been downloaded and problem
+	Parsed(*types.ProblemConfig)
 
-	// Finish emits the final result to website
+	// Compiled called when user code have been compiled (success / fail)
+	Compiled(*types.ProgressCompiled)
+
+	// Progress called when single test case finished (success / fail + detail message)
+	Progress(*types.ProgressProgressed)
+
+	// Finish called when all test cases finished / compile failed
 	Finish(*types.JudgeResult)
 }
 

@@ -9,7 +9,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
-	"time"
 
 	"github.com/criyle/go-judge/client/syzojclient"
 	"github.com/criyle/go-judge/file"
@@ -176,7 +175,7 @@ func (d *dumbLang) Get(name string, t language.Type) language.ExecParam {
 			SourceFileName:    "a.cc",
 			CompiledFileNames: []string{"a"},
 
-			TimeLimit:   10 * uint64(time.Millisecond),
+			TimeLimit:   10 * 1000,
 			MemoryLimit: 512 << 10,
 			ProcLimit:   100,
 			OutputLimit: 64 << 10,
@@ -190,7 +189,7 @@ func (d *dumbLang) Get(name string, t language.Type) language.ExecParam {
 			SourceFileName:    "a.cc",
 			CompiledFileNames: []string{"a"},
 
-			TimeLimit:   1 * uint64(time.Millisecond),
+			TimeLimit:   1 * 1000,
 			MemoryLimit: 256 << 10,
 			ProcLimit:   1,
 			OutputLimit: 64 << 10,

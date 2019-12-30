@@ -39,12 +39,31 @@ Utilities:
 + Config: read client config from TOML file
 + pkg/runner: run a group of programs in parallel
 
+## Planned API
+
+### Progress
+
+Client is able to report progress to the web front-end. Task should maintain its states
+
+Planned events are:
+
++ Parsed: problem data have been downloaded and problem configuration have been parsed (pass problem config to task)
++ Compiled: user code have been compiled (success / fail)
++ Progressed: single test case finished (success / fail + detail message)
++ Finished: all test cases finished / compile failed
+
 ## TODO
+
++ syzoj problem yml parser
++ syzoj data downloader
++ syzoj compile configuration
++ file io
++ special judger
++ interact problem
++ answer submit
++ demo site
+
+## Done
 
 + socket.io client with namespace
 + judge_v3 protocol
-+ syzoj problem yml parser
-+ syzoj compile configuration
-+ special differ
-+ interact problem support
-+ answer submit problem support

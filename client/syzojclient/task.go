@@ -21,8 +21,18 @@ func (t *Task) Param() *types.JudgeTask {
 	return t.task
 }
 
+// Parsed parsed
+func (t *Task) Parsed(p *types.ProblemConfig) {
+	//log.Println(p)
+}
+
+// Compiled compiled
+func (t *Task) Compiled(p *types.ProgressCompiled) {
+	log.Println(p)
+}
+
 // Progress progress
-func (t *Task) Progress(p *types.JudgeProgress) {
+func (t *Task) Progress(p *types.ProgressProgressed) {
 	log.Println(p)
 
 }

@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/criyle/go-judge/client"
+	"github.com/criyle/go-judge/file/memfile"
 	"github.com/criyle/go-judge/types"
 
 	engineio "github.com/googollee/go-engine.io"
@@ -36,7 +37,7 @@ type Client struct {
 
 	socket   engineio.Conn
 	tasks    chan client.Task
-	progress chan *types.JudgeProgress
+	progress chan *types.ProgressProgressed
 	finish   chan *types.JudgeResult
 	request  chan struct{}
 	ack      chan ack
@@ -59,7 +60,7 @@ func NewClient(url, token string) (*Client, chan error, error) {
 		token:    token,
 		socket:   socket,
 		tasks:    make(chan client.Task, buffSize),
-		progress: make(chan *types.JudgeProgress, buffSize),
+		progress: make(chan *types.ProgressProgressed, buffSize),
 		finish:   make(chan *types.JudgeResult, buffSize),
 		request:  make(chan struct{}, 1),
 		ack:      make(chan ack, 1),
@@ -220,9 +221,11 @@ type subtaskResult struct {
 
 func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 	task := &types.JudgeTask{
-		//Type:        msg.Content.Type,
-		Language:    msg.Content.Param.Language,
-		Code:        msg.Content.Param.Code,
+		Type: types.Standard,
+		Code: types.SourceCode{
+			Language: msg.Content.Param.Language,
+			Code:     memfile.New("src", []byte(msg.Content.Param.Code)),
+		},
 		TileLimit:   msg.Content.Param.TimeLimit,
 		MemoryLimit: msg.Content.Param.MemoryLimit << 10,
 	}

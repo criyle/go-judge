@@ -2,12 +2,9 @@ package judger
 
 import (
 	"fmt"
-	"os"
-	"sync/atomic"
+	"sync"
 
 	"github.com/criyle/go-judge/client"
-	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-judge/file/localfile"
 	"github.com/criyle/go-judge/types"
 )
 
@@ -19,7 +16,6 @@ loop:
 	for {
 		select {
 		case t := <-c:
-			t.Progress(&types.JudgeProgress{Type: types.ProgressStart, Message: ""})
 			rt := j.run(done, t)
 			t.Finish(rt)
 
@@ -40,55 +36,70 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 		result.Error = err.Error()
 		return &result
 	}
+	errResultF := func(f string, v ...interface{}) *types.JudgeResult {
+		result.Error = fmt.Sprintf(f, v...)
+		return &result
+	}
 
 	p := t.Param()
-	pconf, err := j.Build(p.TestData)
+	pConf, err := j.Build(p.TestData)
 	if err != nil {
 		return errResult(err)
 	}
 
-	// started
-	t.Progress(&types.JudgeProgress{Type: types.ProgressStart, Message: ""})
+	// parsed
+	t.Parsed(&pConf)
 
 	// compile
-	compileRet := make(chan types.RunTaskResult)
+	compileRet := make(chan types.RunTaskResult, 1)
 	err = j.Send(types.RunTask{
-		Type:       types.Compile,
-		Language:   p.Language,
-		Code:       p.Code,
-		ExtraFiles: pconf.ExtraFiles,
-		InputFile:  localfile.New("null", os.DevNull),
+		Type:    types.Compile,
+		Compile: (*types.CompileTask)(&p.Code),
 	}, compileRet)
 	if err != nil {
 		return errResult(err)
 	}
 	compileTaskResult := <-compileRet
-	if compileTaskResult.Error != "" {
-		return errResult(fmt.Errorf("compile error: %s", compileTaskResult.Error))
-	}
-	execFiles := compileTaskResult.ExecFiles
 
 	// compiled
-	t.Progress(&types.JudgeProgress{Type: types.ProgressCompiled, Message: ""})
+	if compileTaskResult.Compile == nil {
+		return errResultF("compile error: no response")
+	}
+	if compileTaskResult.Status != types.RunTaskSucceeded {
+		t.Compiled(&types.ProgressCompiled{
+			Status:  types.ProgressFailed,
+			Message: compileTaskResult.Compile.Error,
+		})
+		return errResultF("compile error: %s", compileTaskResult.Compile.Error)
+	}
+	t.Compiled(&types.ProgressCompiled{
+		Status: types.ProgressSucceeded,
+	})
 
-	// run
-	subTaskResult := make(chan types.JudgeSubTaskResult, len(pconf.Subtasks))
+	// judger
 	pj := problemJudger{
 		Judger:        j,
-		ProblemConfig: &pconf,
+		ProblemConfig: &pConf,
 		Task:          t,
 		JudgeTask:     p,
-		total:         count(&pconf),
+		Exec:          compileTaskResult.Compile.Exec,
 	}
-	for _, s := range pconf.Subtasks {
-		s := &s
-		go func() {
-			subTaskResult <- pj.runSubtask(done, execFiles, s)
-		}()
+
+	// run all subtasks
+	var wg sync.WaitGroup
+	wg.Add(len(pConf.Subtasks))
+
+	result.SubTasks = make([]types.SubTaskResult, len(pConf.Subtasks))
+	for i := range pConf.Subtasks {
+		go func(index int) {
+			defer wg.Done()
+
+			s := &pConf.Subtasks[index]
+			result.SubTasks[index] = pj.runSubtask(done, s, index)
+		}(i)
 	}
-	for range pconf.Subtasks {
-		result.SubTasks = append(result.SubTasks, <-subTaskResult)
-	}
+	wg.Wait()
+
 	return &result
 }
 
@@ -97,54 +108,80 @@ type problemJudger struct {
 	*types.ProblemConfig
 	*types.JudgeTask
 	client.Task
-	count int32
-	total int32
+
+	// compiled code
+	Exec *types.CompiledExec
 }
 
-func (pj *problemJudger) runSubtask(done <-chan struct{}, exec []file.File, s *types.SubTask) types.JudgeSubTaskResult {
-	var result types.JudgeSubTaskResult
-	caseResult := make(chan types.RunTaskResult, len(s.Cases))
-	for _, c := range s.Cases {
-		pj.Send(types.RunTask{
-			Type:        pj.ProblemConfig.Type,
-			Language:    pj.Language,
-			TimeLimit:   pj.TileLimit,
-			MemoryLimit: pj.MemoryLimit,
-			ExecFiles:   exec,
-			InputFile:   c.Input,
-			AnswerFile:  c.Answer,
-		}, caseResult)
-	}
-	for range s.Cases {
-		rt := <-caseResult
-		result.Cases = append(result.Cases, types.JudgeCaseResult{
-			Status:     rt.Status,
-			ScoreRate:  rt.ScoringRate,
-			Error:      rt.Error,
-			Time:       rt.Time,
-			Memory:     rt.Memory,
-			Input:      rt.Input,
-			Answer:     rt.Answer,
-			UserOutput: rt.UserOutput,
-			UserError:  rt.UserError,
-			SpjOutput:  rt.SpjOutput,
-		})
-		result.Score += rt.ScoringRate
+func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sIndex int) types.SubTaskResult {
+	var result types.SubTaskResult
+	result.Cases = make([]types.TestCaseResult, len(s.Cases))
 
-		// report prograss
-		atomic.AddInt32(&pj.count, 1)
-		pj.Progress(&types.JudgeProgress{
-			Type:    types.ProgressProgress,
-			Message: fmt.Sprintf("%d/%d", atomic.LoadInt32(&pj.count), pj.total),
-		})
+	// wait for all cases
+	var wg sync.WaitGroup
+	wg.Add(len(s.Cases))
+
+	for i := range s.Cases {
+		go func(i int) {
+			defer wg.Done()
+
+			c := s.Cases[i]
+			rtC := make(chan types.RunTaskResult)
+
+			pj.Send(types.RunTask{
+				Type: pj.ProblemConfig.Type,
+				Exec: &types.ExecTask{
+					Exec:        pj.Exec,
+					TimeLimit:   pj.TileLimit,
+					MemoryLimit: pj.MemoryLimit,
+					InputFile:   c.Input,
+					AnswerFile:  c.Answer,
+				},
+			}, rtC)
+
+			rt := <-rtC
+
+			// run task result -> test case result
+			ret := types.TestCaseResult{
+				Status: types.ProgressStatus(rt.Status),
+			}
+			if execRt := rt.Exec; execRt != nil {
+				ret.Error = execRt.Error
+				ret.ScoreRate = execRt.ScoringRate
+				ret.Time = execRt.Time
+				ret.Memory = execRt.Memory
+				ret.Input = execRt.Input
+				ret.Answer = execRt.Answer
+				ret.UserOutput = execRt.UserOutput
+				ret.UserError = execRt.UserError
+				ret.SPJOutput = execRt.SPJOutput
+			}
+
+			// store result
+			result.Cases[i] = ret
+
+			// report prograss
+			pj.Progress(&types.ProgressProgressed{
+				SubTaskIndex:   sIndex,
+				TestCaseIndex:  i,
+				TestCaseResult: ret,
+			})
+		}(i)
 	}
+	wg.Wait()
+
+	// calculate score
+	for _, r := range result.Cases {
+		result.Score += r.ScoreRate
+	}
+
 	return result
 }
 
 // count counts total number of cases
-func count(pconf *types.ProblemConfig) int32 {
+func count(pConf *types.ProblemConfig) int32 {
 	var count int32
-	for _, s := range pconf.Subtasks {
+	for _, s := range pConf.Subtasks {
 		count += int32(len(s.Cases))
 	}
 	return count

@@ -161,8 +161,8 @@ TestcaseDetails
 ``` typescript
 interface {
     type: TestcaseResultType;
-    time: number;
-    memory: number;
+    time: number; // ms
+    memory: number; // kb
     input?: FileContent;
     output?: FileContent; // Output in test data
     scoringRate: number; // e.g. 0.5
@@ -170,5 +170,14 @@ interface {
     userError?: string;
     spjMessage?: string;
     systemMessage?: string;
+}
+```
+
+FileContent
+
+``` typescript
+interface FileContent {
+    content: string,
+    name: string
 }
 ```

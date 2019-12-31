@@ -16,6 +16,15 @@ type Task struct {
 	ackID  uint64
 }
 
+// NewTask creates new syzoj task
+func NewTask(client *Client, task *types.JudgeTask, ackID uint64) *Task {
+	return &Task{
+		client: client,
+		task:   task,
+		ackID:  ackID,
+	}
+}
+
 // Param param
 func (t *Task) Param() *types.JudgeTask {
 	return t.task

@@ -51,11 +51,10 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 	t.Parsed(&pConf)
 
 	// compile
-	compileRet := make(chan types.RunTaskResult, 1)
-	err = j.Send(types.RunTask{
+	compileRet, err := j.Send(types.RunTask{
 		Type:    types.Compile,
 		Compile: (*types.CompileTask)(&p.Code),
-	}, compileRet)
+	})
 	if err != nil {
 		return errResult(err)
 	}
@@ -126,9 +125,8 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 			defer wg.Done()
 
 			c := s.Cases[i]
-			rtC := make(chan types.RunTaskResult)
 
-			pj.Send(types.RunTask{
+			rtC, err := pj.Send(types.RunTask{
 				Type: pj.ProblemConfig.Type,
 				Exec: &types.ExecTask{
 					Exec:        pj.Exec,
@@ -137,24 +135,28 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 					InputFile:   c.Input,
 					AnswerFile:  c.Answer,
 				},
-			}, rtC)
+			})
 
-			rt := <-rtC
+			var ret types.TestCaseResult
+			if err != nil {
+				ret.Status = types.ProgressFailed
+			} else {
+				// receive result from queue
+				rt := <-rtC
 
-			// run task result -> test case result
-			ret := types.TestCaseResult{
-				Status: types.ProgressStatus(rt.Status),
-			}
-			if execRt := rt.Exec; execRt != nil {
-				ret.Error = execRt.Error
-				ret.ScoreRate = execRt.ScoringRate
-				ret.Time = execRt.Time
-				ret.Memory = execRt.Memory
-				ret.Input = execRt.Input
-				ret.Answer = execRt.Answer
-				ret.UserOutput = execRt.UserOutput
-				ret.UserError = execRt.UserError
-				ret.SPJOutput = execRt.SPJOutput
+				// run task result -> test case result
+				ret.Status = types.ProgressStatus(rt.Status)
+				if execRt := rt.Exec; execRt != nil {
+					ret.Error = execRt.Error
+					ret.ScoreRate = execRt.ScoringRate
+					ret.Time = execRt.Time
+					ret.Memory = execRt.Memory
+					ret.Input = execRt.Input
+					ret.Answer = execRt.Answer
+					ret.UserOutput = execRt.UserOutput
+					ret.UserError = execRt.UserError
+					ret.SPJOutput = execRt.SPJOutput
+				}
 			}
 
 			// store result

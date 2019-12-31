@@ -204,21 +204,6 @@ type judgeParameter struct {
 	// interaction
 }
 
-type judgeProgress struct {
-	TaskID   string              `json:"taskId"`
-	Type     int                 `json:"type"`
-	Progress judgeResultProgress `json:"progress"`
-}
-
-type judgeResultProgress struct {
-	Subtasks []subtaskResult `json:"subtasks"`
-}
-
-type subtaskResult struct {
-	Time   uint64 `json:"time"`
-	Memory uint64 `json:"memory"`
-}
-
 func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 	task := &types.JudgeTask{
 		Type: types.Standard,

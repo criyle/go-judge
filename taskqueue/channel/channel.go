@@ -7,6 +7,8 @@ import (
 
 const buffSize = 512
 
+var _ taskqueue.Queue = &Queue{}
+
 // Queue implements taskqueue by buffered go channel
 type Queue struct {
 	queue chan taskqueue.Task
@@ -20,12 +22,13 @@ func New() taskqueue.Queue {
 }
 
 // Send puts task into run queue
-func (q *Queue) Send(t types.RunTask, r chan<- types.RunTaskResult) error {
+func (q *Queue) Send(t types.RunTask) (<-chan types.RunTaskResult, error) {
+	c := make(chan types.RunTaskResult, 1)
 	q.queue <- Task{
 		task:   t,
-		result: r,
+		result: c,
 	}
-	return nil
+	return c, nil
 }
 
 // ReceiveC returns the underlying channel

@@ -4,8 +4,8 @@ import "github.com/criyle/go-judge/types"
 
 // Sender interface is used to send run task into message queue
 type Sender interface {
-	// Send used to initial a RPC call and receive result to channel (should have enough space)
-	Send(types.RunTask, chan<- types.RunTaskResult) error
+	// Send used to initial a RPC call and receive result from channel
+	Send(types.RunTask) (<-chan types.RunTaskResult, error)
 }
 
 // Receiver interface is used to receive run task from message queue

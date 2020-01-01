@@ -150,6 +150,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 				// run task result -> test case result
 				ret.Status = types.ProgressStatus(rt.Status)
 				if execRt := rt.Exec; execRt != nil {
+					ret.ExecStatus = execRt.Status
 					ret.Error = execRt.Error
 					ret.ScoreRate = execRt.ScoringRate
 					ret.Time = execRt.Time

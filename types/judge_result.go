@@ -40,7 +40,10 @@ type SubTaskResult struct {
 // TestCaseResult contains result for single case
 type TestCaseResult struct {
 	// status
-	Status  ProgressStatus
+	Status     ProgressStatus
+	ExecStatus Status
+
+	// message
 	Message string
 	Error   string
 

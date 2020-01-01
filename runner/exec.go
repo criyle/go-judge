@@ -93,7 +93,7 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 
 	// compare result with answer (no spj now)
 	var (
-		status    = r0.Status.String()
+		status    = r0.Status
 		spjOutput []byte
 		scoreRate float64 = 1
 	)
@@ -104,15 +104,15 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 	if err := diff.Compare(bytes.NewReader(ans), bytes.NewReader(userOutput)); err != nil {
 		spjOutput = []byte(err.Error())
 		scoreRate = 0
-		status = "WA"
+		status = types.StatusWrongAnswer
 	}
 
 	// return result
 	return &types.RunTaskResult{
 		Status: types.RunTaskSucceeded,
 		Exec: &types.ExecResult{
+			Status:      status,
 			ScoringRate: scoreRate,
-			Error:       status,
 			Time:        uint64(r0.Time / time.Millisecond),
 			Memory:      r0.Memory >> 10,
 			Input:       inputContent,

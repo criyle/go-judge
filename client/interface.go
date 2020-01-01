@@ -13,11 +13,11 @@ type Task interface {
 	// Compiled called when user code have been compiled (success / fail)
 	Compiled(*types.ProgressCompiled)
 
-	// Progress called when single test case finished (success / fail + detail message)
-	Progress(*types.ProgressProgressed)
+	// Progressed called when single test case finished (success / fail + detail message)
+	Progressed(*types.ProgressProgressed)
 
-	// Finish called when all test cases finished / compile failed
-	Finish(*types.JudgeResult)
+	// Finished called when all test cases finished / compile failed
+	Finished(*types.JudgeResult)
 }
 
 // Client should connect to web service and receive works from web

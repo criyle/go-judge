@@ -4,9 +4,9 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-judge/types"
 	"github.com/criyle/go-sandbox/daemon"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
-	"github.com/criyle/go-sandbox/types"
 )
 
 // Pool implements pool of daemons

@@ -215,9 +215,17 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 		MemoryLimit: msg.Content.Param.MemoryLimit << 10,
 	}
 
-	return &Task{
+	t := &Task{
 		client: c,
 		task:   task,
 		ackID:  ackID,
+
+		parsed:     make(chan *types.ProblemConfig),
+		compiled:   make(chan *types.ProgressCompiled),
+		progressed: make(chan *types.ProgressProgressed),
+		finished:   make(chan *types.JudgeResult),
 	}
+	go t.loop()
+
+	return t
 }

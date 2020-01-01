@@ -17,7 +17,7 @@ loop:
 		select {
 		case t := <-c:
 			rt := j.run(done, t)
-			t.Finish(rt)
+			t.Finished(rt)
 
 			select {
 			case <-done:
@@ -62,6 +62,9 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 
 	// compiled
 	if compileTaskResult.Compile == nil {
+		t.Compiled(&types.ProgressCompiled{
+			Status: types.ProgressFailed,
+		})
 		return errResultF("compile error: no response")
 	}
 	if compileTaskResult.Status != types.RunTaskSucceeded {
@@ -163,7 +166,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 			result.Cases[i] = ret
 
 			// report prograss
-			pj.Progress(&types.ProgressProgressed{
+			pj.Progressed(&types.ProgressProgressed{
 				SubTaskIndex:   sIndex,
 				TestCaseIndex:  i,
 				TestCaseResult: ret,

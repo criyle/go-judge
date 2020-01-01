@@ -3,17 +3,16 @@ package runner
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-judge/file/memfile"
+	"github.com/criyle/go-judge/types"
 	"github.com/criyle/go-sandbox/daemon"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/pipe"
-	"github.com/criyle/go-sandbox/types"
+	stypes "github.com/criyle/go-sandbox/types"
 )
 
 var memoryLimitExtra uint64 = 16 << 10 // 16k more memory
@@ -33,58 +32,10 @@ func (r *Runner) Run() ([]Result, error) {
 		closeFiles(fileToClose)
 	}()
 
-	// prepare fd count
-	fdCount, err := countFd(r)
+	// prepare files
+	fds, pipeToCollect, fileToClose, err := prepareFds(r)
 	if err != nil {
 		return nil, err
-	}
-
-	// prepare files
-	fds := make([][]*os.File, len(fdCount))
-	pipeToCollect := make([][]pipeBuff, len(fdCount))
-	for i, c := range r.Cmds {
-		fds[i] = make([]*os.File, fdCount[i])
-		for j, t := range c.Files {
-			if t == nil {
-				continue
-			}
-			switch t := t.(type) {
-			case *os.File:
-				fds[i][j] = t
-				fileToClose = append(fileToClose, t)
-
-			case file.Opener:
-				f, err := t.Open()
-				if err != nil {
-					return nil, fmt.Errorf("fail to open file %v", t)
-				}
-				fds[i][j] = f
-				fileToClose = append(fileToClose, f)
-
-			case PipeCollector:
-				b, err := pipe.NewBuffer(t.SizeLimit)
-				if err != nil {
-					return nil, fmt.Errorf("failed to create pipe %v", err)
-				}
-				fds[i][j] = b.W
-				pipeToCollect[i] = append(pipeToCollect[i], pipeBuff{b, t.Name})
-				fileToClose = append(fileToClose, b.W)
-
-			default:
-				return nil, fmt.Errorf("unknown file type %v", t)
-			}
-		}
-	}
-
-	// prepare pipes
-	for _, p := range r.Pipes {
-		out, in, err := os.Pipe()
-		if err != nil {
-			return nil, err
-		}
-		fileToClose = append(fileToClose, out, in)
-		fds[p.Out.Index][p.Out.Fd] = out
-		fds[p.In.Index][p.In.Fd] = in
 	}
 
 	// prepare masters
@@ -110,19 +61,18 @@ func (r *Runner) Run() ([]Result, error) {
 	}
 
 	// run cmds
-	errC := make(chan error, 1)
 	var wg sync.WaitGroup
-	result := make([]Result, len(r.Cmds))
 	wg.Add(len(r.Cmds))
+
+	result := make([]Result, len(r.Cmds))
+	errC := make(chan error, 1)
+
 	for i, c := range r.Cmds {
 		go func(i int, c *Cmd) {
 			defer wg.Done()
 			r, err := runOne(ms[i], cgs[i], c, fds[i], pipeToCollect[i])
 			if err != nil {
-				select {
-				case errC <- err:
-				default:
-				}
+				writeErrorC(errC, err)
 				return
 			}
 			result[i] = <-r
@@ -139,13 +89,6 @@ func (r *Runner) Run() ([]Result, error) {
 	return result, err
 }
 
-func writeErrorC(errC chan error, err error) {
-	select {
-	case errC <- err:
-	default:
-	}
-}
-
 // fds will be closed
 func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []pipeBuff) (<-chan Result, error) {
 	fdToClose := fds
@@ -154,61 +97,17 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	}()
 
 	// setup cgroup limits
-	cg.SetMemoryLimitInBytes(c.MemoryLimit + memoryLimitExtra)
-	cg.SetPidsMax(c.PidLimit)
+	if err := cg.SetMemoryLimitInBytes(c.MemoryLimit + memoryLimitExtra); err != nil {
+		return nil, err
+	}
+	if err := cg.SetPidsMax(c.PidLimit); err != nil {
+		return nil, err
+	}
 
 	// copyin
 	if len(c.CopyIn) > 0 {
-		// open copyin files
-		openCmd := make([]daemon.OpenCmd, 0, len(c.CopyIn))
-		files := make([]file.File, 0, len(c.CopyIn))
-		for n, f := range c.CopyIn {
-			openCmd = append(openCmd, daemon.OpenCmd{
-				Path: n,
-				Flag: os.O_CREATE | os.O_RDWR | os.O_TRUNC,
-				Perm: 0777,
-			})
-			files = append(files, f)
-		}
-
-		// open files from container
-		cFiles, err := m.Open(openCmd)
-		if err != nil {
+		if err := copyIn(m, c.CopyIn); err != nil {
 			return nil, err
-		}
-
-		// copyin in parallel
-		var wg sync.WaitGroup
-		errC := make(chan error, 1)
-		wg.Add(len(files))
-		for i, f := range files {
-			go func(cFile *os.File, hFile file.File) {
-				defer wg.Done()
-				defer cFile.Close()
-
-				// open host file
-				hf, err := hFile.Open()
-				if err != nil {
-					writeErrorC(errC, err)
-					return
-				}
-				defer hf.Close()
-
-				// copy to container
-				_, err = io.Copy(cFile, hf)
-				if err != nil {
-					writeErrorC(errC, err)
-					return
-				}
-			}(cFiles[i], f)
-		}
-		wg.Wait()
-
-		// check error
-		select {
-		case err := <-errC:
-			return nil, err
-		default:
 		}
 	}
 
@@ -221,8 +120,8 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	}
 
 	// start the cmd
-	done := make(chan struct{})
-	finish := make(chan struct{})
+	done := make(chan struct{})   // tell wait done
+	finish := make(chan struct{}) // tell waiter to stop
 	rc, err := m.Execve(done, execParam)
 	if err != nil {
 		return nil, err
@@ -231,6 +130,8 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	// close files
 	closeFiles(fds)
 	fdToClose = nil
+
+	// results
 	result := make(chan Result, 1)
 
 	// wait to finish
@@ -248,7 +149,7 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 		// collect result
 		files, err := copyOutAndCollect(m, c, ptc)
 		re := Result{
-			Status: rt.Status,
+			Status: convertStatus(rt.Status),
 			Error:  rt.Error,
 			Time:   time.Duration(rt.UserTime),
 			Memory: rt.UserMem << 10,
@@ -257,17 +158,17 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 		// collect error
 		if err != nil && re.Error == "" {
 			switch err := err.(type) {
-			case types.Status:
-				re.Status = err
+			case stypes.Status:
+				re.Status = convertStatus(err)
 			default:
-				re.Status = types.StatusFatal
+				re.Status = types.StatusInternalError
 			}
 			re.Error = err.Error()
 		}
 		// time
 		cpuUsage, err := cg.CpuacctUsage()
 		if err != nil {
-			re.Status = types.StatusFatal
+			re.Status = types.StatusInternalError
 			re.Error = err.Error()
 		} else {
 			re.Time = time.Duration(cpuUsage)
@@ -275,7 +176,7 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 		// memory
 		memoryUsage, err := cg.MemoryMaxUsageInBytes()
 		if err != nil {
-			re.Status = types.StatusFatal
+			re.Status = types.StatusInternalError
 			re.Error = err.Error()
 		} else {
 			re.Memory = memoryUsage
@@ -283,10 +184,10 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 		// wait waiter done
 		<-done
 		if tle {
-			re.Status = types.StatusTLE
+			re.Status = types.StatusTimeLimitExceeded
 		}
 		if re.Memory > c.MemoryLimit {
-			re.Status = types.StatusMLE
+			re.Status = types.StatusMemoryLimitExceeded
 		}
 		result <- re
 	}()
@@ -294,82 +195,78 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	return result, nil
 }
 
-func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]file.File, error) {
-	total := len(c.CopyOut) + len(ptc)
-
-	fc := make(chan file.File, total)
-	errC := make(chan error, 1) // collect only 1 error
-
-	var (
-		cFiles []*os.File
-		err    error
-	)
-	if len(c.CopyOut) > 0 {
-		// prepare open param
-		openCmd := make([]daemon.OpenCmd, 0, len(c.CopyOut))
-		for _, n := range c.CopyOut {
-			openCmd = append(openCmd, daemon.OpenCmd{
-				Path: n,
-				Flag: os.O_RDONLY,
-			})
-		}
-
-		// open all
-		cFiles, err = m.Open(openCmd)
-		if err != nil {
-			return nil, err
-		}
+func copyIn(m *daemon.Master, copyIn map[string]file.File) error {
+	// open copyin files
+	openCmd := make([]daemon.OpenCmd, 0, len(copyIn))
+	files := make([]file.File, 0, len(copyIn))
+	for n, f := range copyIn {
+		openCmd = append(openCmd, daemon.OpenCmd{
+			Path: n,
+			Flag: os.O_CREATE | os.O_RDWR | os.O_TRUNC,
+			Perm: 0777,
+		})
+		files = append(files, f)
 	}
 
-	// wait to complete
-	var wg sync.WaitGroup
-	wg.Add(total)
+	// open files from container
+	cFiles, err := m.Open(openCmd)
+	if err != nil {
+		return err
+	}
 
-	// copy out
-	for i, n := range c.CopyOut {
-		go func(cFile *os.File, n string) {
+	// copyin in parallel
+	var wg sync.WaitGroup
+	errC := make(chan error, 1)
+	wg.Add(len(files))
+	for i, f := range files {
+		go func(cFile *os.File, hFile file.File) {
 			defer wg.Done()
 			defer cFile.Close()
-			c, err := ioutil.ReadAll(cFile)
+
+			// open host file
+			hf, err := hFile.Open()
 			if err != nil {
 				writeErrorC(errC, err)
 				return
 			}
-			fc <- memfile.New(n, c)
-		}(cFiles[i], n)
-	}
+			defer hf.Close()
 
-	// collect pipe
-	for _, p := range ptc {
-		go func(p pipeBuff) {
-			defer wg.Done()
-			<-p.buff.Done
-			if int64(p.buff.Buffer.Len()) > p.buff.Max {
-				writeErrorC(errC, types.StatusOLE)
+			// copy to container
+			_, err = io.Copy(cFile, hf)
+			if err != nil {
+				writeErrorC(errC, err)
+				return
 			}
-			fc <- memfile.New(p.name, p.buff.Buffer.Bytes())
-		}(p)
+		}(cFiles[i], f)
 	}
-
-	// wait to finish
 	wg.Wait()
-
-	// collect to map
-	close(fc)
-	rt := make(map[string]file.File)
-	for f := range fc {
-		name := f.Name()
-		rt[name] = f
-	}
 
 	// check error
 	select {
 	case err := <-errC:
-		return rt, err
+		return err
 	default:
 	}
+	return nil
+}
 
-	return rt, nil
+func convertStatus(s stypes.Status) types.Status {
+	switch s {
+	case stypes.StatusNormal:
+		return types.StatusAccepted
+	case stypes.StatusRE:
+		return types.StatusRuntimeError
+	case stypes.StatusMLE:
+		return types.StatusMemoryLimitExceeded
+	case stypes.StatusTLE:
+		return types.StatusTimeLimitExceeded
+	case stypes.StatusOLE:
+		return types.StatusOutputLimitExceeded
+	case stypes.StatusBan:
+		return types.StatusDangerousSyscall
+	default:
+		return types.StatusInternalError
+	}
 }
 
 func getFdArray(fd []*os.File) []uintptr {
@@ -380,29 +277,15 @@ func getFdArray(fd []*os.File) []uintptr {
 	return r
 }
 
-func countFd(r *Runner) ([]int, error) {
-	fdCount := make([]int, len(r.Cmds))
-	for i, c := range r.Cmds {
-		fdCount[i] = len(c.Files)
-	}
-	for _, pi := range r.Pipes {
-		for _, p := range []PipeIndex{pi.In, pi.Out} {
-			if p.Index < 0 || p.Index >= len(r.Cmds) {
-				return nil, fmt.Errorf("pipe index out of range %v", p.Index)
-			}
-			if p.Fd < len(r.Cmds[p.Index].Files) && r.Cmds[p.Index].Files[p.Fd] != nil {
-				return nil, fmt.Errorf("pipe fd have been occupied %v %v", p.Index, p.Fd)
-			}
-			if p.Fd+1 > fdCount[p.Index] {
-				fdCount[p.Index] = p.Fd + 1
-			}
-		}
-	}
-	return fdCount, nil
-}
-
 func closeFiles(files []*os.File) {
 	for _, f := range files {
 		f.Close()
+	}
+}
+
+func writeErrorC(errC chan error, err error) {
+	select {
+	case errC <- err:
+	default:
 	}
 }

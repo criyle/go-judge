@@ -14,15 +14,11 @@ type Task struct {
 	client *Client
 	task   *types.JudgeTask
 	ackID  uint64
-}
 
-// NewTask creates new syzoj task
-func NewTask(client *Client, task *types.JudgeTask, ackID uint64) *Task {
-	return &Task{
-		client: client,
-		task:   task,
-		ackID:  ackID,
-	}
+	parsed     chan *types.ProblemConfig
+	compiled   chan *types.ProgressCompiled
+	progressed chan *types.ProgressProgressed
+	finished   chan *types.JudgeResult
 }
 
 // Param param
@@ -32,24 +28,43 @@ func (t *Task) Param() *types.JudgeTask {
 
 // Parsed parsed
 func (t *Task) Parsed(p *types.ProblemConfig) {
-	//log.Println(p)
+	t.parsed <- p
 }
 
 // Compiled compiled
 func (t *Task) Compiled(p *types.ProgressCompiled) {
-	log.Println(p)
+	t.compiled <- p
 }
 
-// Progress progress
-func (t *Task) Progress(p *types.ProgressProgressed) {
-	log.Println(p)
-
+// Progressed progress
+func (t *Task) Progressed(p *types.ProgressProgressed) {
+	t.progressed <- p
 }
 
-// Finish finish
-func (t *Task) Finish(r *types.JudgeResult) {
-	log.Println(r)
+// Finished finished
+func (t *Task) Finished(r *types.JudgeResult) {
+	t.finished <- r
+}
 
-	t.client.ack <- ack{id: t.ackID}
-	t.client.request <- struct{}{}
+func (t *Task) loop() {
+loop:
+	for {
+		select {
+		case pConf := <-t.parsed:
+			log.Println(pConf)
+
+		case compiled := <-t.compiled:
+			log.Println(compiled)
+
+		case progressed := <-t.progressed:
+			log.Println(progressed)
+
+		case finished := <-t.finished:
+			log.Println(finished)
+
+			t.client.ack <- ack{id: t.ackID}
+			t.client.request <- struct{}{}
+			break loop
+		}
+	}
 }

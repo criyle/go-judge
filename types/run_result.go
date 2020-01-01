@@ -1,14 +1,5 @@
 package types
 
-// RunTaskStatus defines success / fail
-type RunTaskStatus int
-
-// Success / Fail
-const (
-	RunTaskSucceeded RunTaskStatus = iota + 1
-	RunTaskFailed
-)
-
 // RunTaskResult return the result for run task RPC
 type RunTaskResult struct {
 	// status
@@ -29,6 +20,9 @@ type CompileResult struct {
 
 // ExecResult returns result for exec tasks
 type ExecResult struct {
+	// status
+	Status Status
+
 	// score
 	ScoringRate float64
 

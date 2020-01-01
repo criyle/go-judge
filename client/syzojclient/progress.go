@@ -49,41 +49,41 @@ type result struct {
 }
 
 type progress struct {
-	Status  taskStatus `json:"status"`
-	Message string     `json:"message"`
+	Status  taskStatus `json:"status,omitempty"`
+	Message string     `json:"message,omitempty"`
 
-	Error         *errType       `json:"error"`
-	SystemMessage *string        `json:"systemMessage"`
-	Compile       *compileResult `json:"compile"`
-	Judge         *judgeResult   `json:"judge"`
+	Error         *errType       `json:"error,omitempty"`
+	SystemMessage *string        `json:"systemMessage,omitempty"`
+	Compile       *compileResult `json:"compile,omitempty"`
+	Judge         *judgeResult   `json:"judge,omitempty"`
 }
 
 type judgeResult struct {
-	Subtasks []subtaskResult `json:"subtasks"`
+	Subtasks []subtaskResult `json:"subtasks,omitempty"`
 }
 
 type subtaskResult struct {
-	Score *float64     `json:"score"`
-	Cases []caseResult `json:"cases"`
+	Score float64      `json:"score,omitempty"`
+	Cases []caseResult `json:"cases,omitempty"`
 }
 
 type caseResult struct {
 	Status taskStatus       `json:"status"`
-	Result *testcaseDetails `json:"result"`
-	Error  *string          `json:"errorMessage"`
+	Result *testcaseDetails `json:"result,omitempty"`
+	Error  string           `json:"errorMessage,omitempty"`
 }
 
 type testcaseDetails struct {
 	Status        testCaseResultType `json:"type"`
 	Time          uint64             `json:"time"`   // ms
 	Memory        uint64             `json:"memory"` // kb
-	Input         *fileContent       `json:"input"`
-	Output        *fileContent       `json:"output"`
-	ScoringRate   float64            `json:"scoringRate"`
-	UserOutput    *string            `json:"userOutput"`
-	UserError     *string            `json:"userError"`
-	SPJMessage    *string            `json:"spjError"`
-	SystemMessage *string            `json:"systemMessage"`
+	Input         *fileContent       `json:"input,omitempty"`
+	Output        *fileContent       `json:"output,omitempty"`
+	ScoringRate   float64            `json:"scoringRate,omitempty"`
+	UserOutput    *string            `json:"userOutput,omitempty"`
+	UserError     *string            `json:"userError,omitempty"`
+	SPJMessage    *string            `json:"spjError,omitempty"`
+	SystemMessage *string            `json:"systemMessage,omitempty"`
 }
 
 type fileContent struct {

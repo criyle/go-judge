@@ -37,7 +37,8 @@ type Client struct {
 
 	socket   engineio.Conn
 	tasks    chan client.Task
-	progress chan *types.ProgressProgressed
+	progress chan *result
+	result   chan *result
 	finish   chan *types.JudgeResult
 	request  chan struct{}
 	ack      chan ack
@@ -60,7 +61,8 @@ func NewClient(url, token string) (*Client, chan error, error) {
 		token:    token,
 		socket:   socket,
 		tasks:    make(chan client.Task, buffSize),
-		progress: make(chan *types.ProgressProgressed, buffSize),
+		progress: make(chan *result, buffSize),
+		result:   make(chan *result, buffSize),
 		finish:   make(chan *types.JudgeResult, buffSize),
 		request:  make(chan struct{}, 1),
 		ack:      make(chan ack, 1),
@@ -153,6 +155,27 @@ func (c *Client) writeLoop() (err error) {
 		return err
 	}
 
+	sendProgress := func(event string, p interface{}) error {
+		var d []byte
+		if err := codec.NewEncoderBytes(&d, &codec.MsgpackHandle{}).Encode(p); err != nil {
+			return err
+		}
+
+		// binary encoding
+		buff := &parser.Buffer{
+			Data: d,
+		}
+
+		if err := c.encoder.Encode(parser.Header{
+			Type:      parser.Event,
+			Namespace: namespace,
+			NeedAck:   true,
+		}, []interface{}{event, c.token, buff}); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	for {
 		select {
 		case <-c.Done:
@@ -164,6 +187,16 @@ func (c *Client) writeLoop() (err error) {
 				Namespace: namespace,
 				NeedAck:   true,
 			}, []interface{}{"waitForTask", c.token}); err != nil {
+				return err
+			}
+
+		case p := <-c.progress:
+			if err := sendProgress("reportProgress", p); err != nil {
+				return err
+			}
+
+		case r := <-c.result:
+			if err := sendProgress("reportResult", r); err != nil {
 				return err
 			}
 
@@ -219,6 +252,7 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 		client: c,
 		task:   task,
 		ackID:  ackID,
+		taskID: msg.Content.TaskID,
 
 		parsed:     make(chan *types.ProblemConfig),
 		compiled:   make(chan *types.ProgressCompiled),

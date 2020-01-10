@@ -85,7 +85,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 	for _, n := range param.CompiledFileNames {
 		f, err := getFile(r0.Files, n)
 		if err != nil {
-			return compileErr("FileError:" + err.Error())
+			return compileErr(string(compileMsg))
 		}
 		exec = append(exec, memfile.New(n, f))
 	}

@@ -18,3 +18,4 @@
 # Test Env
 env*.sh
 env*/
+init.sql

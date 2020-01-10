@@ -77,13 +77,17 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 	// get compile message
 	compileMsg, err := getFile(r0.Files, msgFileName)
 	if err != nil {
-		return compileErr("FileError" + err.Error())
+		return compileErr("FileError:" + err.Error())
 	}
 
 	// compile copyout
 	var exec []file.File
 	for _, n := range param.CompiledFileNames {
-		exec = append(exec, r0.Files[n])
+		f, err := getFile(r0.Files, n)
+		if err != nil {
+			return compileErr("FileError:" + err.Error())
+		}
+		exec = append(exec, memfile.New(n, f))
 	}
 
 	// return result

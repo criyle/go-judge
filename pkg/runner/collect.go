@@ -12,9 +12,11 @@ import (
 )
 
 func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]file.File, error) {
-	total := len(c.CopyOut) + len(ptc)
+	// wait to complete
+	var wg sync.WaitGroup
+	wg.Add(len(ptc))
 
-	fc := make(chan file.File, total)
+	fc := make(chan file.File, len(ptc)+len(c.CopyOut))
 	errC := make(chan error, 1) // collect only 1 error
 
 	var (
@@ -33,17 +35,11 @@ func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]fil
 
 		// open all
 		cFiles, err = m.Open(openCmd)
-		if err != nil {
-			return nil, err
-		}
+		wg.Add(len(cFiles))
 	}
 
-	// wait to complete
-	var wg sync.WaitGroup
-	wg.Add(total)
-
 	// copy out
-	for i, n := range c.CopyOut {
+	for i := range cFiles {
 		go func(cFile *os.File, n string) {
 			defer wg.Done()
 			defer cFile.Close()
@@ -53,7 +49,7 @@ func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]fil
 				return
 			}
 			fc <- memfile.New(n, c)
-		}(cFiles[i], n)
+		}(cFiles[i], c.CopyOut[i])
 	}
 
 	// collect pipe
@@ -77,6 +73,10 @@ func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]fil
 	for f := range fc {
 		name := f.Name()
 		rt[name] = f
+	}
+
+	if err != nil {
+		return rt, err
 	}
 
 	// check error

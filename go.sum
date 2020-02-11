@@ -12,8 +12,6 @@ github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24
 github.com/bradfitz/go-smtpd v0.0.0-20170404230938-deb6d6237625/go.mod h1:HYsPBTaaSFSlLx/70C2HPIMNZpVV8+vt/A+FMnYP11g=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/coreos/go-systemd v0.0.0-20181012123002-c6f51f82210d/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
-github.com/criyle/go-engine.io v1.4.3-0.20191226121441-e9662a4bcdfa h1:TOZYXpCeo4uDcKF/9orUpo6jwy4WxyNfH0Q+pgBSW9I=
-github.com/criyle/go-engine.io v1.4.3-0.20191226121441-e9662a4bcdfa/go.mod h1:iaugrHMOoal16IKAWvH6y6RrXXIzfOULxjNwvXBCV4o=
 github.com/criyle/go-sandbox v0.0.0-20191225131813-d1ed5f0f21dd h1:nzuyzUJuY16FUYsNv/6omTiNJ/xtNvhSrC6z9KiHITg=
 github.com/criyle/go-sandbox v0.0.0-20191225131813-d1ed5f0f21dd/go.mod h1:daneaH9drlUpP91/irZBJ0vPNo1WGMcOM4+JjbXTsek=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -40,6 +38,9 @@ github.com/google/martian v2.1.0+incompatible/go.mod h1:9I4somxYTbIHy5NJKHRl3wXi
 github.com/google/pprof v0.0.0-20181206194817-3ea8567a2e57/go.mod h1:zfwlbNMJ+OItoe0UupaVj+oy1omPYYDuagoSzA8v9mc=
 github.com/googleapis/gax-go v2.0.0+incompatible/go.mod h1:SFVmujtThgffbyetf+mdk2eWhX2bMyUtNHzFKcPA9HY=
 github.com/googleapis/gax-go/v2 v2.0.3/go.mod h1:LLvjysVCY1JZeum8Z6l8qUty8fiNwE08qbEPm1M08qg=
+github.com/googollee/go-engine.io v1.4.1/go.mod h1:26oFqHsnuWIzNOM0T08x21eQOydBosKOCgK3tyhzPPI=
+github.com/googollee/go-engine.io v1.4.3-0.20200211083925-ac1f0a0b48dd h1:Vf1y5VoTg+/rXnRXrNTnKLu4BBvOSK7gyUcjrZHybMw=
+github.com/googollee/go-engine.io v1.4.3-0.20200211083925-ac1f0a0b48dd/go.mod h1:iaugrHMOoal16IKAWvH6y6RrXXIzfOULxjNwvXBCV4o=
 github.com/googollee/go-socket.io v1.4.2 h1:yxoY4jyPp91ksh0IDBOLrphRXg6EXG+QUdveqg1RGSc=
 github.com/googollee/go-socket.io v1.4.2/go.mod h1:yjlQxKcAZXZjpGwQVW/y1sgyL1ou+DdCpkswURDCRrU=
 github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1/go.mod h1:wJfORRmW1u3UXTncJ5qlYoELFm8eSnnEO6hX4iZ3EWY=

@@ -181,7 +181,7 @@ func updateResult(p *types.ProgressProgressed, jr *judgeResult) {
 	cr.Error = p.Error
 	cr.Result = &testcaseDetails{
 		Status:      convertResultTypes(p.ExecStatus),
-		Time:        uint64(p.Time / time.Millisecond),
+		Time:        uint64(p.Time.Round(time.Millisecond) / time.Millisecond),
 		Memory:      uint64(p.Memory >> 10),
 		Input:       getFileContent("input", p.Input),
 		Output:      getFileContent("output", p.Answer),

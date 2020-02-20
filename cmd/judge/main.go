@@ -57,12 +57,7 @@ func main() {
 		// however, /proc gives interface like /proc/1/fd/3 ..
 		// it is fine since open that file will be a EPERM
 		// changing the fs uid and gid would be a good idea
-		WithMount(mount.Mount{
-			Source: "proc",
-			Target: "proc",
-			FsType: "proc",
-			Flags:  syscall.MS_NOSUID,
-		}).
+		WithProc().
 		// some compiler have multiple version
 		WithBind("/etc/alternatives", "etc/alternatives", true).
 		// fpc wants /etc/fpc.cfg

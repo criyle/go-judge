@@ -100,10 +100,12 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 	if err != nil {
 		return execErr(types.StatusFileError, err.Error())
 	}
-	if err := diff.Compare(bytes.NewReader(ans), bytes.NewReader(userOutput)); err != nil {
-		spjOutput = []byte(err.Error())
-		scoreRate = 0
-		status = types.StatusWrongAnswer
+	if status == types.StatusAccepted {
+		if err := diff.Compare(bytes.NewReader(ans), bytes.NewReader(userOutput)); err != nil {
+			spjOutput = []byte(err.Error())
+			scoreRate = 0
+			status = types.StatusWrongAnswer
+		}
 	}
 
 	// return result
@@ -115,6 +117,7 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 			Time:        r0.Time,
 			Memory:      r0.Memory,
 			Input:       inputContent,
+			Answer:      ans,
 			UserOutput:  userOutput,
 			UserError:   userError,
 			SPJOutput:   spjOutput,

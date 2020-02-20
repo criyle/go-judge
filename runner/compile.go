@@ -54,7 +54,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 		Args:        param.Args,
 		Env:         param.Env,
 		Files:       []interface{}{devNull, msgCollector, msgCollector},
-		MemoryLimit: param.MemoryLimit << 10,
+		MemoryLimit: param.MemoryLimit,
 		PidLimit:    param.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,

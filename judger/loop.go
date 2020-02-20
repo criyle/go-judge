@@ -133,7 +133,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 				Type: pj.ProblemConfig.Type,
 				Exec: &types.ExecTask{
 					Exec:        pj.Exec,
-					TimeLimit:   pj.TileLimit,
+					TimeLimit:   pj.TimeLimit,
 					MemoryLimit: pj.MemoryLimit,
 					InputFile:   c.Input,
 					AnswerFile:  c.Answer,

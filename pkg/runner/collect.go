@@ -7,11 +7,11 @@ import (
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/file/memfile"
-	"github.com/criyle/go-sandbox/daemon"
+	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/types"
 )
 
-func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]file.File, error) {
+func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeBuff) (map[string]file.File, error) {
 	// wait to complete
 	var wg sync.WaitGroup
 	wg.Add(len(ptc))
@@ -25,9 +25,9 @@ func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]fil
 	)
 	if len(c.CopyOut) > 0 {
 		// prepare open param
-		openCmd := make([]daemon.OpenCmd, 0, len(c.CopyOut))
+		openCmd := make([]container.OpenCmd, 0, len(c.CopyOut))
 		for _, n := range c.CopyOut {
-			openCmd = append(openCmd, daemon.OpenCmd{
+			openCmd = append(openCmd, container.OpenCmd{
 				Path: n,
 				Flag: os.O_RDONLY,
 			})
@@ -58,7 +58,7 @@ func copyOutAndCollect(m *daemon.Master, c *Cmd, ptc []pipeBuff) (map[string]fil
 			defer wg.Done()
 			<-p.buff.Done
 			if int64(p.buff.Buffer.Len()) > p.buff.Max {
-				writeErrorC(errC, types.StatusOLE)
+				writeErrorC(errC, types.StatusOutputLimitExceeded)
 			}
 			fc <- memfile.New(p.name, p.buff.Buffer.Bytes())
 		}(p)

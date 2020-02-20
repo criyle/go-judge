@@ -1,5 +1,11 @@
 package language
 
+import (
+	"time"
+
+	"github.com/criyle/go-sandbox/types"
+)
+
 // Type defines compile / exec
 type Type int
 
@@ -24,8 +30,8 @@ type ExecParam struct {
 	CompiledFileNames []string // exec files
 
 	// limits
-	TimeLimit   uint64
-	MemoryLimit uint64
+	TimeLimit   time.Duration
+	MemoryLimit types.Size
 	ProcLimit   uint64
-	OutputLimit uint64
+	OutputLimit types.Size
 }

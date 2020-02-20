@@ -9,6 +9,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/criyle/go-judge/client/syzojclient"
 	"github.com/criyle/go-judge/file"
@@ -18,13 +19,14 @@ import (
 	"github.com/criyle/go-judge/runner"
 	"github.com/criyle/go-judge/taskqueue/channel"
 	"github.com/criyle/go-judge/types"
-	"github.com/criyle/go-sandbox/daemon"
+	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/mount"
+	stypes "github.com/criyle/go-sandbox/types"
 )
 
 func init() {
-	daemon.Init()
+	container.Init()
 }
 
 func main() {
@@ -77,7 +79,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	b := &daemon.Builder{
+	b := &container.Builder{
 		Root:          root,
 		Mounts:        m,
 		CredGenerator: newCredGen(),
@@ -175,10 +177,10 @@ func (d *dumbLang) Get(name string, t language.Type) language.ExecParam {
 			SourceFileName:    "a.cc",
 			CompiledFileNames: []string{"a"},
 
-			TimeLimit:   10 * 1000,
-			MemoryLimit: 512 << 10,
+			TimeLimit:   10 * time.Second,
+			MemoryLimit: stypes.Size(512 << 20),
 			ProcLimit:   100,
-			OutputLimit: 64 << 10,
+			OutputLimit: stypes.Size(64 << 10),
 		}
 
 	case language.TypeExec:
@@ -189,10 +191,10 @@ func (d *dumbLang) Get(name string, t language.Type) language.ExecParam {
 			SourceFileName:    "a.cc",
 			CompiledFileNames: []string{"a"},
 
-			TimeLimit:   1 * 1000,
-			MemoryLimit: 256 << 10,
+			TimeLimit:   time.Second,
+			MemoryLimit: stypes.Size(256 << 20),
 			ProcLimit:   1,
-			OutputLimit: 64 << 10,
+			OutputLimit: stypes.Size(64 << 10),
 		}
 
 	default:

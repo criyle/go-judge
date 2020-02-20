@@ -1,6 +1,11 @@
 package types
 
-import "github.com/criyle/go-judge/file"
+import (
+	"time"
+
+	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-sandbox/types"
+)
 
 // JudgeTask contains task received from server
 type JudgeTask struct {
@@ -9,7 +14,7 @@ type JudgeTask struct {
 	Code     SourceCode  // code & code language / answer submit in extra files
 
 	// task parameters
-	TileLimit   uint64
-	MemoryLimit uint64
+	TimeLimit   time.Duration
+	MemoryLimit types.Size
 	Extra       map[string]interface{} // extra special parameters
 }

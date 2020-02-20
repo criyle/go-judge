@@ -1,61 +1,63 @@
 package runner
 
 import (
-	"sync/atomic"
+	"sync"
 
-	"github.com/criyle/go-sandbox/daemon"
+	"github.com/criyle/go-sandbox/container"
 )
 
 type pool struct {
-	builder DaemonBuilder
-	queue   chan *daemon.Master
-	count   int32
+	builder EnvironmentBuilder
+
+	env []container.Environment
+	mu  sync.Mutex
 }
 
-const maxPoolSize = 64
-
-func newPool(builder DaemonBuilder) *pool {
+func newPool(builder EnvironmentBuilder) *pool {
 	return &pool{
-		queue:   make(chan *daemon.Master, maxPoolSize),
 		builder: builder,
 	}
 }
 
-func (p *pool) Get() (*daemon.Master, error) {
-	select {
-	case m := <-p.queue:
-		return m, nil
-	default:
+func (p *pool) Get() (container.Environment, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if len(p.env) > 0 {
+		rt := p.env[len(p.env)-1]
+		p.env = p.env[:len(p.env)-1]
+		return rt, nil
 	}
-	atomic.AddInt32(&p.count, 1)
 	return p.builder.Build()
 }
 
-func (p *pool) Put(master *daemon.Master) {
-	master.Reset()
-	p.queue <- master
+func (p *pool) Put(env container.Environment) {
+	env.Reset()
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.env = append(p.env, env)
 }
 
-func (p *pool) Destroy(master *daemon.Master) {
-	master.Destroy()
-	atomic.AddInt32(&p.count, -1)
+func (p *pool) Destroy(env container.Environment) {
+	env.Destroy()
 }
 
 func (p *pool) Release() {
-	for {
-		select {
-		case m := <-p.queue:
-			p.Destroy(m)
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
-		default:
-			return
-		}
+	for _, e := range p.env {
+		p.Destroy(e)
 	}
 }
 
 func (p *pool) Shutdown() {
-	for atomic.LoadInt32(&p.count) > 0 {
-		m := <-p.queue
-		p.Destroy(m)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	for _, e := range p.env {
+		p.Destroy(e)
 	}
 }

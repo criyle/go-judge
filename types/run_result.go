@@ -1,5 +1,11 @@
 package types
 
+import (
+	"time"
+
+	"github.com/criyle/go-sandbox/types"
+)
+
 // RunTaskResult return the result for run task RPC
 type RunTaskResult struct {
 	// status
@@ -30,8 +36,8 @@ type ExecResult struct {
 	Error string
 
 	// detail stats
-	Time   uint64 // ms
-	Memory uint64 // kb
+	Time   time.Duration
+	Memory types.Size
 
 	// user stdout stderr
 	UserOutput []byte

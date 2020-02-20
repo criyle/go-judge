@@ -1,5 +1,11 @@
 package types
 
+import (
+	"time"
+
+	"github.com/criyle/go-sandbox/types"
+)
+
 // ProgressStatus defines progress status
 type ProgressStatus int
 
@@ -51,8 +57,8 @@ type TestCaseResult struct {
 	ScoreRate float64
 
 	// detail stats
-	Time   uint64 // ms
-	Memory uint64 // kb
+	Time   time.Duration
+	Memory types.Size
 
 	// detail outputs
 	Input  []byte

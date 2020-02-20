@@ -3,10 +3,12 @@ package syzojclient
 import (
 	"net/http"
 	"reflect"
+	"time"
 
 	"github.com/criyle/go-judge/client"
 	"github.com/criyle/go-judge/file/memfile"
 	"github.com/criyle/go-judge/types"
+	stypes "github.com/criyle/go-sandbox/types"
 
 	engineio "github.com/googollee/go-engine.io"
 	"github.com/googollee/go-engine.io/transport"
@@ -37,9 +39,9 @@ type Client struct {
 
 	socket   engineio.Conn
 	tasks    chan client.Task
-	progress chan *result
-	result   chan *result
-	finish   chan *types.JudgeResult
+	progress chan []byte // msgPack encoded message
+	result   chan []byte
+	finish   chan types.JudgeResult
 	request  chan struct{}
 	ack      chan ack
 
@@ -61,9 +63,9 @@ func NewClient(url, token string) (*Client, chan error, error) {
 		token:    token,
 		socket:   socket,
 		tasks:    make(chan client.Task, buffSize),
-		progress: make(chan *result, buffSize),
-		result:   make(chan *result, buffSize),
-		finish:   make(chan *types.JudgeResult, buffSize),
+		progress: make(chan []byte, buffSize),
+		result:   make(chan []byte, buffSize),
+		finish:   make(chan types.JudgeResult, buffSize),
 		request:  make(chan struct{}, 1),
 		ack:      make(chan ack, 1),
 		encoder:  parser.NewEncoder(socket),
@@ -155,12 +157,7 @@ func (c *Client) writeLoop() (err error) {
 		return err
 	}
 
-	sendProgress := func(event string, p interface{}) error {
-		var d []byte
-		if err := codec.NewEncoderBytes(&d, &codec.MsgpackHandle{}).Encode(p); err != nil {
-			return err
-		}
-
+	sendProgress := func(event string, d []byte) error {
 		// binary encoding
 		buff := &parser.Buffer{
 			Data: d,
@@ -244,8 +241,8 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 			Language: msg.Content.Param.Language,
 			Code:     memfile.New("src", []byte(msg.Content.Param.Code)),
 		},
-		TileLimit:   msg.Content.Param.TimeLimit,
-		MemoryLimit: msg.Content.Param.MemoryLimit << 10,
+		TimeLimit:   time.Duration(msg.Content.Param.TimeLimit) * time.Millisecond,
+		MemoryLimit: stypes.Size(msg.Content.Param.MemoryLimit << 20),
 	}
 
 	t := &Task{

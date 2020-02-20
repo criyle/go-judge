@@ -52,8 +52,8 @@ type progress struct {
 	Status  taskStatus `json:"status,omitempty"`
 	Message string     `json:"message,omitempty"`
 
-	Error         *errType       `json:"error,omitempty"`
-	SystemMessage *string        `json:"systemMessage,omitempty"`
+	Error         errType        `json:"error,omitempty"`
+	SystemMessage string         `json:"systemMessage,omitempty"`
 	Compile       *compileResult `json:"compile,omitempty"`
 	Judge         *judgeResult   `json:"judge,omitempty"`
 }

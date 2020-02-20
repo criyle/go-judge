@@ -1,6 +1,7 @@
 package runner
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
-	"github.com/criyle/go-sandbox/daemon"
+	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/pipe"
 	stypes "github.com/criyle/go-sandbox/types"
@@ -20,6 +21,15 @@ var memoryLimitExtra uint64 = 16 << 10 // 16k more memory
 type pipeBuff struct {
 	buff *pipe.Buffer
 	name string
+}
+
+type cgroupCPUUsager struct {
+	*cgroup.CGroup
+}
+
+func (c cgroupCPUUsager) CPUUsage() (time.Duration, error) {
+	u, err := c.CpuacctUsage()
+	return time.Duration(u), err
 }
 
 // Run starts the cmd and returns results
@@ -38,14 +48,14 @@ func (r *Runner) Run() ([]Result, error) {
 		return nil, err
 	}
 
-	// prepare masters
-	ms := make([]*daemon.Master, 0, len(r.Cmds))
+	// prepare environments
+	ms := make([]container.Environment, 0, len(r.Cmds))
 	for range r.Cmds {
-		m, err := r.MasterPool.Get()
+		m, err := r.EnvironmentPool.Get()
 		if err != nil {
-			return nil, fmt.Errorf("failed to get master %v", err)
+			return nil, fmt.Errorf("failed to get environment %v", err)
 		}
-		defer r.MasterPool.Put(m)
+		defer r.EnvironmentPool.Put(m)
 		ms = append(ms, m)
 	}
 
@@ -90,14 +100,14 @@ func (r *Runner) Run() ([]Result, error) {
 }
 
 // fds will be closed
-func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []pipeBuff) (<-chan Result, error) {
+func runOne(m container.Environment, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []pipeBuff) (<-chan Result, error) {
 	fdToClose := fds
 	defer func() {
 		closeFiles(fdToClose)
 	}()
 
 	// setup cgroup limits
-	if err := cg.SetMemoryLimitInBytes(c.MemoryLimit + memoryLimitExtra); err != nil {
+	if err := cg.SetMemoryLimitInBytes(uint64(c.MemoryLimit) + memoryLimitExtra); err != nil {
 		return nil, err
 	}
 	if err := cg.SetPidsMax(c.PidLimit); err != nil {
@@ -112,20 +122,18 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	}
 
 	// set running parameters
-	execParam := &daemon.ExecveParam{
+	execParam := container.ExecveParam{
 		Args:     c.Args,
 		Env:      c.Env,
 		Fds:      getFdArray(fds),
 		SyncFunc: cg.AddProc,
 	}
 
-	// start the cmd
-	done := make(chan struct{})   // tell wait done
-	finish := make(chan struct{}) // tell waiter to stop
-	rc, err := m.Execve(done, execParam)
-	if err != nil {
-		return nil, err
-	}
+	// start the cmd (they will be canceled in other goroutines)
+	ctx, cancel := context.WithCancel(context.TODO())
+	waiterCtx, waiterCancel := context.WithCancel(ctx)
+
+	rc := m.Execve(ctx, execParam)
 
 	// close files
 	closeFiles(fds)
@@ -139,20 +147,20 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	// 2. waiter exit first, signal proc to exit
 	var tle bool
 	go func() {
-		tle = c.Waiter(finish, cg)
-		close(done)
+		tle = c.Waiter(waiterCtx, cgroupCPUUsager{cg})
+		cancel()
 	}()
 
 	go func() {
 		rt := <-rc
-		close(finish)
+		waiterCancel()
 		// collect result
 		files, err := copyOutAndCollect(m, c, ptc)
 		re := Result{
 			Status: convertStatus(rt.Status),
 			Error:  rt.Error,
-			Time:   time.Duration(rt.UserTime),
-			Memory: rt.UserMem << 10,
+			Time:   rt.Time,
+			Memory: rt.Memory,
 			Files:  files,
 		}
 		// collect error
@@ -179,10 +187,10 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 			re.Status = types.StatusInternalError
 			re.Error = err.Error()
 		} else {
-			re.Memory = memoryUsage
+			re.Memory = stypes.Size(memoryUsage)
 		}
 		// wait waiter done
-		<-done
+		<-ctx.Done()
 		if tle {
 			re.Status = types.StatusTimeLimitExceeded
 		}
@@ -195,12 +203,12 @@ func runOne(m *daemon.Master, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []p
 	return result, nil
 }
 
-func copyIn(m *daemon.Master, copyIn map[string]file.File) error {
+func copyIn(m container.Environment, copyIn map[string]file.File) error {
 	// open copyin files
-	openCmd := make([]daemon.OpenCmd, 0, len(copyIn))
+	openCmd := make([]container.OpenCmd, 0, len(copyIn))
 	files := make([]file.File, 0, len(copyIn))
 	for n, f := range copyIn {
-		openCmd = append(openCmd, daemon.OpenCmd{
+		openCmd = append(openCmd, container.OpenCmd{
 			Path: n,
 			Flag: os.O_CREATE | os.O_RDWR | os.O_TRUNC,
 			Perm: 0777,
@@ -254,15 +262,15 @@ func convertStatus(s stypes.Status) types.Status {
 	switch s {
 	case stypes.StatusNormal:
 		return types.StatusAccepted
-	case stypes.StatusRE:
+	case stypes.StatusSignalled, stypes.StatusNonzeroExitStatus:
 		return types.StatusRuntimeError
-	case stypes.StatusMLE:
+	case stypes.StatusMemoryLimitExceeded:
 		return types.StatusMemoryLimitExceeded
-	case stypes.StatusTLE:
+	case stypes.StatusTimeLimitExceeded:
 		return types.StatusTimeLimitExceeded
-	case stypes.StatusOLE:
+	case stypes.StatusOutputLimitExceeded:
 		return types.StatusOutputLimitExceeded
-	case stypes.StatusBan:
+	case stypes.StatusDisallowedSyscall:
 		return types.StatusDangerousSyscall
 	default:
 		return types.StatusInternalError

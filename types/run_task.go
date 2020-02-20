@@ -1,6 +1,11 @@
 package types
 
-import "github.com/criyle/go-judge/file"
+import (
+	"time"
+
+	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-sandbox/types"
+)
 
 // RunTask is used to send task into RunQueue,
 // if taskqueue is a remote queue, taskqueue need to store / retrive files
@@ -23,8 +28,8 @@ type ExecTask struct {
 	Exec *CompiledExec
 
 	// Run limits
-	TimeLimit   uint64 // ms
-	MemoryLimit uint64 // kb
+	TimeLimit   time.Duration
+	MemoryLimit types.Size
 
 	// Input / Output
 	InputFile  file.File

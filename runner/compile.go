@@ -47,7 +47,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 	devNull := localfile.New("null", os.DevNull)
 
 	// time limit
-	wait := &waiter{timeLimit: time.Duration(param.TimeLimit) * time.Millisecond}
+	wait := &waiter{timeLimit: time.Duration(param.TimeLimit)}
 
 	// build run specs
 	c := &runner.Cmd{
@@ -63,9 +63,9 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 
 	// run
 	rn := &runner.Runner{
-		CGBuilder:  r.CgroupBuilder,
-		MasterPool: r.pool,
-		Cmds:       []*runner.Cmd{c},
+		CGBuilder:       r.CgroupBuilder,
+		EnvironmentPool: r.pool,
+		Cmds:            []*runner.Cmd{c},
 	}
 
 	rt, err := rn.Run()

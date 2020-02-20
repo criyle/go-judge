@@ -1,18 +1,20 @@
 package runner
 
 import (
+	"context"
 	"time"
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
-	"github.com/criyle/go-sandbox/daemon"
+	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
+	stypes "github.com/criyle/go-sandbox/types"
 )
 
-// Pool implements pool of daemons
+// Pool implements pool of environments
 type Pool interface {
-	Get() (*daemon.Master, error)
-	Put(*daemon.Master)
+	Get() (container.Environment, error)
+	Put(container.Environment)
 }
 
 // PipeCollector can be used in Cmd.Files paramenter
@@ -32,12 +34,12 @@ type Pipe struct {
 	In, Out PipeIndex
 }
 
-// CPUAcctor access process cpu usage in ns
-type CPUAcctor interface {
-	CpuacctUsage() (uint64, error)
+// CPUUsager access process cpu usage (from cgroup)
+type CPUUsager interface {
+	CPUUsage() (time.Duration, error)
 }
 
-// Cmd defines instruction to run a program in daemon
+// Cmd defines instruction to run a program in container environment
 type Cmd struct {
 	// argument, environment
 	Args []string
@@ -51,7 +53,7 @@ type Cmd struct {
 	Files []interface{}
 
 	// cgroup limits
-	MemoryLimit uint64 // in bytes
+	MemoryLimit stypes.Size // in bytes
 	PidLimit    uint64
 
 	// file contents to copyin before exec
@@ -62,8 +64,8 @@ type Cmd struct {
 
 	// Waiter is called after cmd starts and it should return
 	// once time limit exceeded.
-	// return true to as TLE and false as normal exits
-	Waiter func(chan struct{}, CPUAcctor) bool
+	// return true to as TLE and false as normal exits (context finished)
+	Waiter func(context.Context, CPUUsager) bool
 }
 
 // CgroupBuilder builds cgroup for runner
@@ -78,8 +80,8 @@ type Runner struct {
 	// must have cpu, memory and pids sub-cgroup
 	CGBuilder CgroupBuilder
 
-	// MasterPool defines pool used for runner environment
-	MasterPool Pool
+	// EnvironmentPool defines pool used for runner environment
+	EnvironmentPool Pool
 
 	// Cmds defines Cmd running in parallel
 	Cmds []*Cmd
@@ -96,7 +98,7 @@ type Result struct {
 	Error string // error
 
 	Time   time.Duration
-	Memory uint64 // byte
+	Memory stypes.Size // byte
 
 	// Files stores copy out files
 	Files map[string]file.File

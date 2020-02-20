@@ -2,7 +2,6 @@ package runner
 
 import (
 	"bytes"
-	"time"
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/language"
@@ -31,16 +30,16 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 	errorCollector := runner.PipeCollector{Name: stderr, SizeLimit: maxOutput}
 
 	// calculate time limits
-	timeLimit := time.Duration(param.TimeLimit) * time.Millisecond
+	timeLimit := param.TimeLimit
 	if task.TimeLimit > 0 {
-		timeLimit = time.Duration(task.TimeLimit) * time.Millisecond
+		timeLimit = task.TimeLimit
 	}
 	wait := &waiter{timeLimit: timeLimit}
 
 	// calculate memory limits
-	memoryLimit := param.MemoryLimit << 10
+	memoryLimit := param.MemoryLimit
 	if task.MemoryLimit > 0 {
-		memoryLimit = task.MemoryLimit << 10
+		memoryLimit = task.MemoryLimit
 	}
 
 	// copyin files
@@ -66,9 +65,9 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 
 	// run
 	rn := &runner.Runner{
-		CGBuilder:  r.CgroupBuilder,
-		MasterPool: r.pool,
-		Cmds:       []*runner.Cmd{c},
+		CGBuilder:       r.CgroupBuilder,
+		EnvironmentPool: r.pool,
+		Cmds:            []*runner.Cmd{c},
 	}
 
 	rt, err := rn.Run()
@@ -113,8 +112,8 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 		Exec: &types.ExecResult{
 			Status:      status,
 			ScoringRate: scoreRate,
-			Time:        uint64(r0.Time / time.Millisecond),
-			Memory:      r0.Memory >> 10,
+			Time:        r0.Time,
+			Memory:      r0.Memory,
 			Input:       inputContent,
 			UserOutput:  userOutput,
 			UserError:   userError,

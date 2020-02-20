@@ -2,9 +2,11 @@ package syzojclient
 
 import (
 	"log"
+	"time"
 
 	"github.com/criyle/go-judge/client"
 	"github.com/criyle/go-judge/types"
+	"github.com/ugorji/go/codec"
 )
 
 var _ client.Task = &Task{}
@@ -52,17 +54,25 @@ func (t *Task) loop() {
 		jr judgeResult
 		cr *compileResult
 	)
+	encode := func(p interface{}) []byte {
+		var d []byte
+		if err := codec.NewEncoderBytes(&d, &codec.MsgpackHandle{}).Encode(p); err != nil {
+			// handler error (unlikely)
+			return d
+		}
+		return d
+	}
 loop:
 	for {
 		select {
 		case pConf := <-t.parsed:
 			log.Println(pConf)
 			initResult(pConf, &jr)
-			rt := &result{
+			rt := result{
 				TaskID: t.taskID,
 				Type:   progressStarted,
 			}
-			t.client.progress <- rt
+			t.client.progress <- encode(rt)
 
 		case compiled := <-t.compiled:
 			log.Println(compiled)
@@ -70,7 +80,7 @@ loop:
 				Status:  convertStatus(compiled.Status),
 				Message: compiled.Message,
 			}
-			rt := &result{
+			rt := result{
 				TaskID: t.taskID,
 				Type:   progressCompiled,
 				Progress: progress{
@@ -78,13 +88,13 @@ loop:
 					Message: compiled.Message,
 				},
 			}
-			t.client.progress <- rt
-			t.client.result <- rt
+			t.client.progress <- encode(rt)
+			t.client.result <- encode(rt)
 
 		case progressed := <-t.progressed:
 			log.Println(progressed)
 			updateResult(progressed, &jr)
-			rt := &result{
+			rt := result{
 				TaskID: t.taskID,
 				Type:   progressProgress,
 				Progress: progress{
@@ -92,12 +102,12 @@ loop:
 					Judge:   &jr,
 				},
 			}
-			t.client.progress <- rt
+			t.client.progress <- encode(rt)
 
 		case finished := <-t.finished:
 			log.Println(finished)
 
-			rt := &result{
+			rt := result{
 				TaskID: t.taskID,
 				Type:   progressFinished,
 				Progress: progress{
@@ -105,8 +115,8 @@ loop:
 					Judge:   &jr,
 				},
 			}
-			t.client.progress <- rt
-			t.client.result <- rt
+			t.client.progress <- encode(rt)
+			t.client.result <- encode(rt)
 
 			t.client.ack <- ack{id: t.ackID}
 			t.client.request <- struct{}{}
@@ -171,8 +181,8 @@ func updateResult(p *types.ProgressProgressed, jr *judgeResult) {
 	cr.Error = p.Error
 	cr.Result = &testcaseDetails{
 		Status:      convertResultTypes(p.ExecStatus),
-		Time:        p.Time,
-		Memory:      p.Memory,
+		Time:        uint64(p.Time / time.Millisecond),
+		Memory:      uint64(p.Memory >> 10),
 		Input:       getFileContent("input", p.Input),
 		Output:      getFileContent("output", p.Answer),
 		ScoringRate: p.ScoreRate,

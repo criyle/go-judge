@@ -25,6 +25,8 @@ func prepareFds(r *Runner) ([][]*os.File, [][]pipeBuff, []*os.File, error) {
 
 	prepareCmdFd := func(c *Cmd, count int) ([]*os.File, []pipeBuff, error) {
 		fd := make([]*os.File, count)
+		// record same name buffer for one command to avoid multiple pipe creation
+		pb := make(map[string]*pipe.Buffer)
 		var ptc []pipeBuff
 
 		for j, t := range c.Files {
@@ -45,11 +47,17 @@ func prepareFds(r *Runner) ([][]*os.File, [][]pipeBuff, []*os.File, error) {
 				fileToClose = append(fileToClose, f)
 
 			case PipeCollector:
+				if b, ok := pb[t.Name]; ok {
+					fd[j] = b.W
+					break
+				}
+
 				b, err := pipe.NewBuffer(t.SizeLimit)
 				if err != nil {
 					return nil, nil, fmt.Errorf("failed to create pipe %v", err)
 				}
 				fd[j] = b.W
+				pb[t.Name] = b
 				ptc = append(ptc, pipeBuff{b, t.Name})
 				fileToClose = append(fileToClose, b.W)
 
@@ -57,6 +65,7 @@ func prepareFds(r *Runner) ([][]*os.File, [][]pipeBuff, []*os.File, error) {
 				return nil, nil, fmt.Errorf("unknown file type %v", t)
 			}
 		}
+
 		return fd, ptc, nil
 	}
 

@@ -105,8 +105,8 @@ interface {
             // shared
             language: string;
             code: string;
-            timeLimit: number;
-            memoryLimit: number;
+            timeLimit: number;    // ms
+            memoryLimit: number;  // mb
 
             // standard
             fileIOInput?: string;  // Null indicates stdio.

@@ -6,38 +6,70 @@ The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) i
 
 ## Planned Design
 
-Container Root Filesystem:
+### Workflow
 
-+ necessary lib / exec / compiler / header readonly bind mounted from current file system: /lib /lib64 /bin /usr
-+ work directory tmpfs mount: /w (work dir), /tmp (compiler temp files)
-+ additional compiler scripts / exec readonly bind mounted: /c
-+ additional header readonly bind mounted: /i
+``` text
+    ^
+    |
+    v
++------+
+|Client|
++------+
+    ^
+    |
+    v
++------+    +----+
+|      |<-->|Data|
+|Judger|    +----+--+
+|      |<-->|Problem|
++------+    +-------+
+    ^
+    |
+    v
++---------+   +--------+
+|TaskQueue|<->|Language|
++---------+   +--------+
+    ^
+    |
+    v
++--------------------+
+|ContainerEnvironment|
++--------------------+
+```
 
-Brokers and interfaces:
+### Container Root Filesystem
 
-+ client: receive pushed judge tasks from website (websocket / socket.io / RabbitMQ)
-+ data: interface to download, cache, lock and access test data files from website by data_id
-+ taskqueue: message queue to send run task and receive result (GO channel / (RabbitMQ, Redis))
-+ file: general file interface (disk / memory)
-+ language: programming language compile & execute configurations
+- [x] necessary lib / exec / compiler / header readonly bind mounted from current file system: /lib /lib64 /bin /usr
+- [x] work directory tmpfs mount: /w (work dir), /tmp (compiler temp files)
+- [ ] additional compiler scripts / exec readonly bind mounted: /c
+- [ ] additional header readonly bind mounted: /i
 
-Workers:
+### Interfaces
 
-+ judger: execute judge logics (compile / standard / interactive / answer submit) and distribute as run task to queue
-+ runner: receive run task and execute in sandbox (dumb runner)
+- client: receive judge tasks (websocket / socket.io / RabbitMQ / REST API)
+- data: interface to download, cache, lock and access test data files from website (by dataId)
+- taskqueue: message queue to send run task and receive run task result (In memory / (RabbitMQ, Redis))
+- file: general file interface (disk / memory)
+- language: programming language compile & execute configurations
+- problem: parse problem definition from configuration files
 
-Models:
+### Judge Logic
 
-+ JudgeTask: judge task pushed from website (type, source, data)
-+ JudgeResult: judge task result send back to website
-+ JudgeSetting: problem setting (from yaml) and JudgeCase
-+ RunTask: run task parameters send to run_queue
-+ RunResult: run task result sent back from queue
+- judger: execute judge logics (compile / standard / interactive / answer submit) and distribute as run task to queue, the collect and calculate results
+- runner: receive run task and execute in sandbox environment
 
-Utilities:
+### Models
 
-+ Config: read client config from TOML file
-+ pkg/runner: run a group of programs in parallel
+- JudgeTask: judge task pushed from website (type, source, data)
+- JudgeResult: judge task result send back to website
+- JudgeSetting: problem setting (from yaml) and JudgeCase
+- RunTask: run task parameters send to run_queue
+- RunResult: run task result sent back from queue
+
+### Utilities
+
+- Config: read client config from TOML / YAML / JSON file
+- pkg/runner: run a group of programs in parallel
 
 ## Planned API
 
@@ -47,23 +79,20 @@ Client is able to report progress to the web front-end. Task should maintain its
 
 Planned events are:
 
-+ Parsed: problem data have been downloaded and problem configuration have been parsed (pass problem config to task)
-+ Compiled: user code have been compiled (success / fail)
-+ Progressed: single test case finished (success / fail + detail message)
-+ Finished: all test cases finished / compile failed
+- Parsed: problem data have been downloaded and problem configuration have been parsed (pass problem config to task)
+- Compiled: user code have been compiled (success / fail)
+- Progressed: single test case finished (success / fail - detail message)
+- Finished: all test cases finished / compile failed
 
 ## TODO
 
-+ syzoj problem yml parser
-+ syzoj data downloader
-+ syzoj compile configuration
-+ file io
-+ special judger
-+ interact problem
-+ answer submit
-+ demo site
-
-## Done
-
-+ socket.io client with namespace
-+ judge_v3 protocol
+- [x] socket.io client with namespace
+- [x] judge_v3 protocol
+- [ ] syzoj problem YAML config parser
+- [ ] syzoj data downloader
+- [ ] syzoj compile configuration
+- [ ] file io
+- [ ] special judger
+- [ ] interact problem
+- [ ] answer submit
+- [ ] demo site

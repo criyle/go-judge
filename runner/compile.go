@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-judge/file/localfile"
-	"github.com/criyle/go-judge/file/memfile"
 	"github.com/criyle/go-judge/language"
 	"github.com/criyle/go-judge/pkg/runner"
 	"github.com/criyle/go-judge/types"
@@ -32,7 +30,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 
 	// copyin files
 	copyIn := make(map[string]file.File)
-	copyIn[param.SourceFileName] = memfile.New("source", source)
+	copyIn[param.SourceFileName] = file.NewMemFile("source", source)
 	for _, f := range task.ExtraFiles {
 		copyIn[f.Name()] = f
 	}
@@ -44,7 +42,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 	// compile message (stdout & stderr)
 	const msgFileName = "msg"
 	msgCollector := runner.PipeCollector{Name: msgFileName, SizeLimit: maxOutput}
-	devNull := localfile.New("null", os.DevNull)
+	devNull := file.NewLocalFile("null", os.DevNull)
 
 	// time limit
 	wait := &waiter{timeLimit: time.Duration(param.TimeLimit)}
@@ -63,7 +61,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 
 	// run
 	rn := &runner.Runner{
-		CGBuilder:       r.CgroupBuilder,
+		CgroupPool:      r.cgPool,
 		EnvironmentPool: r.pool,
 		Cmds:            []*runner.Cmd{c},
 	}
@@ -87,7 +85,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 		if err != nil {
 			return compileErr(string(compileMsg))
 		}
-		exec = append(exec, memfile.New(n, f))
+		exec = append(exec, file.NewMemFile(n, f))
 	}
 
 	// return result

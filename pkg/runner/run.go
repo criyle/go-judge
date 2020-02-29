@@ -6,12 +6,10 @@ import (
 	"io"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
 	"github.com/criyle/go-sandbox/container"
-	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/pipe"
 	stypes "github.com/criyle/go-sandbox/types"
 )
@@ -21,15 +19,6 @@ var memoryLimitExtra uint64 = 16 << 10 // 16k more memory
 type pipeBuff struct {
 	buff *pipe.Buffer
 	name string
-}
-
-type cgroupCPUUsager struct {
-	*cgroup.CGroup
-}
-
-func (c cgroupCPUUsager) CPUUsage() (time.Duration, error) {
-	u, err := c.CpuacctUsage()
-	return time.Duration(u), err
 }
 
 // Run starts the cmd and returns results
@@ -60,13 +49,13 @@ func (r *Runner) Run() ([]Result, error) {
 	}
 
 	// prepare cgroup
-	cgs := make([]*cgroup.CGroup, 0, len(r.Cmds))
+	cgs := make([]Cgroup, 0, len(r.Cmds))
 	for range r.Cmds {
-		cg, err := r.CGBuilder.Build()
+		cg, err := r.CgroupPool.Get()
 		if err != nil {
-			return nil, fmt.Errorf("failed to build cgroup %v", err)
+			return nil, fmt.Errorf("failed to get cgroup %v", err)
 		}
-		defer cg.Destroy()
+		defer r.CgroupPool.Put(cg)
 		cgs = append(cgs, cg)
 	}
 
@@ -100,17 +89,17 @@ func (r *Runner) Run() ([]Result, error) {
 }
 
 // fds will be closed
-func runOne(m container.Environment, cg *cgroup.CGroup, c *Cmd, fds []*os.File, ptc []pipeBuff) (<-chan Result, error) {
+func runOne(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc []pipeBuff) (<-chan Result, error) {
 	fdToClose := fds
 	defer func() {
 		closeFiles(fdToClose)
 	}()
 
 	// setup cgroup limits
-	if err := cg.SetMemoryLimitInBytes(uint64(c.MemoryLimit) + memoryLimitExtra); err != nil {
+	if err := cg.SetMemoryLimit(stypes.Size(uint64(c.MemoryLimit) + memoryLimitExtra)); err != nil {
 		return nil, err
 	}
-	if err := cg.SetPidsMax(c.PidLimit); err != nil {
+	if err := cg.SetProcLimit(c.PidLimit); err != nil {
 		return nil, err
 	}
 
@@ -147,7 +136,7 @@ func runOne(m container.Environment, cg *cgroup.CGroup, c *Cmd, fds []*os.File, 
 	// 2. waiter exit first, signal proc to exit
 	var tle bool
 	go func() {
-		tle = c.Waiter(waiterCtx, cgroupCPUUsager{cg})
+		tle = c.Waiter(waiterCtx, cg)
 		cancel()
 	}()
 
@@ -174,20 +163,20 @@ func runOne(m container.Environment, cg *cgroup.CGroup, c *Cmd, fds []*os.File, 
 			re.Error = err.Error()
 		}
 		// time
-		cpuUsage, err := cg.CpuacctUsage()
+		cpuUsage, err := cg.CPUUsage()
 		if err != nil {
 			re.Status = types.StatusInternalError
 			re.Error = err.Error()
 		} else {
-			re.Time = time.Duration(cpuUsage)
+			re.Time = cpuUsage
 		}
 		// memory
-		memoryUsage, err := cg.MemoryMaxUsageInBytes()
+		memoryUsage, err := cg.MemoryUsage()
 		if err != nil {
 			re.Status = types.StatusInternalError
 			re.Error = err.Error()
 		} else {
-			re.Memory = stypes.Size(memoryUsage)
+			re.Memory = memoryUsage
 		}
 		// wait waiter done
 		<-ctx.Done()
@@ -232,7 +221,7 @@ func copyIn(m container.Environment, copyIn map[string]file.File) error {
 			defer cFile.Close()
 
 			// open host file
-			hf, err := hFile.Open()
+			hf, err := hFile.Reader()
 			if err != nil {
 				writeErrorC(errC, err)
 				return

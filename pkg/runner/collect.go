@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-judge/file/memfile"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/types"
 )
@@ -48,7 +47,7 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeBuff) (map[str
 				writeErrorC(errC, err)
 				return
 			}
-			fc <- memfile.New(n, c)
+			fc <- file.NewMemFile(n, c)
 		}(cFiles[i], c.CopyOut[i])
 	}
 
@@ -60,7 +59,7 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeBuff) (map[str
 			if int64(p.buff.Buffer.Len()) > p.buff.Max {
 				writeErrorC(errC, types.StatusOutputLimitExceeded)
 			}
-			fc <- memfile.New(p.name, p.buff.Buffer.Bytes())
+			fc <- file.NewMemFile(p.name, p.buff.Buffer.Bytes())
 		}(p)
 	}
 

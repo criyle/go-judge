@@ -7,14 +7,37 @@ import (
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
 	"github.com/criyle/go-sandbox/container"
-	"github.com/criyle/go-sandbox/pkg/cgroup"
 	stypes "github.com/criyle/go-sandbox/types"
 )
 
-// Pool implements pool of environments
-type Pool interface {
+// EnvironmentPool implements pool of environments
+type EnvironmentPool interface {
 	Get() (container.Environment, error)
 	Put(container.Environment)
+}
+
+// Cgroup defines interface to limit and monitor resources consumption of a process
+type Cgroup interface {
+	SetMemoryLimit(stypes.Size) error
+	SetProcLimit(uint64) error
+
+	CPUUsage() (time.Duration, error)
+	MemoryUsage() (stypes.Size, error)
+
+	AddProc(int) error
+	Reset() error
+	Destory() error
+}
+
+// CPUUsager access process cpu usage (from cgroup)
+type CPUUsager interface {
+	CPUUsage() (time.Duration, error)
+}
+
+// CgroupPool implements pool of Cgroup
+type CgroupPool interface {
+	Get() (Cgroup, error)
+	Put(Cgroup)
 }
 
 // PipeCollector can be used in Cmd.Files paramenter
@@ -32,11 +55,6 @@ type PipeIndex struct {
 // Pipe defines the pipe between parallel Cmd
 type Pipe struct {
 	In, Out PipeIndex
-}
-
-// CPUUsager access process cpu usage (from cgroup)
-type CPUUsager interface {
-	CPUUsage() (time.Duration, error)
 }
 
 // Cmd defines instruction to run a program in container environment
@@ -68,20 +86,14 @@ type Cmd struct {
 	Waiter func(context.Context, CPUUsager) bool
 }
 
-// CgroupBuilder builds cgroup for runner
-type CgroupBuilder interface {
-	Build() (cg *cgroup.CGroup, err error)
-}
-
 // Runner defines the running instruction to run multiple
 // Exec in parallel restricted within cgroup
 type Runner struct {
-	// CGBuilder defines cgroup builder used for Cmd
-	// must have cpu, memory and pids sub-cgroup
-	CGBuilder CgroupBuilder
+	// CgroupPool defines pool of cgroup used for Cmd
+	CgroupPool CgroupPool
 
 	// EnvironmentPool defines pool used for runner environment
-	EnvironmentPool Pool
+	EnvironmentPool EnvironmentPool
 
 	// Cmds defines Cmd running in parallel
 	Cmds []*Cmd

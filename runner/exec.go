@@ -65,7 +65,7 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 
 	// run
 	rn := &runner.Runner{
-		CGBuilder:       r.CgroupBuilder,
+		CgroupPool:      r.cgPool,
 		EnvironmentPool: r.pool,
 		Cmds:            []*runner.Cmd{c},
 	}

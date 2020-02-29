@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/client"
-	"github.com/criyle/go-judge/file/memfile"
+	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
 	stypes "github.com/criyle/go-sandbox/types"
 
@@ -239,7 +239,7 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 		Type: types.Standard,
 		Code: types.SourceCode{
 			Language: msg.Content.Param.Language,
-			Code:     memfile.New("src", []byte(msg.Content.Param.Code)),
+			Code:     file.NewMemFile("src", []byte(msg.Content.Param.Code)),
 		},
 		TimeLimit:   time.Duration(msg.Content.Param.TimeLimit) * time.Millisecond,
 		MemoryLimit: stypes.Size(msg.Content.Param.MemoryLimit << 20),

@@ -86,11 +86,13 @@ func (c *wCgroup) MemoryUsage() (stypes.Size, error) {
 	if err != nil {
 		return 0, err
 	}
-	cache, err := (*cgroup.CGroup)(c).FindMemoryStatProperty("cache")
-	if err != nil {
-		return 0, err
-	}
-	return stypes.Size(s - cache), err
+	return stypes.Size(s), nil
+	// not really useful if creates new
+	// cache, err := (*cgroup.CGroup)(c).FindMemoryStatProperty("cache")
+	// if err != nil {
+	// 	return 0, err
+	// }
+	// return stypes.Size(s - cache), err
 }
 
 func (c *wCgroup) AddProc(pid int) error {
@@ -109,6 +111,30 @@ func (c *wCgroup) Reset() error {
 
 func (c *wCgroup) Destory() error {
 	return (*cgroup.CGroup)(c).Destroy()
+}
+
+type fCgroupPool struct {
+	builder CgroupBuilder
+}
+
+func newFakeCgroupPool(builder CgroupBuilder) *fCgroupPool {
+	return &fCgroupPool{builder: builder}
+}
+
+func (f *fCgroupPool) Get() (runner.Cgroup, error) {
+	cg, err := f.builder.Build()
+	if err != nil {
+		return nil, err
+	}
+	return (*wCgroup)(cg), nil
+}
+
+func (f *fCgroupPool) Put(c runner.Cgroup) {
+	c.Destory()
+}
+
+func (f *fCgroupPool) Shutdown() {
+
 }
 
 type wCgroupPool struct {

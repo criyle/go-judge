@@ -35,7 +35,7 @@ type Runner struct {
 	// pool of sandbox to use
 	pool *pool
 
-	cgPool *wCgroupPool
+	cgPool *fCgroupPool
 
 	// ensure init / shutdown only once
 	onceInit, onceShutdown sync.Once
@@ -43,7 +43,7 @@ type Runner struct {
 
 func (r *Runner) init() {
 	r.pool = newPool(r.Builder)
-	r.cgPool = newCgroupPool(r.CgroupBuilder)
+	r.cgPool = newFakeCgroupPool(r.CgroupBuilder)
 }
 
 // Loop status a runner in a forever loop, waiting for task and execute

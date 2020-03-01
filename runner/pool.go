@@ -83,7 +83,14 @@ func (c *wCgroup) CPUUsage() (time.Duration, error) {
 
 func (c *wCgroup) MemoryUsage() (stypes.Size, error) {
 	s, err := (*cgroup.CGroup)(c).MemoryMaxUsageInBytes()
-	return stypes.Size(s), err
+	if err != nil {
+		return 0, err
+	}
+	cache, err := (*cgroup.CGroup)(c).FindMemoryStatProperty("cache")
+	if err != nil {
+		return 0, err
+	}
+	return stypes.Size(s - cache), err
 }
 
 func (c *wCgroup) AddProc(pid int) error {

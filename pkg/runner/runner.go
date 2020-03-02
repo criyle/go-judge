@@ -7,7 +7,7 @@ import (
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
 	"github.com/criyle/go-sandbox/container"
-	stypes "github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 // EnvironmentPool implements pool of environments
@@ -18,11 +18,11 @@ type EnvironmentPool interface {
 
 // Cgroup defines interface to limit and monitor resources consumption of a process
 type Cgroup interface {
-	SetMemoryLimit(stypes.Size) error
+	SetMemoryLimit(runner.Size) error
 	SetProcLimit(uint64) error
 
 	CPUUsage() (time.Duration, error)
-	MemoryUsage() (stypes.Size, error)
+	MemoryUsage() (runner.Size, error)
 
 	AddProc(int) error
 	Reset() error
@@ -71,7 +71,7 @@ type Cmd struct {
 	Files []interface{}
 
 	// cgroup limits
-	MemoryLimit stypes.Size // in bytes
+	MemoryLimit runner.Size // in bytes
 	PidLimit    uint64
 
 	// file contents to copyin before exec
@@ -110,7 +110,7 @@ type Result struct {
 	Error string // error
 
 	Time   time.Duration
-	Memory stypes.Size // byte
+	Memory runner.Size // byte
 
 	// Files stores copy out files
 	Files map[string]file.File

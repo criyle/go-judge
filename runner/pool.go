@@ -7,7 +7,7 @@ import (
 	"github.com/criyle/go-judge/pkg/runner"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
-	stypes "github.com/criyle/go-sandbox/types"
+	srunner "github.com/criyle/go-sandbox/runner"
 )
 
 type pool struct {
@@ -66,51 +66,51 @@ func (p *pool) Shutdown() {
 	}
 }
 
-type wCgroup cgroup.CGroup
+type wCgroup cgroup.Cgroup
 
-func (c *wCgroup) SetMemoryLimit(s stypes.Size) error {
-	return (*cgroup.CGroup)(c).SetMemoryLimitInBytes(uint64(s))
+func (c *wCgroup) SetMemoryLimit(s srunner.Size) error {
+	return (*cgroup.Cgroup)(c).SetMemoryLimitInBytes(uint64(s))
 }
 
 func (c *wCgroup) SetProcLimit(l uint64) error {
-	return (*cgroup.CGroup)(c).SetPidsMax(l)
+	return (*cgroup.Cgroup)(c).SetPidsMax(l)
 }
 
 func (c *wCgroup) CPUUsage() (time.Duration, error) {
-	t, err := (*cgroup.CGroup)(c).CpuacctUsage()
+	t, err := (*cgroup.Cgroup)(c).CpuacctUsage()
 	return time.Duration(t), err
 }
 
-func (c *wCgroup) MemoryUsage() (stypes.Size, error) {
-	s, err := (*cgroup.CGroup)(c).MemoryMaxUsageInBytes()
+func (c *wCgroup) MemoryUsage() (srunner.Size, error) {
+	s, err := (*cgroup.Cgroup)(c).MemoryMaxUsageInBytes()
 	if err != nil {
 		return 0, err
 	}
-	return stypes.Size(s), nil
+	return srunner.Size(s), nil
 	// not really useful if creates new
 	// cache, err := (*cgroup.CGroup)(c).FindMemoryStatProperty("cache")
 	// if err != nil {
 	// 	return 0, err
 	// }
-	// return stypes.Size(s - cache), err
+	// return runner.Size(s - cache), err
 }
 
 func (c *wCgroup) AddProc(pid int) error {
-	return (*cgroup.CGroup)(c).AddProc(pid)
+	return (*cgroup.Cgroup)(c).AddProc(pid)
 }
 
 func (c *wCgroup) Reset() error {
-	if err := (*cgroup.CGroup)(c).SetCpuacctUsage(0); err != nil {
+	if err := (*cgroup.Cgroup)(c).SetCpuacctUsage(0); err != nil {
 		return err
 	}
-	if err := (*cgroup.CGroup)(c).SetMemoryMaxUsageInBytes(0); err != nil {
+	if err := (*cgroup.Cgroup)(c).SetMemoryMaxUsageInBytes(0); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (c *wCgroup) Destory() error {
-	return (*cgroup.CGroup)(c).Destroy()
+	return (*cgroup.Cgroup)(c).Destroy()
 }
 
 type fCgroupPool struct {

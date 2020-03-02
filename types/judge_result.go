@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 // ProgressStatus defines progress status
@@ -58,7 +58,7 @@ type TestCaseResult struct {
 
 	// detail stats
 	Time   time.Duration
-	Memory types.Size
+	Memory runner.Size
 
 	// detail outputs
 	Input  []byte

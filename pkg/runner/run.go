@@ -11,7 +11,7 @@ import (
 	"github.com/criyle/go-judge/types"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/pipe"
-	stypes "github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 var memoryLimitExtra uint64 = 16 << 10 // 16k more memory
@@ -96,7 +96,7 @@ func runOne(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc []pi
 	}()
 
 	// setup cgroup limits
-	if err := cg.SetMemoryLimit(stypes.Size(uint64(c.MemoryLimit) + memoryLimitExtra)); err != nil {
+	if err := cg.SetMemoryLimit(runner.Size(uint64(c.MemoryLimit) + memoryLimitExtra)); err != nil {
 		return nil, err
 	}
 	if err := cg.SetProcLimit(c.PidLimit); err != nil {
@@ -114,7 +114,7 @@ func runOne(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc []pi
 	execParam := container.ExecveParam{
 		Args:     c.Args,
 		Env:      c.Env,
-		Fds:      getFdArray(fds),
+		Files:    getFdArray(fds),
 		SyncFunc: cg.AddProc,
 	}
 
@@ -155,7 +155,7 @@ func runOne(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc []pi
 		// collect error
 		if err != nil && re.Error == "" {
 			switch err := err.(type) {
-			case stypes.Status:
+			case runner.Status:
 				re.Status = convertStatus(err)
 			default:
 				re.Status = types.StatusInternalError
@@ -247,19 +247,19 @@ func copyIn(m container.Environment, copyIn map[string]file.File) error {
 	return nil
 }
 
-func convertStatus(s stypes.Status) types.Status {
+func convertStatus(s runner.Status) types.Status {
 	switch s {
-	case stypes.StatusNormal:
+	case runner.StatusNormal:
 		return types.StatusAccepted
-	case stypes.StatusSignalled, stypes.StatusNonzeroExitStatus:
+	case runner.StatusSignalled, runner.StatusNonzeroExitStatus:
 		return types.StatusRuntimeError
-	case stypes.StatusMemoryLimitExceeded:
+	case runner.StatusMemoryLimitExceeded:
 		return types.StatusMemoryLimitExceeded
-	case stypes.StatusTimeLimitExceeded:
+	case runner.StatusTimeLimitExceeded:
 		return types.StatusTimeLimitExceeded
-	case stypes.StatusOutputLimitExceeded:
+	case runner.StatusOutputLimitExceeded:
 		return types.StatusOutputLimitExceeded
-	case stypes.StatusDisallowedSyscall:
+	case runner.StatusDisallowedSyscall:
 		return types.StatusDangerousSyscall
 	default:
 		return types.StatusInternalError

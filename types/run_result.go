@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 // RunTaskResult return the result for run task RPC
@@ -37,7 +37,7 @@ type ExecResult struct {
 
 	// detail stats
 	Time   time.Duration
-	Memory types.Size
+	Memory runner.Size
 
 	// user stdout stderr
 	UserOutput []byte

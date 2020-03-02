@@ -21,7 +21,7 @@ import (
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/mount"
-	stypes "github.com/criyle/go-sandbox/types"
+	srunner "github.com/criyle/go-sandbox/runner"
 )
 
 func init() {
@@ -172,9 +172,9 @@ func (d *dumbLang) Get(name string, t language.Type) language.ExecParam {
 			CompiledFileNames: []string{"a"},
 
 			TimeLimit:   10 * time.Second,
-			MemoryLimit: stypes.Size(512 << 20),
+			MemoryLimit: srunner.Size(512 << 20),
 			ProcLimit:   100,
-			OutputLimit: stypes.Size(64 << 10),
+			OutputLimit: srunner.Size(64 << 10),
 		}
 
 	case language.TypeExec:
@@ -186,9 +186,9 @@ func (d *dumbLang) Get(name string, t language.Type) language.ExecParam {
 			CompiledFileNames: []string{"a"},
 
 			TimeLimit:   time.Second,
-			MemoryLimit: stypes.Size(256 << 20),
+			MemoryLimit: srunner.Size(256 << 20),
 			ProcLimit:   1,
-			OutputLimit: stypes.Size(64 << 10),
+			OutputLimit: srunner.Size(64 << 10),
 		}
 
 	default:

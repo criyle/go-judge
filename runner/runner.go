@@ -16,7 +16,7 @@ type EnvironmentBuilder interface {
 
 // CgroupBuilder builds cgroup for runner
 type CgroupBuilder interface {
-	Build() (cg *cgroup.CGroup, err error)
+	Build() (cg *cgroup.Cgroup, err error)
 }
 
 // Runner is the task runner

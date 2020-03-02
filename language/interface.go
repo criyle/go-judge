@@ -3,7 +3,7 @@ package language
 import (
 	"time"
 
-	"github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 // Type defines compile / exec
@@ -31,7 +31,7 @@ type ExecParam struct {
 
 	// limits
 	TimeLimit   time.Duration
-	MemoryLimit types.Size
+	MemoryLimit runner.Size
 	ProcLimit   uint64
-	OutputLimit types.Size
+	OutputLimit runner.Size
 }

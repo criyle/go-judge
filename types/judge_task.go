@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 // JudgeTask contains task received from server
@@ -15,6 +15,6 @@ type JudgeTask struct {
 
 	// task parameters
 	TimeLimit   time.Duration
-	MemoryLimit types.Size
+	MemoryLimit runner.Size
 	Extra       map[string]interface{} // extra special parameters
 }

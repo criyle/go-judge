@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 // RunTask is used to send task into RunQueue,
@@ -29,7 +29,7 @@ type ExecTask struct {
 
 	// Run limits
 	TimeLimit   time.Duration
-	MemoryLimit types.Size
+	MemoryLimit runner.Size
 
 	// Input / Output
 	InputFile  file.File

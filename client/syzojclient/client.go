@@ -8,7 +8,7 @@ import (
 	"github.com/criyle/go-judge/client"
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/types"
-	stypes "github.com/criyle/go-sandbox/types"
+	"github.com/criyle/go-sandbox/runner"
 
 	engineio "github.com/googollee/go-engine.io"
 	"github.com/googollee/go-engine.io/transport"
@@ -242,7 +242,7 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 			Code:     file.NewMemFile("src", []byte(msg.Content.Param.Code)),
 		},
 		TimeLimit:   time.Duration(msg.Content.Param.TimeLimit) * time.Millisecond,
-		MemoryLimit: stypes.Size(msg.Content.Param.MemoryLimit << 20),
+		MemoryLimit: runner.Size(msg.Content.Param.MemoryLimit << 20),
 	}
 
 	t := &Task{

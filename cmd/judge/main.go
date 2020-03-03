@@ -15,9 +15,9 @@ import (
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/judger"
 	"github.com/criyle/go-judge/language"
+	"github.com/criyle/go-judge/problem"
 	"github.com/criyle/go-judge/runner"
-	"github.com/criyle/go-judge/taskqueue/channel"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/taskqueue"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/mount"
@@ -45,7 +45,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	q := channel.New()
+	q := taskqueue.NewChannelQueue(512)
 	m, err := mount.NewBuilder().
 		// basic exec and lib
 		WithBind("/bin", "bin", true).
@@ -131,23 +131,23 @@ func (c *credGen) Get() syscall.Credential {
 type dumbBuilder struct {
 }
 
-func (b *dumbBuilder) Build([]file.File) (types.ProblemConfig, error) {
+func (b *dumbBuilder) Build([]file.File) (problem.Config, error) {
 	const n = 100
 
-	c := make([]types.Case, 0, n)
+	c := make([]problem.Case, 0, n)
 	for i := 0; i < n; i++ {
 		inputContent := strconv.Itoa(i) + " " + strconv.Itoa(i)
 		outputContent := strconv.Itoa(i + i)
-		c = append(c, types.Case{
+		c = append(c, problem.Case{
 			Input:  file.NewMemFile("input", []byte(inputContent)),
 			Answer: file.NewMemFile("output", []byte(outputContent)),
 		})
 	}
 
-	return types.ProblemConfig{
+	return problem.Config{
 		Type: "standard",
-		Subtasks: []types.SubTask{
-			types.SubTask{
+		Subtasks: []problem.SubTask{
+			problem.SubTask{
 				ScoringType: "sum",
 				Score:       100,
 				Cases:       c,

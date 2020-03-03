@@ -1,14 +1,14 @@
-package types
+package problem
 
 import "github.com/criyle/go-judge/file"
 
-// ProblemConfig defines a problem
-type ProblemConfig struct {
+// Config defines a problem judgement configuration
+type Config struct {
 	Type     string    // Problem type
 	Subtasks []SubTask // SubTasks
 
-	SPJ        SourceCode // Special Judge
-	Interactor SourceCode // Interactor
+	SPJ        file.SourceCode // Special Judge
+	Interactor file.SourceCode // Interactor
 
 	ExtraFiles []file.File // Extra Files
 }

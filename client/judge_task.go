@@ -1,4 +1,4 @@
-package types
+package client
 
 import (
 	"time"
@@ -9,9 +9,9 @@ import (
 
 // JudgeTask contains task received from server
 type JudgeTask struct {
-	Type     string      // defines problem type
-	TestData []file.File // test data (potential local)
-	Code     SourceCode  // code & code language / answer submit in extra files
+	Type     string          // defines problem type
+	TestData []file.File     // test data (potential local)
+	Code     file.SourceCode // code & code language / answer submit in extra files
 
 	// task parameters
 	TimeLimit   time.Duration

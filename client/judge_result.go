@@ -1,8 +1,9 @@
-package types
+package client
 
 import (
 	"time"
 
+	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-sandbox/runner"
 )
 
@@ -47,7 +48,7 @@ type SubTaskResult struct {
 type TestCaseResult struct {
 	// status
 	Status     ProgressStatus
-	ExecStatus Status
+	ExecStatus envexec.Status
 
 	// message
 	Message string

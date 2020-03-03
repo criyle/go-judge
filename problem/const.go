@@ -1,4 +1,4 @@
-package types
+package problem
 
 // run_task / problem types
 const (

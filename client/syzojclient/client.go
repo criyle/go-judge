@@ -7,7 +7,7 @@ import (
 
 	"github.com/criyle/go-judge/client"
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/problem"
 	"github.com/criyle/go-sandbox/runner"
 
 	engineio "github.com/googollee/go-engine.io"
@@ -41,7 +41,7 @@ type Client struct {
 	tasks    chan client.Task
 	progress chan []byte // msgPack encoded message
 	result   chan []byte
-	finish   chan types.JudgeResult
+	finish   chan client.JudgeResult
 	request  chan struct{}
 	ack      chan ack
 
@@ -65,7 +65,7 @@ func NewClient(url, token string) (*Client, chan error, error) {
 		tasks:    make(chan client.Task, buffSize),
 		progress: make(chan []byte, buffSize),
 		result:   make(chan []byte, buffSize),
-		finish:   make(chan types.JudgeResult, buffSize),
+		finish:   make(chan client.JudgeResult, buffSize),
 		request:  make(chan struct{}, 1),
 		ack:      make(chan ack, 1),
 		encoder:  parser.NewEncoder(socket),
@@ -235,9 +235,9 @@ type judgeParameter struct {
 }
 
 func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
-	task := &types.JudgeTask{
-		Type: types.Standard,
-		Code: types.SourceCode{
+	task := &client.JudgeTask{
+		Type: problem.Standard,
+		Code: file.SourceCode{
 			Language: msg.Content.Param.Language,
 			Code:     file.NewMemFile("src", []byte(msg.Content.Param.Code)),
 		},
@@ -251,10 +251,10 @@ func newTask(c *Client, msg *judgeTask, ackID uint64) client.Task {
 		ackID:  ackID,
 		taskID: msg.Content.TaskID,
 
-		parsed:     make(chan *types.ProblemConfig),
-		compiled:   make(chan *types.ProgressCompiled),
-		progressed: make(chan *types.ProgressProgressed),
-		finished:   make(chan *types.JudgeResult),
+		parsed:     make(chan *problem.Config),
+		compiled:   make(chan *client.ProgressCompiled),
+		progressed: make(chan *client.ProgressProgressed),
+		finished:   make(chan *client.JudgeResult),
 	}
 	go t.loop()
 

@@ -1,4 +1,4 @@
-package runner
+package envexec
 
 import (
 	"io/ioutil"
@@ -10,7 +10,7 @@ import (
 	"github.com/criyle/go-sandbox/runner"
 )
 
-func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeBuff) (map[string]file.File, error) {
+func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (map[string]file.File, error) {
 	// wait to complete
 	var wg sync.WaitGroup
 	wg.Add(len(ptc))
@@ -53,7 +53,7 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeBuff) (map[str
 
 	// collect pipe
 	for _, p := range ptc {
-		go func(p pipeBuff) {
+		go func(p pipeCollector) {
 			defer wg.Done()
 			<-p.buff.Done
 			if int64(p.buff.Buffer.Len()) > p.buff.Max {

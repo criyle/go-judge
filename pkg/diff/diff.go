@@ -1,3 +1,7 @@
+// Package diff provides function to compare contents from reader and
+// returns error information if they are different.
+//
+// The package will ignore white spaces at the end of line and end of file
 package diff
 
 import (

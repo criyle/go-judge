@@ -6,17 +6,16 @@ import (
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/language"
-	"github.com/criyle/go-judge/pkg/runner"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/pkg/envexec"
 )
 
-func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.RunTaskResult {
+func (r *Runner) compile(done <-chan struct{}, task *CompileTask) *RunTaskResult {
 	param := r.Language.Get(task.Language, language.TypeCompile)
 
-	compileErr := func(err string) *types.RunTaskResult {
-		return &types.RunTaskResult{
-			Status: types.RunTaskFailed,
-			Compile: &types.CompileResult{
+	compileErr := func(err string) *RunTaskResult {
+		return &RunTaskResult{
+			Status: RunTaskFailed,
+			Compile: &CompileResult{
 				Error: err,
 			},
 		}
@@ -41,39 +40,38 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 
 	// compile message (stdout & stderr)
 	const msgFileName = "msg"
-	msgCollector := runner.PipeCollector{Name: msgFileName, SizeLimit: maxOutput}
+	msgCollector := envexec.PipeCollector{Name: msgFileName, SizeLimit: maxOutput}
 	devNull := file.NewLocalFile("null", os.DevNull)
 
 	// time limit
 	wait := &waiter{timeLimit: time.Duration(param.TimeLimit)}
 
 	// build run specs
-	c := &runner.Cmd{
+	c := &envexec.Cmd{
 		Args:        param.Args,
 		Env:         param.Env,
 		Files:       []interface{}{devNull, msgCollector, msgCollector},
 		MemoryLimit: param.MemoryLimit,
-		PidLimit:    param.ProcLimit,
+		ProcLimit:   param.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
 		Waiter:      wait.Wait,
 	}
 
 	// run
-	rn := &runner.Runner{
+	rn := &envexec.Single{
 		CgroupPool:      r.cgPool,
 		EnvironmentPool: r.pool,
-		Cmds:            []*runner.Cmd{c},
+		Cmd:             c,
 	}
 
 	rt, err := rn.Run()
 	if err != nil {
 		return compileErr(err.Error())
 	}
-	r0 := rt[0]
 
 	// get compile message
-	compileMsg, err := getFile(r0.Files, msgFileName)
+	compileMsg, err := getFile(rt.Files, msgFileName)
 	if err != nil {
 		return compileErr("FileError:" + err.Error())
 	}
@@ -81,7 +79,7 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 	// compile copyout
 	var exec []file.File
 	for _, n := range param.CompiledFileNames {
-		f, err := getFile(r0.Files, n)
+		f, err := getFile(rt.Files, n)
 		if err != nil {
 			return compileErr(string(compileMsg))
 		}
@@ -89,10 +87,10 @@ func (r *Runner) compile(done <-chan struct{}, task *types.CompileTask) *types.R
 	}
 
 	// return result
-	return &types.RunTaskResult{
-		Status: types.RunTaskSucceeded,
-		Compile: &types.CompileResult{
-			Exec: &types.CompiledExec{
+	return &RunTaskResult{
+		Status: RunTaskSucceeded,
+		Compile: &CompileResult{
+			Exec: &file.CompiledExec{
 				Language: task.Language,
 				Exec:     exec,
 			},

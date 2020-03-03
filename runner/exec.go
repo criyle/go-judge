@@ -6,17 +6,16 @@ import (
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/language"
 	"github.com/criyle/go-judge/pkg/diff"
-	"github.com/criyle/go-judge/pkg/runner"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/pkg/envexec"
 )
 
-func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTaskResult {
+func (r *Runner) exec(done <-chan struct{}, task *ExecTask) *RunTaskResult {
 	param := r.Language.Get(task.Exec.Language, language.TypeExec)
 
-	execErr := func(status types.Status, err string) *types.RunTaskResult {
-		return &types.RunTaskResult{
-			Status: types.RunTaskFailed,
-			Exec: &types.ExecResult{
+	execErr := func(status envexec.Status, err string) *RunTaskResult {
+		return &RunTaskResult{
+			Status: RunTaskFailed,
+			Exec: &ExecResult{
 				Status: status,
 				Error:  err,
 			},
@@ -26,8 +25,8 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 	// init input / output / error files
 	const stdout = "stdout"
 	const stderr = "stderr"
-	outputCollector := runner.PipeCollector{Name: stdout, SizeLimit: maxOutput}
-	errorCollector := runner.PipeCollector{Name: stderr, SizeLimit: maxOutput}
+	outputCollector := envexec.PipeCollector{Name: stdout, SizeLimit: maxOutput}
+	errorCollector := envexec.PipeCollector{Name: stderr, SizeLimit: maxOutput}
 
 	// calculate time limits
 	timeLimit := param.TimeLimit
@@ -52,70 +51,69 @@ func (r *Runner) exec(done <-chan struct{}, task *types.ExecTask) *types.RunTask
 	var copyOut []string
 
 	// build run specs
-	c := &runner.Cmd{
+	c := &envexec.Cmd{
 		Args:        param.Args,
 		Env:         param.Env,
 		Files:       []interface{}{task.InputFile, outputCollector, errorCollector},
 		MemoryLimit: memoryLimit,
-		PidLimit:    param.ProcLimit,
+		ProcLimit:   param.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
 		Waiter:      wait.Wait,
 	}
 
 	// run
-	rn := &runner.Runner{
+	rn := &envexec.Single{
 		CgroupPool:      r.cgPool,
 		EnvironmentPool: r.pool,
-		Cmds:            []*runner.Cmd{c},
+		Cmd:             c,
 	}
 
 	rt, err := rn.Run()
 	if err != nil {
-		return execErr(types.StatusInternalError, err.Error())
+		return execErr(envexec.StatusInternalError, err.Error())
 	}
-	r0 := rt[0]
 
 	// get result files
 	inputContent, err := task.InputFile.Content()
 	if err != nil {
-		return execErr(types.StatusFileError, err.Error())
+		return execErr(envexec.StatusFileError, err.Error())
 	}
-	userOutput, err := getFile(r0.Files, stdout)
+	userOutput, err := getFile(rt.Files, stdout)
 	if err != nil {
-		return execErr(types.StatusFileError, err.Error())
+		return execErr(envexec.StatusFileError, err.Error())
 	}
-	userError, err := getFile(r0.Files, stderr)
+	userError, err := getFile(rt.Files, stderr)
 	if err != nil {
-		return execErr(types.StatusFileError, err.Error())
+		return execErr(envexec.StatusFileError, err.Error())
 	}
 
 	// compare result with answer (no spj now)
 	var (
-		status    = r0.Status
+		status    = rt.Status
 		spjOutput []byte
 		scoreRate float64 = 1
 	)
 	ans, err := task.AnswerFile.Content()
 	if err != nil {
-		return execErr(types.StatusFileError, err.Error())
+		return execErr(envexec.StatusFileError, err.Error())
 	}
-	if status == types.StatusAccepted {
+	if status == envexec.StatusAccepted {
 		if err := diff.Compare(bytes.NewReader(ans), bytes.NewReader(userOutput)); err != nil {
 			spjOutput = []byte(err.Error())
 			scoreRate = 0
-			status = types.StatusWrongAnswer
+			status = envexec.StatusWrongAnswer
 		}
 	}
 
 	// return result
-	return &types.RunTaskResult{
-		Status: types.RunTaskSucceeded,
-		Exec: &types.ExecResult{
+	return &RunTaskResult{
+		Status: RunTaskSucceeded,
+		Exec: &ExecResult{
 			Status:      status,
 			ScoringRate: scoreRate,
-			Time:        r0.Time,
-			Memory:      r0.Memory,
+			Time:        rt.Time,
+			Memory:      rt.Memory,
 			Input:       inputContent,
 			Answer:      ans,
 			UserOutput:  userOutput,

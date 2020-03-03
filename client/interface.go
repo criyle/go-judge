@@ -1,23 +1,23 @@
 package client
 
-import "github.com/criyle/go-judge/types"
+import "github.com/criyle/go-judge/problem"
 
 // Task contains a single task received from web
 type Task interface {
 	// Param get the judge task
-	Param() *types.JudgeTask
+	Param() *JudgeTask
 
 	// Parsed called when problem data have been downloaded and problem
-	Parsed(*types.ProblemConfig)
+	Parsed(*problem.Config)
 
 	// Compiled called when user code have been compiled (success / fail)
-	Compiled(*types.ProgressCompiled)
+	Compiled(*ProgressCompiled)
 
 	// Progressed called when single test case finished (success / fail + detail message)
-	Progressed(*types.ProgressProgressed)
+	Progressed(*ProgressProgressed)
 
 	// Finished called when all test cases finished / compile failed
-	Finished(*types.JudgeResult)
+	Finished(*JudgeResult)
 }
 
 // Client should connect to web service and receive works from web

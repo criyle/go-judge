@@ -1,13 +1,4 @@
-package types
-
-// RunTaskStatus defines success / fail
-type RunTaskStatus int
-
-// Success / Fail
-const (
-	RunTaskSucceeded RunTaskStatus = iota + 1
-	RunTaskFailed
-)
+package envexec
 
 // Status defines run task Status return status
 type Status int

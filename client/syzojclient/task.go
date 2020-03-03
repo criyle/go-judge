@@ -5,7 +5,8 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/client"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/problem"
 	"github.com/ugorji/go/codec"
 )
 
@@ -14,38 +15,38 @@ var _ client.Task = &Task{}
 // Task task
 type Task struct {
 	client *Client
-	task   *types.JudgeTask
+	task   *client.JudgeTask
 	ackID  uint64
 	taskID string
 
-	parsed     chan *types.ProblemConfig
-	compiled   chan *types.ProgressCompiled
-	progressed chan *types.ProgressProgressed
-	finished   chan *types.JudgeResult
+	parsed     chan *problem.Config
+	compiled   chan *client.ProgressCompiled
+	progressed chan *client.ProgressProgressed
+	finished   chan *client.JudgeResult
 }
 
 // Param param
-func (t *Task) Param() *types.JudgeTask {
+func (t *Task) Param() *client.JudgeTask {
 	return t.task
 }
 
 // Parsed parsed
-func (t *Task) Parsed(p *types.ProblemConfig) {
+func (t *Task) Parsed(p *problem.Config) {
 	t.parsed <- p
 }
 
 // Compiled compiled
-func (t *Task) Compiled(p *types.ProgressCompiled) {
+func (t *Task) Compiled(p *client.ProgressCompiled) {
 	t.compiled <- p
 }
 
 // Progressed progress
-func (t *Task) Progressed(p *types.ProgressProgressed) {
+func (t *Task) Progressed(p *client.ProgressProgressed) {
 	t.progressed <- p
 }
 
 // Finished finished
-func (t *Task) Finished(r *types.JudgeResult) {
+func (t *Task) Finished(r *client.JudgeResult) {
 	t.finished <- r
 }
 
@@ -125,54 +126,54 @@ loop:
 	}
 }
 
-func initResult(p *types.ProblemConfig, jr *judgeResult) {
+func initResult(p *problem.Config, jr *judgeResult) {
 	jr.Subtasks = make([]subtaskResult, len(p.Subtasks))
 	for i := range jr.Subtasks {
 		initSubtaskResult(&p.Subtasks[i], &jr.Subtasks[i])
 	}
 }
 
-func initSubtaskResult(p *types.SubTask, sr *subtaskResult) {
+func initSubtaskResult(p *problem.SubTask, sr *subtaskResult) {
 	sr.Cases = make([]caseResult, len(p.Cases))
 }
 
-func convertStatus(s types.ProgressStatus) taskStatus {
+func convertStatus(s client.ProgressStatus) taskStatus {
 	switch s {
-	case types.ProgressSucceeded:
+	case client.ProgressSucceeded:
 		return statusDone
 	default:
 		return statusFailed
 	}
 }
 
-func convertResultTypes(s types.Status) testCaseResultType {
+func convertResultTypes(s envexec.Status) testCaseResultType {
 	switch s {
-	case types.StatusAccepted:
+	case envexec.StatusAccepted:
 		return resultAccepted
-	case types.StatusWrongAnswer:
+	case envexec.StatusWrongAnswer:
 		return resultWrongAnswer
-	case types.StatusPartiallyCorrect:
+	case envexec.StatusPartiallyCorrect:
 		return resultPartiallyCorrect
-	case types.StatusMemoryLimitExceeded:
+	case envexec.StatusMemoryLimitExceeded:
 		return resultMemoryLimitExceeded
-	case types.StatusTimeLimitExceeded:
+	case envexec.StatusTimeLimitExceeded:
 		return resultTimeLimitExceeded
-	case types.StatusOutputLimitExceeded:
+	case envexec.StatusOutputLimitExceeded:
 		return resultOutputLimitExceeded
-	case types.StatusFileError:
+	case envexec.StatusFileError:
 		return resultFileError
-	case types.StatusRuntimeError:
+	case envexec.StatusRuntimeError:
 		return resultRuntimeError
-	case types.StatusJudgementFailed:
+	case envexec.StatusJudgementFailed:
 		return resultJudgementFailed
-	case types.StatusInvalidInteraction:
+	case envexec.StatusInvalidInteraction:
 		return resultInvalidInteraction
 	default:
 		return resultRuntimeError
 	}
 }
 
-func updateResult(p *types.ProgressProgressed, jr *judgeResult) {
+func updateResult(p *client.ProgressProgressed, jr *judgeResult) {
 	st := &jr.Subtasks[p.SubTaskIndex]
 	st.Score += 100 * p.ScoreRate / float64(len(jr.Subtasks[p.SubTaskIndex].Cases))
 

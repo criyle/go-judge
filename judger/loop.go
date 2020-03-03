@@ -5,7 +5,9 @@ import (
 	"sync"
 
 	"github.com/criyle/go-judge/client"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-judge/problem"
+	"github.com/criyle/go-judge/runner"
 )
 
 // Loop fetch judge task from client and report results
@@ -30,13 +32,13 @@ loop:
 	}
 }
 
-func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
-	var result types.JudgeResult
-	errResult := func(err error) *types.JudgeResult {
+func (j *Judger) run(done <-chan struct{}, t client.Task) *client.JudgeResult {
+	var result client.JudgeResult
+	errResult := func(err error) *client.JudgeResult {
 		result.Error = err.Error()
 		return &result
 	}
-	errResultF := func(f string, v ...interface{}) *types.JudgeResult {
+	errResultF := func(f string, v ...interface{}) *client.JudgeResult {
 		result.Error = fmt.Sprintf(f, v...)
 		return &result
 	}
@@ -51,9 +53,9 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 	t.Parsed(&pConf)
 
 	// compile
-	compileRet, err := j.Send(types.RunTask{
-		Type:    types.Compile,
-		Compile: (*types.CompileTask)(&p.Code),
+	compileRet, err := j.Send(runner.RunTask{
+		Type:    problem.Compile,
+		Compile: (*runner.CompileTask)(&p.Code),
 	})
 	if err != nil {
 		return errResult(err)
@@ -62,36 +64,36 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 
 	// compiled
 	if compileTaskResult.Compile == nil {
-		t.Compiled(&types.ProgressCompiled{
-			Status: types.ProgressFailed,
+		t.Compiled(&client.ProgressCompiled{
+			Status: client.ProgressFailed,
 		})
 		return errResultF("compile error: no response")
 	}
-	if compileTaskResult.Status != types.RunTaskSucceeded {
-		t.Compiled(&types.ProgressCompiled{
-			Status:  types.ProgressFailed,
+	if compileTaskResult.Status != runner.RunTaskSucceeded {
+		t.Compiled(&client.ProgressCompiled{
+			Status:  client.ProgressFailed,
 			Message: compileTaskResult.Compile.Error,
 		})
 		return errResultF("compile error: %s", compileTaskResult.Compile.Error)
 	}
-	t.Compiled(&types.ProgressCompiled{
-		Status: types.ProgressSucceeded,
+	t.Compiled(&client.ProgressCompiled{
+		Status: client.ProgressSucceeded,
 	})
 
 	// judger
 	pj := problemJudger{
-		Judger:        j,
-		ProblemConfig: &pConf,
-		Task:          t,
-		JudgeTask:     p,
-		Exec:          compileTaskResult.Compile.Exec,
+		Judger:    j,
+		Config:    &pConf,
+		Task:      t,
+		JudgeTask: p,
+		Exec:      compileTaskResult.Compile.Exec,
 	}
 
 	// run all subtasks
 	var wg sync.WaitGroup
 	wg.Add(len(pConf.Subtasks))
 
-	result.SubTasks = make([]types.SubTaskResult, len(pConf.Subtasks))
+	result.SubTasks = make([]client.SubTaskResult, len(pConf.Subtasks))
 	for i := range pConf.Subtasks {
 		go func(index int) {
 			defer wg.Done()
@@ -107,17 +109,17 @@ func (j *Judger) run(done <-chan struct{}, t client.Task) *types.JudgeResult {
 
 type problemJudger struct {
 	*Judger
-	*types.ProblemConfig
-	*types.JudgeTask
+	*problem.Config
+	*client.JudgeTask
 	client.Task
 
 	// compiled code
-	Exec *types.CompiledExec
+	Exec *file.CompiledExec
 }
 
-func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sIndex int) types.SubTaskResult {
-	var result types.SubTaskResult
-	result.Cases = make([]types.TestCaseResult, len(s.Cases))
+func (pj *problemJudger) runSubtask(done <-chan struct{}, s *problem.SubTask, sIndex int) client.SubTaskResult {
+	var result client.SubTaskResult
+	result.Cases = make([]client.TestCaseResult, len(s.Cases))
 
 	// wait for all cases
 	var wg sync.WaitGroup
@@ -129,9 +131,9 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 
 			c := s.Cases[i]
 
-			rtC, err := pj.Send(types.RunTask{
-				Type: pj.ProblemConfig.Type,
-				Exec: &types.ExecTask{
+			rtC, err := pj.Send(runner.RunTask{
+				Type: pj.Config.Type,
+				Exec: &runner.ExecTask{
 					Exec:        pj.Exec,
 					TimeLimit:   pj.TimeLimit,
 					MemoryLimit: pj.MemoryLimit,
@@ -140,15 +142,15 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 				},
 			})
 
-			var ret types.TestCaseResult
+			var ret client.TestCaseResult
 			if err != nil {
-				ret.Status = types.ProgressFailed
+				ret.Status = client.ProgressFailed
 			} else {
 				// receive result from queue
 				rt := <-rtC
 
 				// run task result -> test case result
-				ret.Status = types.ProgressStatus(rt.Status)
+				ret.Status = client.ProgressStatus(rt.Status)
 				if execRt := rt.Exec; execRt != nil {
 					ret.ExecStatus = execRt.Status
 					ret.Error = execRt.Error
@@ -167,7 +169,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 			result.Cases[i] = ret
 
 			// report prograss
-			pj.Progressed(&types.ProgressProgressed{
+			pj.Progressed(&client.ProgressProgressed{
 				SubTaskIndex:   sIndex,
 				TestCaseIndex:  i,
 				TestCaseResult: ret,
@@ -185,7 +187,7 @@ func (pj *problemJudger) runSubtask(done <-chan struct{}, s *types.SubTask, sInd
 }
 
 // count counts total number of cases
-func count(pConf *types.ProblemConfig) int32 {
+func count(pConf *problem.Config) int32 {
 	var count int32
 	for _, s := range pConf.Subtasks {
 		count += int32(len(s.Cases))

@@ -1,4 +1,4 @@
-package types
+package runner
 
 import (
 	"time"
@@ -20,12 +20,12 @@ type RunTask struct {
 }
 
 // CompileTask defines compile task
-type CompileTask SourceCode
+type CompileTask file.SourceCode
 
 // ExecTask defines run tasks
 type ExecTask struct {
 	// Executable
-	Exec *CompiledExec
+	Exec *file.CompiledExec
 
 	// Run limits
 	TimeLimit   time.Duration
@@ -40,10 +40,10 @@ type ExecTask struct {
 	OutputFileName *string
 
 	// Special Judge
-	SPJ *CompiledExec
+	SPJ *file.CompiledExec
 
 	// Interactor for interactive type
-	Interactor *CompiledExec
+	Interactor *file.CompiledExec
 
 	// UserAnswers for answer submission run task
 	UserAnswer []file.File

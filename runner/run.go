@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-judge/types"
+	"github.com/criyle/go-judge/problem"
 )
 
 const maxOutput = 4 << 20 // 4M
 
-func (r *Runner) run(done <-chan struct{}, task *types.RunTask) *types.RunTaskResult {
+func (r *Runner) run(done <-chan struct{}, task *RunTask) *RunTaskResult {
 	switch task.Type {
-	case types.Compile:
+	case problem.Compile:
 		return r.compile(done, task.Compile)
 
 	default:

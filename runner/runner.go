@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/criyle/go-judge/language"
-	"github.com/criyle/go-judge/taskqueue"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 )
@@ -22,7 +21,7 @@ type CgroupBuilder interface {
 // Runner is the task runner
 type Runner struct {
 	// Queue is the message queue to receive run tasks
-	Queue taskqueue.Receiver
+	Queue Receiver
 
 	// Builder builds the sandbox runner
 	Builder EnvironmentBuilder

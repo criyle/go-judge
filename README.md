@@ -1,22 +1,91 @@
 # go-judge
 
-Under designing.
+Under designing & development
+
+[![GoDoc](https://godoc.org/github.com/criyle/go-judge?status.svg)](https://godoc.org/github.com/criyle/go-judge)
 
 The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) in GO language using [go-sandbox](https://github.com/criyle/go-sandbox).
 
 ## Planned Design
 
+### Executor Service Draft
+
+A rest service to run program in restricted environment and it is basically a wrapper for `pkg/envexec` to run single / multiple programs.
+
+- /run POST execute program in the restricted environment
+- /file POST prepare a file in the executor service (in memory), returns fileId (can be referenced in /run parameter)
+- /file/:fileId GET downloads file from executor service (in memory), returns file content
+- /file/:fileId DELETE delete file specified by fileId
+
+Planed API interface:
+
+```typescript
+interface LocalFile {
+    src: string; // absolute path for the file
+}
+
+interface MemoryFile {
+    content: string | Buffer; // file contents
+}
+
+interface PreparedFile {
+    fileId: string; // fileId defines file uploaded by /file
+}
+
+interface Pipe {
+    max: number; // maximum bytes to collect from pipe
+}
+
+interface Cmd {
+    args: string[]; // command line argument
+    env?: string[]; // environment
+
+    // specifies file input / pipe collector for program file descriptors
+    files?: (LocalFile | MemoryFile | PreparedFile | Pipe)[];
+
+    // limitations
+    cpuLimit?: number;     // s
+    readCpuLimit?: number; // s
+    memoryLimit?: number;  // byte
+    procLimit?: number;
+
+    // copy the correspond file to the container dst path
+    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
+
+    // copy out specifies files need to be copied out from the container after execution
+    copyOut?: string[];
+    // similar to copyOut but stores file in executor service and returns fileId, later download through /file/:fileId
+    copyOutCached?: string[];
+}
+
+enum Status {
+    Accepted,            // normal
+    MemoryLimitExceeded, // mle
+    TimeLimitExceeded,   // tle
+    OutputLimitExceeded, // ole
+    FileError,           // fe
+    RuntimeError,        // re
+    DangerousSyscall,    // dgs
+    InternalError,       // system error
+}
+
+interface Result {
+    status: Status;
+    error?: string; // potential system error message
+    time: number;   // ns
+    memory: number; // byte
+    // copyFile name -> content
+    files?: {[name:string]:string};
+    // copyFileCached name -> fileId
+    fileIds?: {[name:string]:string};
+}
+```
+
 ### Workflow
 
 ``` text
     ^
-    |
-    v
-+------+
-|Client|
-+------+
-    ^
-    |
+    | Client (talk to the website)
     v
 +------+    +----+
 |      |<-->|Data|
@@ -24,13 +93,13 @@ The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) i
 |      |<-->|Problem|
 +------+    +-------+
     ^
-    |
+    | TaskQueue
     v
-+---------+   +--------+
-|TaskQueue|<->|Language|
-+---------+   +--------+
++------+   +--------+
+|Runner|<->|Language|
++------+   +--------+
     ^
-    |
+    | EnvExec
     v
 +--------------------+
 |ContainerEnvironment|
@@ -68,8 +137,7 @@ The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) i
 
 ### Utilities
 
-- Config: read client config from TOML / YAML / JSON file
-- pkg/runner: run a group of programs in parallel
+- pkg/envexec: run single / group of programs in parallel within restricted environment and resource constraints
 
 ## Planned API
 
@@ -88,6 +156,7 @@ Planned events are:
 
 - [x] socket.io client with namespace
 - [x] judge_v3 protocol
+- [ ] executor server
 - [ ] syzoj problem YAML config parser
 - [ ] syzoj data downloader
 - [ ] syzoj compile configuration

@@ -4,10 +4,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/criyle/go-judge/pkg/runner"
+	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
-	srunner "github.com/criyle/go-sandbox/runner"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 type pool struct {
@@ -68,7 +68,7 @@ func (p *pool) Shutdown() {
 
 type wCgroup cgroup.Cgroup
 
-func (c *wCgroup) SetMemoryLimit(s srunner.Size) error {
+func (c *wCgroup) SetMemoryLimit(s runner.Size) error {
 	return (*cgroup.Cgroup)(c).SetMemoryLimitInBytes(uint64(s))
 }
 
@@ -81,12 +81,12 @@ func (c *wCgroup) CPUUsage() (time.Duration, error) {
 	return time.Duration(t), err
 }
 
-func (c *wCgroup) MemoryUsage() (srunner.Size, error) {
+func (c *wCgroup) MemoryUsage() (runner.Size, error) {
 	s, err := (*cgroup.Cgroup)(c).MemoryMaxUsageInBytes()
 	if err != nil {
 		return 0, err
 	}
-	return srunner.Size(s), nil
+	return runner.Size(s), nil
 	// not really useful if creates new
 	// cache, err := (*cgroup.CGroup)(c).FindMemoryStatProperty("cache")
 	// if err != nil {
@@ -121,7 +121,7 @@ func newFakeCgroupPool(builder CgroupBuilder) *fCgroupPool {
 	return &fCgroupPool{builder: builder}
 }
 
-func (f *fCgroupPool) Get() (runner.Cgroup, error) {
+func (f *fCgroupPool) Get() (envexec.Cgroup, error) {
 	cg, err := f.builder.Build()
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (f *fCgroupPool) Get() (runner.Cgroup, error) {
 	return (*wCgroup)(cg), nil
 }
 
-func (f *fCgroupPool) Put(c runner.Cgroup) {
+func (f *fCgroupPool) Put(c envexec.Cgroup) {
 	c.Destory()
 }
 
@@ -140,7 +140,7 @@ func (f *fCgroupPool) Shutdown() {
 type wCgroupPool struct {
 	builder CgroupBuilder
 
-	cgs []runner.Cgroup
+	cgs []envexec.Cgroup
 	mu  sync.Mutex
 }
 
@@ -148,7 +148,7 @@ func newCgroupPool(builder CgroupBuilder) *wCgroupPool {
 	return &wCgroupPool{builder: builder}
 }
 
-func (w *wCgroupPool) Get() (runner.Cgroup, error) {
+func (w *wCgroupPool) Get() (envexec.Cgroup, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -165,7 +165,7 @@ func (w *wCgroupPool) Get() (runner.Cgroup, error) {
 	return (*wCgroup)(cg), nil
 }
 
-func (w *wCgroupPool) Put(c runner.Cgroup) {
+func (w *wCgroupPool) Put(c envexec.Cgroup) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 

@@ -15,7 +15,7 @@ const maxWaiting = 512
 
 type workRequest struct {
 	*request
-	resultCh chan<- response
+	resultCh chan<- []response
 }
 
 var (
@@ -55,51 +55,18 @@ func workerLoop() {
 
 func workDoCmd(req workRequest) {
 	if len(req.Cmd) == 1 {
-		req.resultCh <- workDoSingle(req.Cmd[0])
+		req.resultCh <- []response{workDoSingle(req.Cmd[0])}
 	} else {
-		req.resultCh <- response{
-			Error: "not implemented yet TAT",
-		}
+		req.resultCh <- workDoGroup(req.Cmd, req.PipeMapping)
 	}
 }
 
 func workDoSingle(rc cmd) (res response) {
-	files, pipeFileName, err := prepareCmdFiles(rc.Files)
+	c, copyOutSet, err := prepareCmd(rc)
 	if err != nil {
 		res.Status = status(envexec.StatusInternalError)
 		res.Error = err.Error()
 		return
-	}
-	copyIn, err := prepareCopyIn(rc.CopyIn)
-
-	copyOutSet := make(map[string]bool)
-	copyOut := make([]string, 0, len(rc.CopyOut)+len(rc.CopyOutCached))
-	for _, fn := range rc.CopyOut {
-		if !pipeFileName[fn] {
-			copyOut = append(copyOut, fn)
-		}
-		copyOutSet[fn] = true
-	}
-	for _, fn := range rc.CopyOutCached {
-		if !pipeFileName[fn] {
-			copyOut = append(copyOut, fn)
-		}
-	}
-
-	w := &waiter{
-		timeLimit:     time.Duration(rc.CPULimit * float64(time.Second)),
-		realTimeLimit: time.Duration(rc.RealCPULimit * float64(time.Second)),
-	}
-
-	c := &envexec.Cmd{
-		Args:        rc.Args,
-		Env:         rc.Env,
-		Files:       files,
-		MemoryLimit: runner.Size(rc.MemoryLimit),
-		ProcLimit:   rc.ProcLimit,
-		CopyIn:      copyIn,
-		CopyOut:     copyOut,
-		Waiter:      w.Wait,
 	}
 	s := &envexec.Single{
 		CgroupPool:      cgroupPool,
@@ -139,6 +106,114 @@ func workDoSingle(rc cmd) (res response) {
 		}
 	}
 	return
+}
+
+func workDoGroup(rc []cmd, pm []pipeMap) (rts []response) {
+	p := preparePipeMapping(pm)
+	cs := make([]*envexec.Cmd, 0, len(rc))
+	copyOutSets := make([]map[string]bool, 0, len(rc))
+	for _, cc := range rc {
+		c, os, err := prepareCmd(cc)
+		if err != nil {
+			rts = []response{{Status: status(envexec.StatusInternalError), Error: err.Error()}}
+			return
+		}
+		cs = append(cs, c)
+		copyOutSets = append(copyOutSets, os)
+	}
+	g := envexec.Group{
+		CgroupPool:      cgroupPool,
+		EnvironmentPool: envPool,
+
+		Cmd:   cs,
+		Pipes: p,
+	}
+	results, err := g.Run()
+	if err != nil {
+		rts = []response{{Status: status(envexec.StatusInternalError), Error: err.Error()}}
+		return
+	}
+	rts = make([]response, 0, len(results))
+	for i, result := range results {
+		var res response
+		res.Status = status(result.Status)
+		res.Error = result.Error
+		res.Time = uint64(result.Time)
+		res.Memory = uint64(result.Memory)
+		res.Files = make(map[string]string)
+		res.FileIDs = make(map[string]string)
+
+		for name, fi := range result.Files {
+			b, err := fi.Content()
+			if err != nil {
+				res.Status = status(envexec.StatusFileError)
+				res.Error = err.Error()
+				return
+			}
+			if copyOutSets[i][name] {
+				res.Files[name] = string(b)
+			} else {
+				id, err := fs.Add(name, b)
+				if err != nil {
+					res.Status = status(envexec.StatusFileError)
+					res.Error = err.Error()
+					return
+				}
+				res.FileIDs[name] = id
+			}
+		}
+		rts = append(rts, res)
+	}
+	return
+}
+
+func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
+	files, pipeFileName, err := prepareCmdFiles(rc.Files)
+	if err != nil {
+		return nil, nil, err
+	}
+	copyIn, err := prepareCopyIn(rc.CopyIn)
+
+	copyOutSet := make(map[string]bool)
+	copyOut := make([]string, 0, len(rc.CopyOut)+len(rc.CopyOutCached))
+	for _, fn := range rc.CopyOut {
+		if !pipeFileName[fn] {
+			copyOut = append(copyOut, fn)
+		}
+		copyOutSet[fn] = true
+	}
+	for _, fn := range rc.CopyOutCached {
+		if !pipeFileName[fn] {
+			copyOut = append(copyOut, fn)
+		}
+	}
+
+	w := &waiter{
+		timeLimit:     time.Duration(rc.CPULimit * float64(time.Second)),
+		realTimeLimit: time.Duration(rc.RealCPULimit * float64(time.Second)),
+	}
+
+	return &envexec.Cmd{
+		Args:        rc.Args,
+		Env:         rc.Env,
+		Files:       files,
+		MemoryLimit: runner.Size(rc.MemoryLimit),
+		ProcLimit:   rc.ProcLimit,
+		CopyIn:      copyIn,
+		CopyOut:     copyOut,
+		Waiter:      w.Wait,
+	}, copyOutSet, nil
+}
+
+func preparePipeMapping(pm []pipeMap) []*envexec.Pipe {
+	rt := make([]*envexec.Pipe, 0, len(pm))
+	for _, p := range pm {
+		rt = append(rt, &envexec.Pipe{
+			In:  envexec.PipeIndex{Index: p.In.Index, Fd: p.In.Fd},
+			Out: envexec.PipeIndex{Index: p.Out.Index, Fd: p.Out.Fd},
+		})
+	}
+	return rt
 }
 
 func prepareCopyIn(cf map[string]cmdFile) (map[string]file.File, error) {
@@ -194,8 +269,8 @@ func prepareCmdFile(f *cmdFile) (interface{}, error) {
 	}
 }
 
-func submitRequest(req *request) <-chan response {
-	ch := make(chan response, 1)
+func submitRequest(req *request) <-chan []response {
+	ch := make(chan []response, 1)
 	workCh <- workRequest{
 		request:  req,
 		resultCh: ch,

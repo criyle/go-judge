@@ -117,6 +117,8 @@ interface Result {
 
 Example Request & Response:
 
+Single:
+
 ```json
 {
 	"cmd": [{
@@ -146,19 +148,88 @@ Example Request & Response:
 ```
 
 ```json
-{
-    "status": "Accepted",
-    "time": 324879037,
-    "memory": 32378880,
-    "files": {
-        "stderr": "",
-        "stdout": ""
-    },
-    "fileIds": {
-        "a": "Yj6uHXVnTrBtUNeq",
-        "a.cc": "uYJTBTdtKWXaP4xE"
+[
+    {
+        "status": "Accepted",
+        "time": 303225231,
+        "memory": 32243712,
+        "files": {
+            "stderr": "",
+            "stdout": ""
+        },
+        "fileIds": {
+            "a": "5LWIZAA45JHX4Y4Z",
+            "a.cc": "NOHPGGDTYQUFRSLJ"
+        }
     }
+]
+```
+
+Multiple:
+
+```json
+{
+	"cmd": [{
+		"args": ["/bin/cat", "1"],
+		"env": ["PATH=/usr/bin:/bin"],
+		"files": [{
+			"content": ""
+		}, null, {
+			"name": "stderr",
+			"max": 10240
+		}],
+		"cpuLimit": 1,
+		"memoryLimit": 1048576,
+		"procLimit": 50,
+		"copyIn": {
+			"1": { "content": "TEST 1" }
+		},
+		"copyOut": ["stderr"]
+	},
+	{
+		"args": ["/bin/cat"],
+		"env": ["PATH=/usr/bin:/bin"],
+		"files": [null, {
+			"name": "stdout",
+			"max": 10240
+		}, {
+			"name": "stderr",
+			"max": 10240
+		}],
+		"cpuLimit": 1,
+		"memoryLimit": 1048576,
+		"procLimit": 50,
+		"copyOut": ["stdout", "stderr"]
+	}],
+	"pipeMapping": [{
+		"in" : {"index": 0, "fd": 1 },
+		"out" : {"index": 1, "fd" : 0 }
+	}]
 }
+```
+
+```json
+[
+    {
+        "status": "Accepted",
+        "time": 1545123,
+        "memory": 253952,
+        "files": {
+            "stderr": ""
+        },
+        "fileIds": {}
+    },
+    {
+        "status": "Accepted",
+        "time": 1501463,
+        "memory": 253952,
+        "files": {
+            "stderr": "",
+            "stdout": "TEST 1"
+        },
+        "fileIds": {}
+    }
+]
 ```
 
 ### Workflow

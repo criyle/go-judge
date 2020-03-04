@@ -13,6 +13,7 @@ The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) i
 A rest service to run program in restricted environment and it is basically a wrapper for `pkg/envexec` to run single / multiple programs.
 
 - /run POST execute program in the restricted environment
+- /file GET list all cached file
 - /file POST prepare a file in the executor service (in memory), returns fileId (can be referenced in /run parameter)
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
@@ -31,6 +32,8 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 The default binding address for the executor server is `:5050`. Can be specified with `-http` flag.
 
 The default concurrency is `4`, Can be specified with `-parallism` flag.
+
+The default file store is in memory, local cache can be specified wieh `-dir` flag.
 
 #### Planed API interface
 

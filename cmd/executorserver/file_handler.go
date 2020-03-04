@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 )
 
 func fileGet(c *gin.Context) {
-	ids := getAllFileID()
+	ids := fs.List()
 	c.JSON(http.StatusOK, ids)
 }
 
@@ -32,8 +33,11 @@ func filePost(c *gin.Context) {
 		return
 	}
 
-	id, err := addFile(b, fh.Filename)
-
+	id, err := fs.Add(fh.Filename, b)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
 	c.JSON(http.StatusOK, id)
 }
 
@@ -47,13 +51,20 @@ func fileIDGet(c *gin.Context) {
 		return
 	}
 
-	f, ok := getFile(uri.FileID)
-	if !ok {
+	f := fs.Get(uri.FileID)
+	if f == nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	typ := mime.TypeByExtension(path.Ext(f.FileName))
-	c.Data(http.StatusOK, typ, f.Content)
+	content, err := f.Content()
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+
+	typ := mime.TypeByExtension(path.Ext(f.Name()))
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", f.Name()))
+	c.Data(http.StatusOK, typ, content)
 }
 
 func fileIDDelete(c *gin.Context) {
@@ -66,7 +77,7 @@ func fileIDDelete(c *gin.Context) {
 		return
 	}
 
-	ok := removeFile(uri.FileID)
+	ok := fs.Remove(uri.FileID)
 	if !ok {
 		c.AbortWithStatus(http.StatusNotFound)
 		return

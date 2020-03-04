@@ -6,6 +6,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+	"os"
 	"sync/atomic"
 	"syscall"
 
@@ -21,9 +22,12 @@ var (
 	addr       = flag.String("http", ":5050", "specifies the http binding address")
 	parallism  = flag.Int("parallism", 4, "control the # of concurrency execution")
 	tmpFsParam = flag.String("tmpfs", "size=8m,nr_inodes=4k", "tmpfs mount data")
+	dir        = flag.String("dir", "", "specifies direcotry to store file upload / download (in memory by default)")
 
 	envPool    envexec.EnvironmentPool
 	cgroupPool envexec.CgroupPool
+
+	fs fileStore
 )
 
 func init() {
@@ -32,6 +36,13 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	if *dir == "" {
+		fs = newFileMemoryStore()
+	} else {
+		os.MkdirAll(*dir, 0755)
+		fs = newFileLocalStore(*dir)
+	}
 
 	root, err := ioutil.TempDir("", "dm")
 	if err != nil {

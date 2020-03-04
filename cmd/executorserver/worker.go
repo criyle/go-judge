@@ -129,7 +129,7 @@ func workDoSingle(rc cmd) (res response) {
 		if copyOutSet[name] {
 			res.Files[name] = string(b)
 		} else {
-			id, err := addFile(b, name)
+			id, err := fs.Add(name, b)
 			if err != nil {
 				res.Status = status(envexec.StatusFileError)
 				res.Error = err.Error()
@@ -182,11 +182,11 @@ func prepareCmdFile(f *cmdFile) (interface{}, error) {
 	case f.Content != nil:
 		return file.NewMemFile("file", []byte(*f.Content)), nil
 	case f.FileID != nil:
-		fd, ok := getFile(*f.FileID)
-		if !ok {
+		fd := fs.Get(*f.FileID)
+		if fd == nil {
 			return nil, fmt.Errorf("file not exists for %v", *f.FileID)
 		}
-		return file.NewMemFile(fd.FileName, fd.Content), nil
+		return fd, nil
 	case f.Max != nil && f.Name != nil:
 		return envexec.PipeCollector{Name: *f.Name, SizeLimit: *f.Max}, nil
 	default:

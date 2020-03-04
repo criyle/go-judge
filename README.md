@@ -27,6 +27,14 @@ go get github.com/criyle/go-judge/cmd/executorserver
 ~/go/bin/executorserver # or executorserver if $(GOPATH)/bin is in your $PATH
 ```
 
+Or, by docker
+
+```bash
+docker run -it --rm --privileged -p 5050:5050 criyle/executorserver:demo
+```
+
+Build by your own `docker build -t executorserver -f Dockerfile.exec .`
+
 The `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/go-judger`, `/sys/fs/cgroup/memory/go-judger`, `/sys/fs/cgroup/pids/go-judger` and make execution user readable or use `sudo` to run it.
 
 The default binding address for the executor server is `:5050`. Can be specified with `-http` flag.

@@ -1,0 +1,13 @@
+FROM golang:latest AS build 
+
+WORKDIR /go/judge
+
+COPY go.mod go.sum /go/judge/
+
+RUN go mod download
+
+COPY ./ /go/judge
+
+RUN go build -o executorserver ./cmd/executorserver  
+
+ENTRYPOINT ["./executorserver"]

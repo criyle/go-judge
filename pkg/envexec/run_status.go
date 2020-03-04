@@ -39,6 +39,7 @@ var statusToString = []string{
 	"Output Limit Exceeded",
 	"File Error",
 	"Runtime Error",
+	"Dangerous Syscall",
 	"Judgement Failed",
 	"Invalid Interaction",
 	"Internal Error",

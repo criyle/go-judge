@@ -4,19 +4,8 @@ import (
 	"sync"
 
 	"github.com/criyle/go-judge/language"
-	"github.com/criyle/go-sandbox/container"
-	"github.com/criyle/go-sandbox/pkg/cgroup"
+	"github.com/criyle/go-judge/pkg/pool"
 )
-
-// EnvironmentBuilder defines the abstract builder for container environment
-type EnvironmentBuilder interface {
-	Build() (container.Environment, error)
-}
-
-// CgroupBuilder builds cgroup for runner
-type CgroupBuilder interface {
-	Build() (cg *cgroup.Cgroup, err error)
-}
 
 // Runner is the task runner
 type Runner struct {
@@ -24,25 +13,25 @@ type Runner struct {
 	Queue Receiver
 
 	// Builder builds the sandbox runner
-	Builder EnvironmentBuilder
+	Builder pool.EnvironmentBuilder
 
 	// Builder for cgroups
-	CgroupBuilder CgroupBuilder
+	CgroupBuilder pool.CgroupBuilder
 
 	Language language.Language
 
 	// pool of sandbox to use
-	pool *pool
+	pool *pool.EnvPool
 
-	cgPool *fCgroupPool
+	cgPool *pool.FakeCgroupPool
 
 	// ensure init / shutdown only once
 	onceInit, onceShutdown sync.Once
 }
 
 func (r *Runner) init() {
-	r.pool = newPool(r.Builder)
-	r.cgPool = newFakeCgroupPool(r.CgroupBuilder)
+	r.pool = pool.NewEnvPool(r.Builder)
+	r.cgPool = pool.NewFakeCgroupPool(r.CgroupBuilder)
 }
 
 // Loop status a runner in a forever loop, waiting for task and execute

@@ -8,7 +8,7 @@ The goal to to reimplement [syzoj/judge-v3](https://github.com/syzoj/judge-v3) i
 
 ## Planned Design
 
-### Executor Service Draft
+### Executor Service Draft (under development)
 
 A rest service to run program in restricted environment and it is basically a wrapper for `pkg/envexec` to run single / multiple programs.
 
@@ -17,7 +17,22 @@ A rest service to run program in restricted environment and it is basically a wr
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 
-Planed API interface:
+#### Install & Run Developing Server
+
+Install GO 1.13+ from [download](https://golang.org/dl/)
+
+```bash
+go get github.com/criyle/go-judge/cmd/executorserver
+~/go/bin/executorserver # or executorserver if $(GOPATH)/bin is in your $PATH
+```
+
+The `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/go-judger`, `/sys/fs/cgroup/memory/go-judger`, `/sys/fs/cgroup/pids/go-judger` and make execution user readable or use `sudo` to run it.
+
+The default binding address for the executor server is `:5050`. Can be specified with `-http` flag.
+
+The default concurrency is `4`, Can be specified with `-parallism` flag.
+
+#### Planed API interface
 
 ```typescript
 interface LocalFile {
@@ -33,7 +48,8 @@ interface PreparedFile {
 }
 
 interface Pipe {
-    max: number; // maximum bytes to collect from pipe
+    name: string; // file name in copyOut
+    max: number;  // maximum bytes to collect from pipe
 }
 
 interface Cmd {
@@ -41,11 +57,11 @@ interface Cmd {
     env?: string[]; // environment
 
     // specifies file input / pipe collector for program file descriptors
-    files?: (LocalFile | MemoryFile | PreparedFile | Pipe)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
 
     // limitations
     cpuLimit?: number;     // s
-    readCpuLimit?: number; // s
+    realCpuLimit?: number; // s
     memoryLimit?: number;  // byte
     procLimit?: number;
 
@@ -69,6 +85,21 @@ enum Status {
     InternalError,       // system error
 }
 
+interface PipeIndex {
+    index: number; // the index of cmd
+    fd: number;    // the fd number of cmd
+}
+
+interface PipeMap {
+    in: PipeIndex;  // input end of the pipe
+    out: PipeIndex; // output end of the pipe
+}
+
+interface Request {
+    cmd: Cmd[];
+    pipeMapping: PipeMap[];
+}
+
 interface Result {
     status: Status;
     error?: string; // potential system error message
@@ -78,6 +109,52 @@ interface Result {
     files?: {[name:string]:string};
     // copyFileCached name -> fileId
     fileIds?: {[name:string]:string};
+}
+```
+
+Example Request & Response:
+
+```json
+{
+	"cmd": [{
+		"args": ["/usr/bin/g++", "a.cc", "-o", "a"],
+		"env": ["PATH=/usr/bin:/bin"],
+		"files": [{
+			"content": ""
+		}, {
+			"name": "stdout",
+			"max": 10240
+		}, {
+			"name": "stderr",
+			"max": 10240
+		}],
+		"cpuLimit": 10,
+		"memoryLimit": 104857600,
+		"procLimit": 50,
+		"copyIn": {
+			"a.cc": {
+				"content": "#include <iostream>\nusing namespace std;\nint main() {\nint a, b;\ncin >> a >> b;\ncout << a + b << endl;\n}"
+			}
+		},
+		"copyOut": ["stdout", "stderr"],
+		"copyOutCached": ["a.cc", "a"]
+	}]
+}
+```
+
+```json
+{
+    "status": "Accepted",
+    "time": 324879037,
+    "memory": 32378880,
+    "files": {
+        "stderr": "",
+        "stdout": ""
+    },
+    "fileIds": {
+        "a": "Yj6uHXVnTrBtUNeq",
+        "a.cc": "uYJTBTdtKWXaP4xE"
+    }
 }
 ```
 

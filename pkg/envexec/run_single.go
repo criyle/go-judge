@@ -70,7 +70,7 @@ func runSingle(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc [
 		case runner.Status:
 			result.Status = convertStatus(err)
 		default:
-			result.Status = StatusInternalError
+			result.Status = StatusFileError
 		}
 		result.Error = err.Error()
 	}

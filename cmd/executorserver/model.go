@@ -15,10 +15,10 @@ type cmd struct {
 	Env   []string   `json:"env,omitempty"`
 	Files []*cmdFile `json:"files,omitempty"`
 
-	CPULimit     float64 `json:"cpuLimit"`
-	RealCPULimit float64 `json:"realCpuLimit"`
-	MemoryLimit  uint64  `json:"memoryLimit"`
-	ProcLimit    uint64  `json:"procLimit"`
+	CPULimit     uint64 `json:"cpuLimit"`
+	RealCPULimit uint64 `json:"realCpuLimit"`
+	MemoryLimit  uint64 `json:"memoryLimit"`
+	ProcLimit    uint64 `json:"procLimit"`
 
 	CopyIn map[string]cmdFile `json:"copyIn"`
 

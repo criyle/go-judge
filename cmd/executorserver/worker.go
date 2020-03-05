@@ -189,8 +189,8 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 	}
 
 	w := &waiter{
-		timeLimit:     time.Duration(rc.CPULimit * float64(time.Second)),
-		realTimeLimit: time.Duration(rc.RealCPULimit * float64(time.Second)),
+		timeLimit:     time.Duration(rc.CPULimit),
+		realTimeLimit: time.Duration(rc.RealCPULimit),
 	}
 
 	return &envexec.Cmd{

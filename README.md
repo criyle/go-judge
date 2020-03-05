@@ -71,8 +71,8 @@ interface Cmd {
     files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
 
     // limitations
-    cpuLimit?: number;     // s
-    realCpuLimit?: number; // s
+    cpuLimit?: number;     // ns
+    realCpuLimit?: number; // ns
     memoryLimit?: number;  // byte
     procLimit?: number;
 
@@ -141,7 +141,7 @@ Single (Require `apt install g++` inside the container):
 			"name": "stderr",
 			"max": 10240
 		}],
-		"cpuLimit": 10,
+		"cpuLimit": 10000000000,
 		"memoryLimit": 104857600,
 		"procLimit": 50,
 		"copyIn": {
@@ -186,7 +186,7 @@ Multiple:
 			"name": "stderr",
 			"max": 10240
 		}],
-		"cpuLimit": 1,
+		"cpuLimit": 1000000000,
 		"memoryLimit": 1048576,
 		"procLimit": 50,
 		"copyIn": {
@@ -204,7 +204,7 @@ Multiple:
 			"name": "stderr",
 			"max": 10240
 		}],
-		"cpuLimit": 1,
+		"cpuLimit": 1000000000,
 		"memoryLimit": 1048576,
 		"procLimit": 50,
 		"copyOut": ["stdout", "stderr"]

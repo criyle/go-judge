@@ -10,4 +10,12 @@ COPY ./ /go/judge
 
 RUN go build -o executorserver ./cmd/executorserver  
 
+FROM debian:latest
+
+WORKDIR /opt
+
+COPY --from=build /go/judge/executorserver /opt/
+
+EXPOSE 5050/tcp
+
 ENTRYPOINT ["./executorserver"]

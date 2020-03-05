@@ -125,7 +125,7 @@ interface Result {
 
 Example Request & Response:
 
-Single:
+Single (Require `apt install g++` inside the container):
 
 ```json
 {

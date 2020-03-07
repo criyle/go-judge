@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
+	"syscall"
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-sandbox/container"
@@ -13,7 +14,6 @@ import (
 func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (map[string]file.File, error) {
 	// wait to complete
 	var wg sync.WaitGroup
-	wg.Add(len(ptc))
 
 	fc := make(chan file.File, len(ptc)+len(c.CopyOut))
 	errC := make(chan error, 1) // collect only 1 error
@@ -34,10 +34,10 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (ma
 
 		// open all
 		cFiles, err = m.Open(openCmd)
-		wg.Add(len(cFiles))
 	}
 
 	// copy out
+	wg.Add(len(cFiles))
 	for i := range cFiles {
 		go func(cFile *os.File, n string) {
 			defer wg.Done()
@@ -52,6 +52,7 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (ma
 	}
 
 	// collect pipe
+	wg.Add(len(ptc))
 	for _, p := range ptc {
 		go func(p pipeCollector) {
 			defer wg.Done()
@@ -61,6 +62,51 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (ma
 			}
 			fc <- file.NewMemFile(p.name, p.buff.Buffer.Bytes())
 		}(p)
+	}
+
+	// copy out dir
+	if c.CopyOutDir != "" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// open container /w
+			openCmd := []container.OpenCmd{{
+				Path: "/w",
+				Flag: os.O_RDONLY,
+			}}
+			dir, err := m.Open(openCmd)
+			if err != nil {
+				writeErrorC(errC, err)
+				return
+			}
+			defer dir[0].Close()
+
+			// make sure dir exists
+			os.MkdirAll(c.CopyOutDir, 0777)
+			newDir, err := os.Open(c.CopyOutDir)
+			if err != nil {
+				writeErrorC(errC, err)
+				return
+			}
+			defer newDir.Close()
+
+			names, err := dir[0].Readdirnames(-1)
+			if err != nil {
+				writeErrorC(errC, err)
+				return
+			}
+			for _, n := range names {
+				if err := copyFileDir(int(dir[0].Fd()), int(newDir.Fd()), n); err != nil {
+					writeErrorC(errC, err)
+					return
+				}
+				// Link at do not cross device copy, sad..
+				// if err := unix.Linkat(int(dir[0].Fd()), n, int(newDir.Fd()), n, 0); err != nil {
+				// 	writeErrorC(errC, err)
+				// 	return
+				// }
+			}
+		}()
 	}
 
 	// wait to finish
@@ -86,4 +132,30 @@ func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (ma
 	}
 
 	return rt, nil
+}
+
+func copyFileDir(srcDirFd, dstDirFd int, name string) error {
+	// open the source file
+	fd, err := syscall.Openat(srcDirFd, name, syscall.O_RDONLY, 0777)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(fd)
+
+	var st syscall.Stat_t
+	if err := syscall.Fstat(fd, &st); err != nil {
+		return err
+	}
+	// open the dst file
+	dstFd, err := syscall.Openat(dstDirFd, name, syscall.O_WRONLY|syscall.O_CREAT, 0777)
+	if err != nil {
+		return err
+	}
+	defer syscall.Close(dstFd)
+
+	// send file
+	if _, err := syscall.Sendfile(dstFd, fd, nil, int(st.Size)); err != nil {
+		return err
+	}
+	return nil
 }

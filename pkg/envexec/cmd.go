@@ -31,6 +31,9 @@ type Cmd struct {
 	// file names to copyout after exec
 	CopyOut []string
 
+	// CopyOutDir specifies a dir to dump all /w contnet
+	CopyOutDir string
+
 	// Waiter is called after cmd starts and it should return
 	// once time limit exceeded.
 	// return true to as TLE and false as normal exits (context finished)

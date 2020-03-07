@@ -24,6 +24,7 @@ type cmd struct {
 
 	CopyOut       []string `json:"copyOut"`
 	CopyOutCached []string `json:"copyOutCached"`
+	CopyOutDir    string   `json:"copyOutDir"`
 }
 
 type pipeIndex struct {
@@ -52,6 +53,6 @@ type response struct {
 	Error   string            `json:"error,omitempty"`
 	Time    uint64            `json:"time"`
 	Memory  uint64            `json:"memory"`
-	Files   map[string]string `json:"files"`
-	FileIDs map[string]string `json:"fileIds"`
+	Files   map[string]string `json:"files,omitempty"`
+	FileIDs map[string]string `json:"fileIds,omitempty"`
 }

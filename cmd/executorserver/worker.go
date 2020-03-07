@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"path"
 	"sync"
 	"time"
 
@@ -175,6 +176,10 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 	copyIn, err := prepareCopyIn(rc.CopyIn)
 
 	copyOutSet := make(map[string]bool)
+	// pipe default copyout
+	for k := range pipeFileName {
+		copyOutSet[k] = true
+	}
 	copyOut := make([]string, 0, len(rc.CopyOut)+len(rc.CopyOutCached))
 	for _, fn := range rc.CopyOut {
 		if !pipeFileName[fn] {
@@ -185,6 +190,8 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 	for _, fn := range rc.CopyOutCached {
 		if !pipeFileName[fn] {
 			copyOut = append(copyOut, fn)
+		} else {
+			delete(copyOutSet, fn)
 		}
 	}
 
@@ -201,6 +208,7 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		ProcLimit:   rc.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
+		CopyOutDir:  path.Join(*dir, rc.CopyOutDir),
 		Waiter:      w.Wait,
 	}, copyOutSet, nil
 }

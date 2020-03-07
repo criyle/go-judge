@@ -83,6 +83,8 @@ interface Cmd {
     copyOut?: string[];
     // similar to copyOut but stores file in executor service and returns fileId, later download through /file/:fileId
     copyOutCached?: string[];
+    // specifies the directory to dump container /w content
+    copyOutDir: string
 }
 
 enum Status {
@@ -150,7 +152,8 @@ Single (Require `apt install g++` inside the container):
 			}
 		},
 		"copyOut": ["stdout", "stderr"],
-		"copyOutCached": ["a.cc", "a"]
+        "copyOutCached": ["a.cc", "a"],
+        "copyOutDir": "1"
 	}]
 }
 ```

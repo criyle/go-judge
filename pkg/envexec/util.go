@@ -10,8 +10,12 @@ func convertStatus(s runner.Status) Status {
 	switch s {
 	case runner.StatusNormal:
 		return StatusAccepted
-	case runner.StatusSignalled, runner.StatusNonzeroExitStatus:
-		return StatusRuntimeError
+	// case runner.StatusSignalled, runner.StatusNonzeroExitStatus:
+	// 	return StatusRuntimeError
+	case runner.StatusSignalled:
+		return StatusSignalled
+	case runner.StatusNonzeroExitStatus:
+		return StatusNonzeroExitStatus
 	case runner.StatusMemoryLimitExceeded:
 		return StatusMemoryLimitExceeded
 	case runner.StatusTimeLimitExceeded:

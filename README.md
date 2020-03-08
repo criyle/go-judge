@@ -162,6 +162,7 @@ Single (Require `apt install g++` inside the container):
 [
     {
         "status": "Accepted",
+        "exitStatus": 0,
         "time": 303225231,
         "memory": 32243712,
         "files": {
@@ -223,6 +224,7 @@ Multiple:
 [
     {
         "status": "Accepted",
+        "exitStatus": 0,
         "time": 1545123,
         "memory": 253952,
         "files": {
@@ -232,6 +234,7 @@ Multiple:
     },
     {
         "status": "Accepted",
+        "exitStatus": 0,
         "time": 1501463,
         "memory": 253952,
         "files": {

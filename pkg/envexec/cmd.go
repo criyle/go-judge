@@ -50,6 +50,8 @@ type PipeCollector struct {
 type Result struct {
 	Status Status
 
+	ExitStatus int
+
 	Error string // error
 
 	Time   time.Duration

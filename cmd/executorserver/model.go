@@ -49,10 +49,11 @@ func (s status) MarshalJSON() ([]byte, error) {
 }
 
 type response struct {
-	Status  status            `json:"status"`
-	Error   string            `json:"error,omitempty"`
-	Time    uint64            `json:"time"`
-	Memory  uint64            `json:"memory"`
-	Files   map[string]string `json:"files,omitempty"`
-	FileIDs map[string]string `json:"fileIds,omitempty"`
+	Status     status            `json:"status"`
+	ExitStatus int               `json:"exitStatus"`
+	Error      string            `json:"error,omitempty"`
+	Time       uint64            `json:"time"`
+	Memory     uint64            `json:"memory"`
+	Files      map[string]string `json:"files,omitempty"`
+	FileIDs    map[string]string `json:"fileIds,omitempty"`
 }

@@ -18,8 +18,11 @@ const (
 	StatusTimeLimitExceeded   // TLE
 	StatusOutputLimitExceeded // OLE
 	StatusFileError           // FE
-	StatusRuntimeError        // RE
+	StatusNonzeroExitStatus   // NZS
+	StatusSignalled           // SIG
 	StatusDangerousSyscall    // DJS
+
+	//StatusRuntimeError        // RE
 
 	// SPJ / interactor error
 	StatusJudgementFailed
@@ -38,7 +41,9 @@ var statusToString = []string{
 	"Time Limit Exceeded",
 	"Output Limit Exceeded",
 	"File Error",
-	"Runtime Error",
+	//"Runtime Error",
+	"Nonzero Exit Status",
+	"Signalled",
 	"Dangerous Syscall",
 	"Judgement Failed",
 	"Invalid Interaction",

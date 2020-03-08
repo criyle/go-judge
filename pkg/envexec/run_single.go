@@ -58,11 +58,12 @@ func runSingle(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc [
 	// collect result
 	files, err := copyOutAndCollect(m, c, ptc)
 	result = Result{
-		Status: convertStatus(rt.Status),
-		Error:  rt.Error,
-		Time:   rt.Time,
-		Memory: rt.Memory,
-		Files:  files,
+		Status:     convertStatus(rt.Status),
+		ExitStatus: rt.ExitStatus,
+		Error:      rt.Error,
+		Time:       rt.Time,
+		Memory:     rt.Memory,
+		Files:      files,
 	}
 	// collect error
 	if err != nil && result.Error == "" {

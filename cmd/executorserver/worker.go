@@ -81,6 +81,7 @@ func workDoSingle(rc cmd) (res response) {
 		return
 	}
 	res.Status = status(result.Status)
+	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
 	res.Time = uint64(result.Time)
 	res.Memory = uint64(result.Memory)
@@ -138,6 +139,7 @@ func workDoGroup(rc []cmd, pm []pipeMap) (rts []response) {
 	for i, result := range results {
 		var res response
 		res.Status = status(result.Status)
+		res.ExitStatus = result.ExitStatus
 		res.Error = result.Error
 		res.Time = uint64(result.Time)
 		res.Memory = uint64(result.Memory)

@@ -56,6 +56,7 @@ func main() {
 		WithBind("/lib", "lib", true).
 		WithBind("/lib64", "lib64", true).
 		WithBind("/usr", "usr", true).
+		WithBind("/var/lib/ghc", "var/lib/ghc", true).
 		// java wants /proc/self/exe as it need relative path for lib
 		// however, /proc gives interface like /proc/1/fd/3 ..
 		// it is fine since open that file will be a EPERM

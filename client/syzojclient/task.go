@@ -162,7 +162,7 @@ func convertResultTypes(s envexec.Status) testCaseResultType {
 		return resultOutputLimitExceeded
 	case envexec.StatusFileError:
 		return resultFileError
-	case envexec.StatusRuntimeError:
+	case envexec.StatusNonzeroExitStatus, envexec.StatusSignalled:
 		return resultRuntimeError
 	case envexec.StatusJudgementFailed:
 		return resultJudgementFailed

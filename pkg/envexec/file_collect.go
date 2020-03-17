@@ -3,140 +3,91 @@ package envexec
 import (
 	"io/ioutil"
 	"os"
-	"sync"
 	"syscall"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/runner"
+	"golang.org/x/sync/errgroup"
 )
 
-func copyOutAndCollect(m container.Environment, c *Cmd, ptc []pipeCollector) (map[string]file.File, error) {
-	// wait to complete
-	var wg sync.WaitGroup
-
+// copyOutAndCollect reads file and pipes in parallel from container
+func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]file.File, error) {
+	var g errgroup.Group
 	fc := make(chan file.File, len(ptc)+len(c.CopyOut))
-	errC := make(chan error, 1) // collect only 1 error
-
-	var (
-		cFiles []*os.File
-		err    error
-	)
-	if len(c.CopyOut) > 0 {
-		// prepare open param
-		openCmd := make([]container.OpenCmd, 0, len(c.CopyOut))
-		for _, n := range c.CopyOut {
-			openCmd = append(openCmd, container.OpenCmd{
-				Path: n,
-				Flag: os.O_RDONLY,
-			})
-		}
-
-		// open all
-		cFiles, err = m.Open(openCmd)
-	}
 
 	// copy out
-	wg.Add(len(cFiles))
-	for i := range cFiles {
-		go func(cFile *os.File, n string) {
-			defer wg.Done()
-			defer cFile.Close()
-			c, err := ioutil.ReadAll(cFile)
+	for _, n := range c.CopyOut {
+		n := n
+		g.Go(func() error {
+			cf, err := m.OpenAtWorkDir(n, os.O_RDONLY, 0777)
 			if err != nil {
-				writeErrorC(errC, err)
-				return
+				return err
+			}
+			defer cf.Close()
+
+			c, err := ioutil.ReadAll(cf)
+			if err != nil {
+				return err
 			}
 			fc <- file.NewMemFile(n, c)
-		}(cFiles[i], c.CopyOut[i])
+			return nil
+		})
 	}
 
 	// collect pipe
-	wg.Add(len(ptc))
 	for _, p := range ptc {
-		go func(p pipeCollector) {
-			defer wg.Done()
+		p := p
+		g.Go(func() error {
 			<-p.buff.Done
 			if int64(p.buff.Buffer.Len()) > p.buff.Max {
-				writeErrorC(errC, runner.StatusOutputLimitExceeded)
+				return runner.StatusOutputLimitExceeded
 			}
 			fc <- file.NewMemFile(p.name, p.buff.Buffer.Bytes())
-		}(p)
+			return nil
+		})
 	}
 
 	// copy out dir
 	if c.CopyOutDir != "" {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// open container /w
-			openCmd := []container.OpenCmd{{
-				Path: "/w",
-				Flag: os.O_RDONLY,
-			}}
-			dir, err := m.Open(openCmd)
-			if err != nil {
-				writeErrorC(errC, err)
-				return
-			}
-			defer dir[0].Close()
-
+		g.Go(func() error {
 			// make sure dir exists
 			os.MkdirAll(c.CopyOutDir, 0777)
 			newDir, err := os.Open(c.CopyOutDir)
 			if err != nil {
-				writeErrorC(errC, err)
-				return
+				return err
 			}
 			defer newDir.Close()
 
-			names, err := dir[0].Readdirnames(-1)
+			dir := m.WorkDir()
+			names, err := dir.Readdirnames(-1)
 			if err != nil {
-				writeErrorC(errC, err)
-				return
+				return err
 			}
 			for _, n := range names {
-				if err := copyFileDir(int(dir[0].Fd()), int(newDir.Fd()), n); err != nil {
-					writeErrorC(errC, err)
-					return
+				if err := copyFileDir(int(dir.Fd()), int(newDir.Fd()), n); err != nil {
+					return err
 				}
-				// Link at do not cross device copy, sad..
-				// if err := unix.Linkat(int(dir[0].Fd()), n, int(newDir.Fd()), n, 0); err != nil {
-				// 	writeErrorC(errC, err)
-				// 	return
-				// }
 			}
-		}()
+			return nil
+		})
 	}
 
-	// wait to finish
-	wg.Wait()
+	var err error
+	go func() {
+		err = g.Wait()
+		close(fc)
+	}()
 
-	// collect to map
-	close(fc)
 	rt := make(map[string]file.File)
 	for f := range fc {
-		name := f.Name()
-		rt[name] = f
+		rt[f.Name()] = f
 	}
-
-	if err != nil {
-		return rt, err
-	}
-
-	// check error
-	select {
-	case err := <-errC:
-		return rt, err
-	default:
-	}
-
-	return rt, nil
+	return rt, err
 }
 
 func copyFileDir(srcDirFd, dstDirFd int, name string) error {
 	// open the source file
-	fd, err := syscall.Openat(srcDirFd, name, syscall.O_RDONLY, 0777)
+	fd, err := syscall.Openat(srcDirFd, name, syscall.O_CLOEXEC|syscall.O_RDONLY, 0777)
 	if err != nil {
 		return err
 	}
@@ -146,15 +97,16 @@ func copyFileDir(srcDirFd, dstDirFd int, name string) error {
 	if err := syscall.Fstat(fd, &st); err != nil {
 		return err
 	}
+
 	// open the dst file
-	dstFd, err := syscall.Openat(dstDirFd, name, syscall.O_WRONLY|syscall.O_CREAT, 0777)
+	dstFd, err := syscall.Openat(dstDirFd, name, syscall.O_CLOEXEC|syscall.O_WRONLY|syscall.O_CREAT|syscall.O_TRUNC, 0777)
 	if err != nil {
 		return err
 	}
 	defer syscall.Close(dstFd)
 
-	// send file
-	if _, err := syscall.Sendfile(dstFd, fd, nil, int(st.Size)); err != nil {
+	// send file, ignore error for now if it is dir
+	if _, err := syscall.Sendfile(dstFd, fd, nil, int(st.Size)); err != nil && err != syscall.EINVAL {
 		return err
 	}
 	return nil

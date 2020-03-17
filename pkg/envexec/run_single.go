@@ -9,7 +9,7 @@ import (
 )
 
 // runSingle runs Cmd inside the given environment and cgroup
-func runSingle(m container.Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
+func runSingle(m Environment, cg Cgroup, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
 	fdToClose := fds
 	defer func() { closeFiles(fdToClose) }()
 

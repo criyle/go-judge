@@ -1,16 +1,28 @@
 package envexec
 
 import (
+	"os"
 	"time"
 
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/runner"
 )
 
+// Environment defines the interface to access container execution environment
+type Environment interface {
+	container.Environment
+
+	// WorkDir returns opened work directory, should not close after
+	WorkDir() *os.File
+
+	// OpenAtWorkDir open file at work dir with given relative path and flags
+	OpenAtWorkDir(path string, flags int, perm os.FileMode) (*os.File, error)
+}
+
 // EnvironmentPool implements pool of environments
 type EnvironmentPool interface {
-	Get() (container.Environment, error)
-	Put(container.Environment)
+	Get() (Environment, error)
+	Put(Environment)
 }
 
 // Cgroup defines interface to limit and monitor resources consumption of a process

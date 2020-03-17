@@ -2,9 +2,8 @@ package envexec
 
 import (
 	"fmt"
-	"sync"
 
-	"github.com/criyle/go-sandbox/container"
+	"golang.org/x/sync/errgroup"
 )
 
 // Group defines the running instruction to run multiple
@@ -46,7 +45,7 @@ func (r *Group) Run() ([]Result, error) {
 	}
 
 	// prepare environments
-	ms := make([]container.Environment, 0, len(r.Cmd))
+	ms := make([]Environment, 0, len(r.Cmd))
 	for range r.Cmd {
 		m, err := r.EnvironmentPool.Get()
 		if err != nil {
@@ -67,32 +66,22 @@ func (r *Group) Run() ([]Result, error) {
 		cgs = append(cgs, cg)
 	}
 
-	result := make([]Result, len(r.Cmd))
-	errC := make(chan error, 1)
-
 	// wait all cmd to finish
-	var wg sync.WaitGroup
-	wg.Add(len(r.Cmd))
+	var g errgroup.Group
+	result := make([]Result, len(r.Cmd))
 	for i, c := range r.Cmd {
-		go func(i int, c *Cmd) {
-			defer wg.Done()
+		i, c := i, c
+		g.Go(func() error {
 			r, err := runSingle(ms[i], cgs[i], c, fds[i], pipeToCollect[i])
+			result[i] = r
 			if err != nil {
-				writeErrorC(errC, err)
 				result[i].Status = StatusInternalError
 				result[i].Error = err.Error()
-				return
+				return err
 			}
-			result[i] = r
-		}(i, c)
+			return nil
+		})
 	}
-	wg.Wait()
-	fileToClose = nil // already closed by runOne
-
-	// collect potential error
-	select {
-	case err = <-errC:
-	default:
-	}
+	err = g.Wait()
 	return result, err
 }

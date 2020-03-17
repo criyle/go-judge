@@ -42,10 +42,3 @@ func closeFiles(files []*os.File) {
 		f.Close()
 	}
 }
-
-func writeErrorC(errC chan error, err error) {
-	select {
-	case errC <- err:
-	default:
-	}
-}

@@ -3,63 +3,35 @@ package envexec
 import (
 	"io"
 	"os"
-	"sync"
 
 	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-sandbox/container"
+	"golang.org/x/sync/errgroup"
 )
 
-func copyIn(m container.Environment, copyIn map[string]file.File) error {
-	// open copyin files
-	openCmd := make([]container.OpenCmd, 0, len(copyIn))
-	files := make([]file.File, 0, len(copyIn))
+// copyIn copied file from host to container in parallel
+func copyIn(m Environment, copyIn map[string]file.File) error {
+	var g errgroup.Group
 	for n, f := range copyIn {
-		openCmd = append(openCmd, container.OpenCmd{
-			Path: n,
-			Flag: os.O_CREATE | os.O_RDWR | os.O_TRUNC,
-			Perm: 0777,
-		})
-		files = append(files, f)
-	}
-
-	// open files from container
-	cFiles, err := m.Open(openCmd)
-	if err != nil {
-		return err
-	}
-
-	// copyin in parallel
-	var wg sync.WaitGroup
-	errC := make(chan error, 1)
-	wg.Add(len(files))
-	for i, f := range files {
-		go func(cFile *os.File, hFile file.File) {
-			defer wg.Done()
-			defer cFile.Close()
-
-			// open host file
-			hf, err := hFile.Reader()
+		n, f := n, f
+		g.Go(func() error {
+			cf, err := m.OpenAtWorkDir(n, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
 			if err != nil {
-				writeErrorC(errC, err)
-				return
+				return err
+			}
+			defer cf.Close()
+
+			hf, err := f.Reader()
+			if err != nil {
+				return err
 			}
 			defer hf.Close()
 
-			// copy to container
-			_, err = io.Copy(cFile, hf)
+			_, err = io.Copy(cf, hf)
 			if err != nil {
-				writeErrorC(errC, err)
-				return
+				return err
 			}
-		}(cFiles[i], f)
+			return nil
+		})
 	}
-	wg.Wait()
-
-	// check error
-	select {
-	case err := <-errC:
-		return err
-	default:
-	}
-	return nil
+	return g.Wait()
 }

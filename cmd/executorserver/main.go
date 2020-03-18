@@ -23,11 +23,14 @@ var (
 	parallism  = flag.Int("parallism", 4, "control the # of concurrency execution")
 	tmpFsParam = flag.String("tmpfs", "size=8m,nr_inodes=4k", "tmpfs mount data")
 	dir        = flag.String("dir", "", "specifies direcotry to store file upload / download (in memory by default)")
+	silent     = flag.Bool("silent", false, "do not print logs")
 
 	envPool    envexec.EnvironmentPool
 	cgroupPool envexec.CgroupPool
 
 	fs fileStore
+
+	printLog = log.Println
 )
 
 func init() {
@@ -43,12 +46,15 @@ func main() {
 		os.MkdirAll(*dir, 0755)
 		fs = newFileLocalStore(*dir)
 	}
+	if *silent {
+		printLog = func(v ...interface{}) {}
+	}
 
 	root, err := ioutil.TempDir("", "dm")
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Created tmp dir for container root at:", root)
+	printLog("Created tmp dir for container root at:", root)
 
 	mb := mount.NewBuilder().
 		// basic exec and lib
@@ -56,7 +62,6 @@ func main() {
 		WithBind("/lib", "lib", true).
 		WithBind("/lib64", "lib64", true).
 		WithBind("/usr", "usr", true).
-		WithBind("/var/lib/ghc", "var/lib/ghc", true).
 		// java wants /proc/self/exe as it need relative path for lib
 		// however, /proc gives interface like /proc/1/fd/3 ..
 		// it is fine since open that file will be a EPERM
@@ -68,6 +73,8 @@ func main() {
 		WithBind("/etc/fpc.cfg", "etc/fpc.cfg", true).
 		// go wants /dev/null
 		WithBind("/dev/null", "dev/null", false).
+		// ghc wants /var/lib/ghc
+		WithBind("/var/lib/ghc", "var/lib/ghc", true).
 		// work dir
 		WithTmpfs("w", *tmpFsParam).
 		// tmp dir
@@ -76,7 +83,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Created default container mount at:", mb)
+	printLog("Created default container mount at:", mb)
 
 	b := &container.Builder{
 		Root:          root,
@@ -88,22 +95,28 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("Created cgroup builder with:", cgb)
+	printLog("Created cgroup builder with:", cgb)
 
 	envPool = pool.NewEnvPool(b)
 	cgroupPool = pool.NewFakeCgroupPool(cgb)
 
-	log.Println("Starting worker with parallism", *parallism)
+	printLog("Starting worker with parallism", *parallism)
 	startWorkers()
 
-	r := gin.Default()
+	var r *gin.Engine
+	if *silent {
+		gin.SetMode(gin.ReleaseMode)
+		r = gin.New()
+	} else {
+		r = gin.Default()
+	}
 	r.GET("/file", fileGet)
 	r.POST("/file", filePost)
 	r.GET("/file/:fid", fileIDGet)
 	r.DELETE("/file/:fid", fileIDDelete)
 	r.POST("/run", handleRun)
 
-	log.Println("Starting http server at", *addr)
+	printLog("Starting http server at", *addr)
 	r.Run(*addr)
 }
 

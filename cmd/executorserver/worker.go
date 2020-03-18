@@ -176,6 +176,9 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		return nil, nil, err
 	}
 	copyIn, err := prepareCopyIn(rc.CopyIn)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	copyOutSet := make(map[string]bool)
 	// pipe default copyout

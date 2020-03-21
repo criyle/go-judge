@@ -205,6 +205,11 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		realTimeLimit: time.Duration(rc.RealCPULimit),
 	}
 
+	var copyOutDir string
+	if rc.CopyOutDir != "" {
+		copyOutDir = path.Join(*dir, rc.CopyOutDir)
+	}
+
 	return &envexec.Cmd{
 		Args:        rc.Args,
 		Env:         rc.Env,
@@ -213,7 +218,7 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		ProcLimit:   rc.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
-		CopyOutDir:  path.Join(*dir, rc.CopyOutDir),
+		CopyOutDir:  copyOutDir,
 		Waiter:      w.Wait,
 	}, copyOutSet, nil
 }

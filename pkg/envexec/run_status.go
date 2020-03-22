@@ -41,7 +41,6 @@ var statusToString = []string{
 	"Time Limit Exceeded",
 	"Output Limit Exceeded",
 	"File Error",
-	//"Runtime Error",
 	"Nonzero Exit Status",
 	"Signalled",
 	"Dangerous Syscall",

@@ -207,7 +207,11 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 
 	var copyOutDir string
 	if rc.CopyOutDir != "" {
-		copyOutDir = path.Join(*dir, rc.CopyOutDir)
+		if path.IsAbs(rc.CopyOutDir) {
+			copyOutDir = rc.CopyOutDir
+		} else {
+			copyOutDir = path.Join(*dir, rc.CopyOutDir)
+		}
 	}
 
 	return &envexec.Cmd{

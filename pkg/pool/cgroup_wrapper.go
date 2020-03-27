@@ -55,6 +55,6 @@ func (c *wCgroup) Reset() error {
 	return nil
 }
 
-func (c *wCgroup) Destory() error {
+func (c *wCgroup) Destroy() error {
 	return (*cgroup.Cgroup)(c).Destroy()
 }

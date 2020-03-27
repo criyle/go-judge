@@ -1,6 +1,6 @@
 # go-judge
 
-[![GoDoc](https://godoc.org/github.com/criyle/go-judge?status.svg)](https://godoc.org/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest)
+[![GoDoc](https://godoc.org/github.com/criyle/go-judge?status.svg)](https://godoc.org/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest) ![Build](https://github.com/criyle/go-judge/workflows/Build/badge.svg)
 
 ## Executor Service
 
@@ -142,30 +142,30 @@ Single (this example require `apt install g++` inside the container):
 
 ```json
 {
-	"cmd": [{
-		"args": ["/usr/bin/g++", "a.cc", "-o", "a"],
-		"env": ["PATH=/usr/bin:/bin"],
-		"files": [{
-			"content": ""
-		}, {
-			"name": "stdout",
-			"max": 10240
-		}, {
-			"name": "stderr",
-			"max": 10240
-		}],
-		"cpuLimit": 10000000000,
-		"memoryLimit": 104857600,
-		"procLimit": 50,
-		"copyIn": {
-			"a.cc": {
-				"content": "#include <iostream>\nusing namespace std;\nint main() {\nint a, b;\ncin >> a >> b;\ncout << a + b << endl;\n}"
-			}
-		},
-		"copyOut": ["stdout", "stderr"],
+    "cmd": [{
+        "args": ["/usr/bin/g++", "a.cc", "-o", "a"],
+        "env": ["PATH=/usr/bin:/bin"],
+        "files": [{
+            "content": ""
+        }, {
+            "name": "stdout",
+            "max": 10240
+        }, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 10000000000,
+        "memoryLimit": 104857600,
+        "procLimit": 50,
+        "copyIn": {
+            "a.cc": {
+                "content": "#include <iostream>\nusing namespace std;\nint main() {\nint a, b;\ncin >> a >> b;\ncout << a + b << endl;\n}"
+            }
+        },
+        "copyOut": ["stdout", "stderr"],
         "copyOutCached": ["a.cc", "a"],
         "copyOutDir": "1"
-	}]
+    }]
 }
 ```
 
@@ -192,42 +192,42 @@ Multiple (interaction problem):
 
 ```json
 {
-	"cmd": [{
-		"args": ["/bin/cat", "1"],
-		"env": ["PATH=/usr/bin:/bin"],
-		"files": [{
-			"content": ""
-		}, null, {
-			"name": "stderr",
-			"max": 10240
-		}],
-		"cpuLimit": 1000000000,
-		"memoryLimit": 1048576,
-		"procLimit": 50,
-		"copyIn": {
-			"1": { "content": "TEST 1" }
-		},
-		"copyOut": ["stderr"]
-	},
-	{
-		"args": ["/bin/cat"],
-		"env": ["PATH=/usr/bin:/bin"],
-		"files": [null, {
-			"name": "stdout",
-			"max": 10240
-		}, {
-			"name": "stderr",
-			"max": 10240
-		}],
-		"cpuLimit": 1000000000,
-		"memoryLimit": 1048576,
-		"procLimit": 50,
-		"copyOut": ["stdout", "stderr"]
-	}],
-	"pipeMapping": [{
-		"in" : {"index": 0, "fd": 1 },
-		"out" : {"index": 1, "fd" : 0 }
-	}]
+    "cmd": [{
+        "args": ["/bin/cat", "1"],
+        "env": ["PATH=/usr/bin:/bin"],
+        "files": [{
+            "content": ""
+        }, null, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 1000000000,
+        "memoryLimit": 1048576,
+        "procLimit": 50,
+        "copyIn": {
+            "1": { "content": "TEST 1" }
+        },
+        "copyOut": ["stderr"]
+    },
+    {
+        "args": ["/bin/cat"],
+        "env": ["PATH=/usr/bin:/bin"],
+        "files": [null, {
+            "name": "stdout",
+            "max": 10240
+        }, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 1000000000,
+        "memoryLimit": 1048576,
+        "procLimit": 50,
+        "copyOut": ["stdout", "stderr"]
+    }],
+    "pipeMapping": [{
+        "in" : {"index": 0, "fd": 1 },
+        "out" : {"index": 1, "fd" : 0 }
+    }]
 }
 ```
 
@@ -261,7 +261,7 @@ Multiple (interaction problem):
 
 - [x] Github actions to auto build
 - [x] Configure mounts using YAML config file
-- [ ] Investigate root-free running mechanism
-- [ ] Investigate RLimit settings
+- [ ] Investigate root-free running mechanism (no cgroup && not set uid / gid)
+- [ ] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
 - [ ] Add WebSocket for job submission
   

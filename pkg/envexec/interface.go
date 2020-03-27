@@ -35,7 +35,7 @@ type Cgroup interface {
 
 	AddProc(int) error
 	Reset() error
-	Destory() error
+	Destroy() error
 }
 
 // CPUUsager access process cpu usage (from cgroup)

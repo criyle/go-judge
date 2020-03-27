@@ -22,7 +22,7 @@ var (
 	addr       = flag.String("http", ":5050", "specifies the http binding address")
 	parallism  = flag.Int("parallism", 4, "control the # of concurrency execution")
 	tmpFsParam = flag.String("tmpfs", "size=16m,nr_inodes=4k", "tmpfs mount data (only for default mount with no mount.yaml)")
-	dir        = flag.String("dir", "", "specifies direcotry to store file upload / download (in memory by default)")
+	dir        = flag.String("dir", "", "specifies directory to store file upload / download (in memory by default)")
 	silent     = flag.Bool("silent", false, "do not print logs")
 	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")

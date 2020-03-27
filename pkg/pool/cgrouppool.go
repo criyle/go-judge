@@ -52,6 +52,6 @@ func (w *CgroupPool) Shutdown() {
 	defer w.mu.Unlock()
 
 	for _, c := range w.cgs {
-		c.Destory()
+		c.Destroy()
 	}
 }

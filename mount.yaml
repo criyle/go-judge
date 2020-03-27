@@ -35,7 +35,6 @@ mount:
   - type: bind
     source: /dev/null
     target: /dev/null
-    readonly: true
   # node wants /dev/urandom
   - type: bind
     source: /dev/urandom
@@ -49,5 +48,5 @@ mount:
   - type: tmpfs
     target: /tmp
     data: size=16m,nr_inodes=4k
-# java
+# java & ghc wants /proc/self/exe
 proc: true

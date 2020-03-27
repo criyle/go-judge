@@ -25,7 +25,7 @@ func (f *FakeCgroupPool) Get() (envexec.Cgroup, error) {
 
 // Put destory the cgroup
 func (f *FakeCgroupPool) Put(c envexec.Cgroup) {
-	c.Destory()
+	c.Destroy()
 }
 
 // Shutdown noop

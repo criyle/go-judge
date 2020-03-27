@@ -1,4 +1,4 @@
-// Package envexec provides utility function to run program in restricted environmet
+// Package envexec provides utility function to run program in restricted environments
 // through container and cgroup.
 //
 // Cmd

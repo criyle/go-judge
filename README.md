@@ -260,7 +260,8 @@ Multiple (interaction problem):
 ## TODO
 
 - [x] Github actions to auto build
-- [ ] Configure mounts using YAML config file
+- [x] Configure mounts using YAML config file
 - [ ] Investigate root-free running mechanism
 - [ ] Investigate RLimit settings
+- [ ] Add WebSocket for job submission
   

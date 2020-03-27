@@ -14,7 +14,7 @@ FROM debian:latest
 
 WORKDIR /opt
 
-COPY --from=build /go/judge/executorserver /opt/
+COPY --from=build /go/judge/executorserver /go/judge/mount.yaml /opt/
 
 EXPOSE 5050/tcp
 

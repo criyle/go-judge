@@ -1,0 +1,53 @@
+mount:
+  # Basic binaries and libraries
+  - type: bind
+    source: /bin
+    target: /bin
+    readonly: true
+  - type: bind
+    source: /lib
+    target: /lib
+    readonly: true
+  - type: bind
+    source: /lib64
+    target: /lib64
+    readonly: true
+  - type: bind
+    source: /usr
+    target: /usr
+    readonly: true
+  # Some compiler have multiple versions
+  - type: bind
+    source: /etc/alternatives
+    target: /etc/alternatives
+    readonly: true
+  # fpc wants /etc/fpc.cfg
+  - type: bind
+    source: /etc/fpc.cfg
+    target: /etc/fpc.cfg
+    readonly: true
+  # ghc wants /var/lib/ghc
+  - type: bind
+    source: /var/lib/ghc
+    target: /var/lib/ghc
+    readonly: true
+  # go wants /dev/null
+  - type: bind
+    source: /dev/null
+    target: /dev/null
+    readonly: true
+  # node wants /dev/urandom
+  - type: bind
+    source: /dev/urandom
+    target: /dev/urandom
+    readonly: true
+  # work dir
+  - type: tmpfs
+    target: /w
+    data: size=16m,nr_inodes=4k
+  # tmp dir
+  - type: tmpfs
+    target: /tmp
+    data: size=16m,nr_inodes=4k
+# java
+proc: true

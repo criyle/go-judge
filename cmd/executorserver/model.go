@@ -38,6 +38,7 @@ type pipeMap struct {
 }
 
 type request struct {
+	RequestID   string    `json:"requestId"`
 	Cmd         []cmd     `json:"cmd"`
 	PipeMapping []pipeMap `json:"pipeMapping"`
 }
@@ -56,4 +57,11 @@ type response struct {
 	Memory     uint64            `json:"memory"`
 	Files      map[string]string `json:"files,omitempty"`
 	FileIDs    map[string]string `json:"fileIds,omitempty"`
+}
+
+type result struct {
+	RequestID string     `json:"requestId"`
+	Response  []response `json:"results"`
+	Error     error      `json:"-"`
+	ErrorMsg  string     `json:"error,omitempty"`
 }

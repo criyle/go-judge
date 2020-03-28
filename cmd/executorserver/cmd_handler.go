@@ -9,7 +9,8 @@ import (
 func handleRun(c *gin.Context) {
 	var req request
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -18,5 +19,11 @@ func handleRun(c *gin.Context) {
 		return
 	}
 	ret := submitRequest(&req)
-	c.JSON(http.StatusOK, <-ret)
+	rt := <-ret
+	if rt.Error != nil {
+		c.Error(rt.Error)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())
+		return
+	}
+	c.JSON(http.StatusOK, rt.Response)
 }

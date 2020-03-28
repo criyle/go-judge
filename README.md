@@ -11,6 +11,7 @@ A rest service to run program in restricted environment and it is basically a wr
 - /file POST prepare a file in the executor service (in memory), returns fileId (can be referenced in /run parameter)
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
+- /ws WebSocket for /run
 
 ### Install & Run Developing Server
 
@@ -120,6 +121,7 @@ interface PipeMap {
 }
 
 interface Request {
+    requestId?: string; // for WebSocket requests
     cmd: Cmd[];
     pipeMapping: PipeMap[];
 }
@@ -133,6 +135,13 @@ interface Result {
     files?: {[name:string]:string};
     // copyFileCached name -> fileId
     fileIds?: {[name:string]:string};
+}
+
+// WebSocket results
+interface WSResult {
+    requestId: string;
+    results: []Result;
+    error?: string;
 }
 ```
 
@@ -263,5 +272,5 @@ Multiple (interaction problem):
 - [x] Configure mounts using YAML config file
 - [ ] Investigate root-free running mechanism (no cgroup && not set uid / gid)
 - [ ] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
-- [ ] Add WebSocket for job submission
+- [x] Add WebSocket for job submission
   

@@ -16,7 +16,7 @@ const maxWaiting = 512
 
 type workRequest struct {
 	*request
-	resultCh chan<- []response
+	resultCh chan<- result
 }
 
 var (
@@ -55,18 +55,20 @@ func workerLoop() {
 }
 
 func workDoCmd(req workRequest) {
+	var rt result
 	if len(req.Cmd) == 1 {
-		req.resultCh <- []response{workDoSingle(req.Cmd[0])}
+		rt = workDoSingle(req.Cmd[0])
 	} else {
-		req.resultCh <- workDoGroup(req.Cmd, req.PipeMapping)
+		rt = workDoGroup(req.Cmd, req.PipeMapping)
 	}
+	rt.RequestID = req.RequestID
+	req.resultCh <- rt
 }
 
-func workDoSingle(rc cmd) (res response) {
+func workDoSingle(rc cmd) (rt result) {
 	c, copyOutSet, err := prepareCmd(rc)
 	if err != nil {
-		res.Status = status(envexec.StatusInternalError)
-		res.Error = err.Error()
+		rt.Error = err
 		return
 	}
 	s := &envexec.Single{
@@ -76,10 +78,50 @@ func workDoSingle(rc cmd) (res response) {
 	}
 	result, err := s.Run()
 	if err != nil {
-		res.Status = status(envexec.StatusInternalError)
-		res.Error = err.Error()
+		rt.Error = err
 		return
 	}
+	res := convertResult(result, copyOutSet)
+	rt.Response = []response{res}
+	return
+}
+
+func workDoGroup(rc []cmd, pm []pipeMap) (rt result) {
+	var rts []response
+	p := preparePipeMapping(pm)
+	cs := make([]*envexec.Cmd, 0, len(rc))
+	copyOutSets := make([]map[string]bool, 0, len(rc))
+	for _, cc := range rc {
+		c, os, err := prepareCmd(cc)
+		if err != nil {
+			rt.Error = err
+			return
+		}
+		cs = append(cs, c)
+		copyOutSets = append(copyOutSets, os)
+	}
+	g := envexec.Group{
+		CgroupPool:      cgroupPool,
+		EnvironmentPool: envPool,
+
+		Cmd:   cs,
+		Pipes: p,
+	}
+	results, err := g.Run()
+	if err != nil {
+		rt.Error = err
+		return
+	}
+	rts = make([]response, 0, len(results))
+	for i, result := range results {
+		res := convertResult(result, copyOutSets[i])
+		rts = append(rts, res)
+	}
+	rt.Response = rts
+	return
+}
+
+func convertResult(result envexec.Result, copyOutSet map[string]bool) (res response) {
 	res.Status = status(result.Status)
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
@@ -107,67 +149,7 @@ func workDoSingle(rc cmd) (res response) {
 			res.FileIDs[name] = id
 		}
 	}
-	return
-}
-
-func workDoGroup(rc []cmd, pm []pipeMap) (rts []response) {
-	p := preparePipeMapping(pm)
-	cs := make([]*envexec.Cmd, 0, len(rc))
-	copyOutSets := make([]map[string]bool, 0, len(rc))
-	for _, cc := range rc {
-		c, os, err := prepareCmd(cc)
-		if err != nil {
-			rts = []response{{Status: status(envexec.StatusInternalError), Error: err.Error()}}
-			return
-		}
-		cs = append(cs, c)
-		copyOutSets = append(copyOutSets, os)
-	}
-	g := envexec.Group{
-		CgroupPool:      cgroupPool,
-		EnvironmentPool: envPool,
-
-		Cmd:   cs,
-		Pipes: p,
-	}
-	results, err := g.Run()
-	if err != nil {
-		rts = []response{{Status: status(envexec.StatusInternalError), Error: err.Error()}}
-		return
-	}
-	rts = make([]response, 0, len(results))
-	for i, result := range results {
-		var res response
-		res.Status = status(result.Status)
-		res.ExitStatus = result.ExitStatus
-		res.Error = result.Error
-		res.Time = uint64(result.Time)
-		res.Memory = uint64(result.Memory)
-		res.Files = make(map[string]string)
-		res.FileIDs = make(map[string]string)
-
-		for name, fi := range result.Files {
-			b, err := fi.Content()
-			if err != nil {
-				res.Status = status(envexec.StatusFileError)
-				res.Error = err.Error()
-				return
-			}
-			if copyOutSets[i][name] {
-				res.Files[name] = string(b)
-			} else {
-				id, err := fs.Add(name, b)
-				if err != nil {
-					res.Status = status(envexec.StatusFileError)
-					res.Error = err.Error()
-					return
-				}
-				res.FileIDs[name] = id
-			}
-		}
-		rts = append(rts, res)
-	}
-	return
+	return res
 }
 
 func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
@@ -291,8 +273,8 @@ func prepareCmdFile(f *cmdFile) (interface{}, error) {
 	}
 }
 
-func submitRequest(req *request) <-chan []response {
-	ch := make(chan []response, 1)
+func submitRequest(req *request) <-chan result {
+	ch := make(chan result, 1)
 	workCh <- workRequest{
 		request:  req,
 		resultCh: ch,

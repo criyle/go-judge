@@ -100,6 +100,7 @@ func main() {
 	if *silent {
 		gin.SetMode(gin.ReleaseMode)
 		r = gin.New()
+		r.Use(gin.Recovery())
 	} else {
 		r = gin.Default()
 	}
@@ -108,6 +109,8 @@ func main() {
 	r.GET("/file/:fid", fileIDGet)
 	r.DELETE("/file/:fid", fileIDDelete)
 	r.POST("/run", handleRun)
+
+	r.GET("/ws", handleWS)
 
 	printLog("Starting http server at", *addr)
 	r.Run(*addr)

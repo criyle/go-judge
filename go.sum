@@ -1,5 +1,5 @@
-github.com/criyle/go-sandbox v0.3.0 h1:Y073Q1pNNAOz8IzxrJ54QZJucqf6pOK55gsq3kINt1c=
-github.com/criyle/go-sandbox v0.3.0/go.mod h1:Dn0/RUjRolP3Swt3QkxOoF8zK7q6B2bB9nB73IEGlnI=
+github.com/criyle/go-sandbox v0.3.1 h1:M3xx4Gb/HZQxWfwtnkB49ypU3mnhQ94SGiKVLFthzeE=
+github.com/criyle/go-sandbox v0.3.1/go.mod h1:Dn0/RUjRolP3Swt3QkxOoF8zK7q6B2bB9nB73IEGlnI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

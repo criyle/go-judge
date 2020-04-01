@@ -18,3 +18,11 @@
 # Test Env
 env*.sh
 init.sql
+
+node_modules
+cinit
+
+# not release yet
+package*.json
+
+example.js

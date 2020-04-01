@@ -3,7 +3,7 @@ module github.com/criyle/go-judge
 go 1.14
 
 require (
-	github.com/criyle/go-sandbox v0.3.0
+	github.com/criyle/go-sandbox v0.3.1
 	github.com/gin-gonic/gin v1.6.2
 	github.com/golang/protobuf v1.3.5 // indirect
 	github.com/gorilla/websocket v1.4.2

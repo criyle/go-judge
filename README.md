@@ -40,6 +40,76 @@ The default file store is in memory, local cache can be specified with `-dir` fl
 
 The default log level is debug, use `-silent` to disable logs.
 
+### Build Shared object
+
+Build container init `cinit`:
+
+`go build -o cinit ./cmd/cinit`
+
+Build `executor_server.so`:
+
+`go build -buildmode=c-shared -o executor_server.so ./cmd/executorserver/`
+
+For example, in JavaScript, run with `ffi-napi`:
+
+```javascript
+var ffi = require('ffi-napi');
+
+var executor_server = ffi.Library('./executor_server.so', {
+    'Init': ['int', ['string']],
+    'Exec': ['string', ['string']]
+});
+
+if (executor_server.Init(JSON.stringify({
+    cinitPath: "/judge/cinit",
+    parallism: 4,
+}))) {
+    console.log("Failed to init executor server");
+}
+
+const result = JSON.parse(executor_server.Exec(JSON.stringify({
+    "cmd": [{
+        "args": ["/bin/cat", "test.txt"],
+        "env": ["PATH=/usr/bin:/bin"],
+        "files": [{
+            "content": ""
+        }, {
+            "name": "stdout",
+            "max": 10240
+        }, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 10000000000,
+        "memoryLimit": 104857600,
+        "procLimit": 50,
+        "copyIn": {
+            "test.txt": {
+                "content": "TEST"
+            }
+        }
+    }]
+})));
+console.log(result);
+```
+
+Output:
+
+```javascript
+{
+  requestId: '',
+  results: [
+    {
+      status: 'Accepted',
+      exitStatus: 0,
+      time: 814048,
+      memory: 253952,
+      files: [Object]
+    }
+  ]
+}
+```
+
 ### Container Root Filesystem
 
 - [x] necessary lib / exec / compiler / header readonly bind mounted from current file system: /lib /lib64 /bin /usr

@@ -20,7 +20,7 @@ env*.sh
 init.sql
 
 node_modules
-cinit
+/cinit
 
 # not release yet
 package*.json

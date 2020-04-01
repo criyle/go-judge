@@ -12,14 +12,25 @@ jobs:
       with:
         go-version: 1.13
       id: go
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-    - name: Get dependencies
-      run: go mod download
+    - uses: actions/checkout@v2
+    - run: go mod download
     - name: Build
-      run: go build -o executorserver ./cmd/executorserver
-    - name: Upload
+      run: |
+        go build -o executorserver ./cmd/executorserver
+        go build -o cinit ./cmd/cinit
+        go build -buildmode=c-shared -o executorserver.so ./cmd/executorserver
+    - name: Upload executorserver
       uses: actions/upload-artifact@master
       with:
         name: ExecutorServer
         path: executorserver
+    - name: Upload cinit
+      uses: actions/upload-artifact@master
+      with:
+        name: cinit
+        path: cinit
+        - name: Upload executorserver.so
+      uses: actions/upload-artifact@master
+      with:
+        name: ExecutorServer.so
+        path: executorserver.so

@@ -38,7 +38,7 @@ The default concurrency is `4`, Can be specified with `-parallism` flag.
 
 The default file store is in memory, local cache can be specified with `-dir` flag.
 
-The default log level is debut, use `-silent` to disable logs.
+The default log level is debug, use `-silent` to disable logs.
 
 ### Container Root Filesystem
 

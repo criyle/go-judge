@@ -1,36 +1,36 @@
 name: Build
 on:
   push:
-    branches: [ master ]
+    branches: [master]
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     steps:
-    - name: Set up Go 1.13
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.13
-      id: go
-    - uses: actions/checkout@v2
-    - run: go mod download
-    - name: Build
-      run: |
-        go build -o executorserver ./cmd/executorserver
-        go build -o cinit ./cmd/cinit
-        go build -buildmode=c-shared -o executorserver.so ./cmd/executorserver
-    - name: Upload executorserver
-      uses: actions/upload-artifact@master
-      with:
-        name: ExecutorServer
-        path: executorserver
-    - name: Upload cinit
-      uses: actions/upload-artifact@master
-      with:
-        name: cinit
-        path: cinit
-        - name: Upload executorserver.so
-      uses: actions/upload-artifact@master
-      with:
-        name: ExecutorServer.so
-        path: executorserver.so
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+      - uses: actions/checkout@v2
+      - run: go mod download
+      - name: Build
+        run: |
+          go build -o executorserver ./cmd/executorserver
+          go build -o cinit ./cmd/cinit
+          go build -buildmode=c-shared -o executorserver.so ./cmd/executorserver
+      - name: Upload executorserver
+        uses: actions/upload-artifact@master
+        with:
+          name: ExecutorServer
+          path: executorserver
+      - name: Upload cinit
+        uses: actions/upload-artifact@master
+        with:
+          name: cinit
+          path: cinit
+      - name: Upload executorserver.so
+        uses: actions/upload-artifact@master
+        with:
+          name: ExecutorServer.so
+          path: executorserver.so

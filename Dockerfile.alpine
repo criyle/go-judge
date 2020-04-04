@@ -1,0 +1,26 @@
+FROM golang:alpine AS build
+
+WORKDIR /go/judge 
+
+# CGO need g++, CGO is needed to compile c-shared
+RUN apk --no-cache add build-base
+
+COPY go.mod go.sum /go/judge/
+
+RUN go mod download
+
+COPY ./ /go/judge
+
+RUN go build -o executorserver ./cmd/executorserver && \
+    go build -o cinit ./cmd/cinit && \
+    go build -buildmode=c-shared -o executor_server.so ./cmd/executorserver/
+
+FROM alpine:latest
+
+WORKDIR /opt
+
+COPY --from=build /go/judge/executorserver /go/judge/mount.yaml /opt/
+
+EXPOSE 5050/tcp
+
+ENTRYPOINT ["./executorserver"]

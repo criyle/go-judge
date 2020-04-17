@@ -9,9 +9,6 @@ import (
 // Group defines the running instruction to run multiple
 // exec in parallel restricted within cgroup
 type Group struct {
-	// CgroupPool defines pool of cgroup used for Cmd
-	CgroupPool CgroupPool
-
 	// EnvironmentPool defines pool used for runner environment
 	EnvironmentPool EnvironmentPool
 
@@ -55,24 +52,13 @@ func (r *Group) Run() ([]Result, error) {
 		ms = append(ms, m)
 	}
 
-	// prepare cgroup
-	cgs := make([]Cgroup, 0, len(r.Cmd))
-	for range r.Cmd {
-		cg, err := r.CgroupPool.Get()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get cgroup %v", err)
-		}
-		defer r.CgroupPool.Put(cg)
-		cgs = append(cgs, cg)
-	}
-
 	// wait all cmd to finish
 	var g errgroup.Group
 	result := make([]Result, len(r.Cmd))
 	for i, c := range r.Cmd {
 		i, c := i, c
 		g.Go(func() error {
-			r, err := runSingle(ms[i], cgs[i], c, fds[i], pipeToCollect[i])
+			r, err := runSingle(ms[i], c, fds[i], pipeToCollect[i])
 			result[i] = r
 			if err != nil {
 				result[i].Status = StatusInternalError

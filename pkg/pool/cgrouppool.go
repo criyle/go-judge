@@ -2,25 +2,45 @@ package pool
 
 import (
 	"sync"
+	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-sandbox/runner"
 )
 
-// CgroupPool implements cgroup pool
-type CgroupPool struct {
+// Cgroup defines interface to limit and monitor resources consumption of a process
+type Cgroup interface {
+	SetMemoryLimit(runner.Size) error
+	SetProcLimit(uint64) error
+
+	CPUUsage() (time.Duration, error)
+	MemoryUsage() (runner.Size, error)
+
+	AddProc(int) error
+	Reset() error
+	Destroy() error
+}
+
+// CgroupPool implements pool of Cgroup
+type CgroupPool interface {
+	Get() (Cgroup, error)
+	Put(Cgroup)
+}
+
+// CgroupListPool implements cgroup pool
+type CgroupListPool struct {
 	builder CgroupBuilder
 
-	cgs []envexec.Cgroup
+	cgs []Cgroup
 	mu  sync.Mutex
 }
 
-// NewCgroupPool creates new cgroup pool
-func NewCgroupPool(builder CgroupBuilder) *CgroupPool {
-	return &CgroupPool{builder: builder}
+// NewCgroupListPool creates new cgroup pool
+func NewCgroupListPool(builder CgroupBuilder) CgroupPool {
+	return &CgroupListPool{builder: builder}
 }
 
 // Get gets cgroup from pool, if pool is empty, creates new one
-func (w *CgroupPool) Get() (envexec.Cgroup, error) {
+func (w *CgroupListPool) Get() (Cgroup, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -38,7 +58,7 @@ func (w *CgroupPool) Get() (envexec.Cgroup, error) {
 }
 
 // Put puts cgroup into the pool
-func (w *CgroupPool) Put(c envexec.Cgroup) {
+func (w *CgroupListPool) Put(c Cgroup) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
@@ -47,7 +67,7 @@ func (w *CgroupPool) Put(c envexec.Cgroup) {
 }
 
 // Shutdown destroy all cgroup
-func (w *CgroupPool) Shutdown() {
+func (w *CgroupListPool) Shutdown() {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 

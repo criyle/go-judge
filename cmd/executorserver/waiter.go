@@ -12,7 +12,7 @@ type waiter struct {
 	realTimeLimit time.Duration
 }
 
-func (w *waiter) Wait(ctx context.Context, u envexec.CPUUsager) bool {
+func (w *waiter) Wait(ctx context.Context, u envexec.Process) bool {
 	if w.realTimeLimit < w.timeLimit {
 		w.realTimeLimit = w.timeLimit
 	}

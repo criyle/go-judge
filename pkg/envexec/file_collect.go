@@ -19,7 +19,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 	for _, n := range c.CopyOut {
 		n := n
 		g.Go(func() error {
-			cf, err := m.OpenAtWorkDir(n, os.O_RDONLY, 0777)
+			cf, err := m.Open(n, os.O_RDONLY, 0777)
 			if err != nil {
 				return err
 			}

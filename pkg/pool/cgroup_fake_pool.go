@@ -1,8 +1,6 @@
 package pool
 
-import "github.com/criyle/go-judge/pkg/envexec"
-
-var _ envexec.CgroupPool = &FakeCgroupPool{}
+var _ CgroupPool = &FakeCgroupPool{}
 
 // FakeCgroupPool implements cgroup pool but not actually do pool
 type FakeCgroupPool struct {
@@ -10,12 +8,12 @@ type FakeCgroupPool struct {
 }
 
 // NewFakeCgroupPool creates FakeCgroupPool
-func NewFakeCgroupPool(builder CgroupBuilder) *FakeCgroupPool {
+func NewFakeCgroupPool(builder CgroupBuilder) CgroupPool {
 	return &FakeCgroupPool{builder: builder}
 }
 
 // Get gets new cgroup
-func (f *FakeCgroupPool) Get() (envexec.Cgroup, error) {
+func (f *FakeCgroupPool) Get() (Cgroup, error) {
 	cg, err := f.builder.Build()
 	if err != nil {
 		return nil, err
@@ -24,7 +22,7 @@ func (f *FakeCgroupPool) Get() (envexec.Cgroup, error) {
 }
 
 // Put destory the cgroup
-func (f *FakeCgroupPool) Put(c envexec.Cgroup) {
+func (f *FakeCgroupPool) Put(c Cgroup) {
 	c.Destroy()
 }
 

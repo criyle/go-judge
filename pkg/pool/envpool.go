@@ -2,7 +2,6 @@ package pool
 
 import (
 	"fmt"
-	"os"
 	"sync"
 	"syscall"
 
@@ -10,24 +9,20 @@ import (
 	"github.com/criyle/go-sandbox/container"
 )
 
-// Environment defines interface to access container resources
-type Environment struct {
-	container.Environment
-	wd *os.File // container work dir
-}
-
 // EnvPool implements container environment pool
 type EnvPool struct {
 	builder EnvironmentBuilder
+	cgPool  CgroupPool
 
-	env []envexec.Environment
+	env []*Environment
 	mu  sync.Mutex
 }
 
 // NewEnvPool creats new EnvPool with a builder
-func NewEnvPool(builder EnvironmentBuilder) *EnvPool {
+func NewEnvPool(builder EnvironmentBuilder, cgPool CgroupPool) *EnvPool {
 	return &EnvPool{
 		builder: builder,
+		cgPool:  cgPool,
 	}
 }
 
@@ -53,11 +48,16 @@ func (p *EnvPool) Get() (envexec.Environment, error) {
 	if err != nil {
 		return nil, fmt.Errorf("container: failed to prepare work directory")
 	}
-	return &Environment{Environment: m, wd: wd[0]}, nil
+	return &Environment{
+		Environment: m,
+		cgPool:      p.cgPool,
+		wd:          wd[0],
+	}, nil
 }
 
 // Put puts environment to the pool with reset the environment
-func (p *EnvPool) Put(env envexec.Environment) {
+func (p *EnvPool) Put(e envexec.Environment) {
+	env, _ := e.(*Environment)
 	env.Reset()
 
 	p.mu.Lock()
@@ -67,7 +67,8 @@ func (p *EnvPool) Put(env envexec.Environment) {
 }
 
 // Destroy destory an environment
-func (p *EnvPool) Destroy(env container.Environment) {
+func (p *EnvPool) Destroy(e envexec.Environment) {
+	env, _ := e.(*Environment)
 	env.Destroy()
 }
 
@@ -89,23 +90,4 @@ func (p *EnvPool) Shutdown() {
 	for _, e := range p.env {
 		p.Destroy(e)
 	}
-}
-
-// WorkDir returns opened work directory, should not close after
-func (c *Environment) WorkDir() *os.File {
-	c.wd.Seek(0, 0)
-	return c.wd
-}
-
-// OpenAtWorkDir opens file relative to work directory
-func (c *Environment) OpenAtWorkDir(path string, flags int, perm os.FileMode) (*os.File, error) {
-	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_CLOEXEC, uint32(perm))
-	if err != nil {
-		return nil, fmt.Errorf("openAtWorkDir: %v", err)
-	}
-	f := os.NewFile(uintptr(fd), path)
-	if f == nil {
-		return nil, fmt.Errorf("openAtWorkDir: failed to NewFile")
-	}
-	return f, nil
 }

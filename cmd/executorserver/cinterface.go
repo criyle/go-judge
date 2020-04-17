@@ -87,8 +87,8 @@ func Init(i *C.char) C.int {
 		return -1
 	}
 
-	envPool = pool.NewEnvPool(b)
-	cgroupPool = pool.NewFakeCgroupPool(cgb)
+	cgroupPool := pool.NewFakeCgroupPool(cgb)
+	envPool = pool.NewEnvPool(b, cgroupPool)
 
 	startWorkers()
 	return 0

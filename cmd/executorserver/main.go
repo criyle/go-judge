@@ -27,8 +27,7 @@ var (
 	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
 
-	envPool    envexec.EnvironmentPool
-	cgroupPool envexec.CgroupPool
+	envPool envexec.EnvironmentPool
 
 	fs fileStore
 
@@ -90,8 +89,8 @@ func main() {
 	}
 	printLog("Created cgroup builder with:", cgb)
 
-	envPool = pool.NewEnvPool(b)
-	cgroupPool = pool.NewFakeCgroupPool(cgb)
+	cgroupPool := pool.NewFakeCgroupPool(cgb)
+	envPool = pool.NewEnvPool(b, cgroupPool)
 
 	printLog("Starting worker with parallism", *parallism)
 	startWorkers()

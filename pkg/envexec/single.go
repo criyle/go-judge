@@ -7,9 +7,6 @@ import (
 // Single defines the running instruction to run single
 // exec in restricted within cgroup
 type Single struct {
-	// CgroupPool defines pool of cgroup used for Cmd
-	CgroupPool CgroupPool
-
 	// EnvironmentPool defines pool used for runner environment
 	EnvironmentPool EnvironmentPool
 
@@ -34,14 +31,7 @@ func (s *Single) Run() (result Result, err error) {
 	}
 	defer s.EnvironmentPool.Put(m)
 
-	// prepare cgroup
-	cg, err := s.CgroupPool.Get()
-	if err != nil {
-		return result, fmt.Errorf("failed to get cgroup %v", err)
-	}
-	defer s.CgroupPool.Put(cg)
-
-	result, err = runSingle(m, cg, s.Cmd, fd, pipeToCollect)
+	result, err = runSingle(m, s.Cmd, fd, pipeToCollect)
 	fileToClose = nil // already closed by runOne
 	if err != nil {
 		result.Status = StatusInternalError

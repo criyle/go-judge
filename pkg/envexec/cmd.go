@@ -21,7 +21,8 @@ type Cmd struct {
 	// PipeCollector: a pipe write end will be passed to runner and collected as a copyout file
 	Files []interface{}
 
-	// cgroup limits
+	// resource limits
+	TimeLimit   time.Duration
 	MemoryLimit runner.Size // in bytes
 	ProcLimit   uint64
 
@@ -37,7 +38,7 @@ type Cmd struct {
 	// Waiter is called after cmd starts and it should return
 	// once time limit exceeded.
 	// return true to as TLE and false as normal exits (context finished)
-	Waiter func(context.Context, CPUUsager) bool
+	Waiter func(context.Context, Process) bool
 }
 
 // PipeCollector can be used in Cmd.Files paramenter

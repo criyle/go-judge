@@ -14,7 +14,7 @@ func copyIn(m Environment, copyIn map[string]file.File) error {
 	for n, f := range copyIn {
 		n, f := n, f
 		g.Go(func() error {
-			cf, err := m.OpenAtWorkDir(n, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
+			cf, err := m.Open(n, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
 			if err != nil {
 				return err
 			}

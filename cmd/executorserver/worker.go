@@ -72,7 +72,6 @@ func workDoSingle(rc cmd) (rt result) {
 		return
 	}
 	s := &envexec.Single{
-		CgroupPool:      cgroupPool,
 		EnvironmentPool: envPool,
 		Cmd:             c,
 	}
@@ -101,7 +100,6 @@ func workDoGroup(rc []cmd, pm []pipeMap) (rt result) {
 		copyOutSets = append(copyOutSets, os)
 	}
 	g := envexec.Group{
-		CgroupPool:      cgroupPool,
 		EnvironmentPool: envPool,
 
 		Cmd:   cs,

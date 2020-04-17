@@ -3,13 +3,12 @@ package pool
 import (
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/runner"
 )
 
 var (
-	_ envexec.Cgroup = &wCgroup{}
+	_ Cgroup = &wCgroup{}
 )
 
 type wCgroup cgroup.Cgroup

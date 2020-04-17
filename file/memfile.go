@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"os"
-
-	"github.com/criyle/go-sandbox/pkg/memfd"
 )
+
+var _ File = &memFile{}
 
 // memFile represent a file like byte array
 type memFile struct {
@@ -30,10 +29,6 @@ func (m *memFile) Name() string {
 
 func (m *memFile) Content() ([]byte, error) {
 	return m.content, nil
-}
-
-func (m *memFile) Open() (*os.File, error) {
-	return memfd.DupToMemfd(m.name, bytes.NewReader(m.content))
 }
 
 func (m *memFile) String() string {

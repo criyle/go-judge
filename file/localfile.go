@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+var _ File = &localFile{}
+
 // localFile stores a path to represent a local file
 type localFile struct {
 	name, path string

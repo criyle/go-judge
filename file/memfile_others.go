@@ -3,12 +3,16 @@
 package file
 
 import (
-	"errors"
 	"os"
 )
 
-var errNotImplemented = errors.New("Memfile open is not defined on this platform")
-
 func (m *memFile) Open() (*os.File, error) {
-	return nil, errNotImplemented
+	r, w, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		w.Write(m.content)
+	}()
+	return r, nil
 }

@@ -5,14 +5,7 @@ import "C"
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"os"
-	"syscall"
-
-	"github.com/criyle/go-judge/pkg/pool"
-	"github.com/criyle/go-sandbox/container"
-	"github.com/criyle/go-sandbox/pkg/cgroup"
-	"github.com/criyle/go-sandbox/pkg/forkexec"
 )
 
 type initParameter struct {
@@ -53,42 +46,7 @@ func Init(i *C.char) C.int {
 		os.MkdirAll(ip.Dir, 0755)
 		fs = newFileLocalStore(ip.Dir)
 	}
-
-	root, err := ioutil.TempDir("", "dm")
-	if err != nil {
-		return -1
-	}
-
-	mb, err := parseMountConfig(ip.MountConf)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return -1
-		}
-		mb = getDefaultMount()
-	}
-	m, err := mb.Build(true)
-	if err != nil {
-		return -1
-	}
-
-	unshareFlags := uintptr(forkexec.UnshareFlags)
-	if ip.NetShare {
-		unshareFlags ^= syscall.CLONE_NEWNET
-	}
-
-	b := &container.Builder{
-		Root:       root,
-		Mounts:     m,
-		CloneFlags: unshareFlags,
-		ExecFile:   ip.CInitPath,
-	}
-	cgb, err := cgroup.NewBuilder("executorserver").WithCPUAcct().WithMemory().WithPids().FilterByEnv()
-	if err != nil {
-		return -1
-	}
-
-	cgroupPool := pool.NewFakeCgroupPool(cgb)
-	envPool = pool.NewEnvPool(b, cgroupPool)
+	initEnvPool()
 
 	startWorkers()
 	return 0

@@ -12,6 +12,7 @@ func (m *memFile) Open() (*os.File, error) {
 		return nil, err
 	}
 	go func() {
+		defer w.Close()
 		w.Write(m.content)
 	}()
 	return r, nil

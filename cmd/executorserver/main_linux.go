@@ -57,7 +57,8 @@ func initEnvPool() {
 	printLog("Created cgroup builder with:", cgb)
 
 	cgroupPool := pool.NewFakeCgroupPool(cgb)
-	envPool = pool.NewEnvPool(b, cgroupPool)
+	builder := pool.NewEnvBuilder(b, cgroupPool)
+	envPool = pool.NewPool(builder)
 }
 
 type credGen struct {

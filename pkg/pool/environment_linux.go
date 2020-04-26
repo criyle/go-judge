@@ -10,22 +10,26 @@ import (
 	"github.com/criyle/go-sandbox/container"
 )
 
-var _ envexec.Environment = &Environment{}
+var _ envexec.Environment = &environ{}
 
-// Environment defines interface to access container resources
-type Environment struct {
+// environ defines interface to access container resources
+type environ struct {
 	container.Environment
 	cgPool CgroupPool
 	wd     *os.File // container work dir
 }
 
 // Destory destories the environment
-func (c *Environment) Destory() error {
+func (c *environ) Destory() error {
 	return c.Environment.Destroy()
 }
 
+func (c *environ) Reset() error {
+	return c.Environment.Reset()
+}
+
 // Execve execute process inside the environment
-func (c *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (envexec.Process, error) {
+func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexec.Process, error) {
 	cg, err := c.cgPool.Get()
 	if err != nil {
 		return nil, fmt.Errorf("execve: failed to get cgroup %v", err)
@@ -45,13 +49,13 @@ func (c *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (en
 }
 
 // WorkDir returns opened work directory, should not close after
-func (c *Environment) WorkDir() *os.File {
+func (c *environ) WorkDir() *os.File {
 	c.wd.Seek(0, 0)
 	return c.wd
 }
 
 // Open opens file relative to work directory
-func (c *Environment) Open(path string, flags int, perm os.FileMode) (*os.File, error) {
+func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, error) {
 	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_CLOEXEC, uint32(perm))
 	if err != nil {
 		return nil, fmt.Errorf("openAtWorkDir: %v", err)

@@ -17,7 +17,12 @@ func copyDir(src *os.File, dst string) error {
 	}
 	defer newDir.Close()
 
-	dir := src
+	dir, err := os.Open(src.Name())
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
 	names, err := dir.Readdirnames(-1)
 	if err != nil {
 		return err
@@ -35,10 +40,14 @@ func copyDirFile(src, dst, name string) error {
 	if err != nil {
 		return err
 	}
-	t, err := os.OpenFile(path.Join(dst, name), os.O_WRONLY, 0777)
+	defer s.Close()
+
+	t, err := os.OpenFile(path.Join(dst, name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		return err
 	}
+	defer t.Close()
+
 	_, err = io.Copy(t, s)
 	if err != nil {
 		return err

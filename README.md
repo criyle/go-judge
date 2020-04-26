@@ -125,6 +125,24 @@ The following mounts point are examples that can be configured through config fi
 - pkg/envexec: run single / group of programs in parallel within restricted environment and resource constraints
 - pkg/pool: reference implementation for Cgroup & Environment Pool
 
+### Windows Support
+
+Build `executorserver` by:
+
+`go build ./cmd/executorserver/`
+
+Build `executor_server.dll`: (need to install `gcc` as well)
+
+`go build -buildmode=c-shared -o executor_server.so ./cmd/executorserver/`
+
+Run: `./executorserver`
+
+#### Security
+
+- Resources are limited by [JobObject](https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects)
+- Privillege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
+- Low Mandatory Level directory is created for read / write
+
 ### API interface
 
 ```typescript
@@ -336,6 +354,53 @@ Multiple (interaction problem):
 ]
 ```
 
+Compile On Windows (cygwin):
+
+```json
+{
+    "cmd": [{
+        "args": ["C:\\Cygwin\\bin\\g++", "a.cc", "-o", "a"],
+        "env": ["PATH=C:\\Cygwin\\bin;"],
+        "files": [{
+            "content": ""
+        }, {
+            "name": "stdout",
+            "max": 10240
+        }, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 10000000000,
+        "memoryLimit": 104857600,
+        "procLimit": 50,
+        "copyIn": {
+            "a.cc": {
+                "content": "#include <iostream>\n#include <signal.h>\n#include <unistd.h>\nusing namespace std;\nint main() {\nint a, b;\ncin >> a >> b;\ncout << a + b << endl;\n}"
+            }
+        },
+        "copyOutCached": ["a.exe"]
+    }]
+}
+```
+
+```json
+[
+    {
+        "status": "Accepted",
+        "exitStatus": 0,
+        "time": 140625000,
+        "memory": 36286464,
+        "files": {
+            "stderr": "",
+            "stdout": ""
+        },
+        "fileIds": {
+            "a.exe": "HLQH2OF4MXUUJBCB"
+        }
+    }
+]
+```
+
 ## TODO
 
 - [x] Github actions to auto build
@@ -343,4 +408,6 @@ Multiple (interaction problem):
 - [ ] Investigate root-free running mechanism (no cgroup && not set uid / gid)
 - [ ] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
 - [x] Add WebSocket for job submission
+- [x] Windows support
+- [ ] MacOS support
   

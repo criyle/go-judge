@@ -7,7 +7,7 @@ jobs:
     name: Build
     strategy:
       matrix:
-        GOARCH: [386, amd64, arm, arm64]
+        GOARCH: [amd64]
     runs-on: ubuntu-latest
     steps:
       - name: Set up Go 1.14

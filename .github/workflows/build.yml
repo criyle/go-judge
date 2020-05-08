@@ -5,16 +5,22 @@ on:
 jobs:
   build:
     name: Build
+    strategy:
+      matrix:
+        GOARCH: [386, amd64, arm, arm64]
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go 1.13
-        uses: actions/setup-go@v1
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v2
         with:
-          go-version: 1.13
-        id: go
+          go-version: 1.14
       - uses: actions/checkout@v2
-      - run: go mod download
-      - name: Build
+      - name: Download dependencies
+        run: go mod download
+      - name: Build on Linux
+        env: 
+          GOOS: linux
+          GOARCH: ${{ matrix.GOARCH }}
         run: |
           go build -o executorserver ./cmd/executorserver
           go build -o cinit ./cmd/cinit
@@ -22,15 +28,40 @@ jobs:
       - name: Upload executorserver
         uses: actions/upload-artifact@master
         with:
-          name: ExecutorServer
+          name: ExecutorServer-${{ matrix.GOARCH }}
           path: executorserver
       - name: Upload cinit
         uses: actions/upload-artifact@master
         with:
-          name: cinit
+          name: cinit-${{ matrix.GOARCH }}
           path: cinit
       - name: Upload executorserver.so
         uses: actions/upload-artifact@master
         with:
-          name: ExecutorServer.so
+          name: ExecutorServer-${{ matrix.GOARCH }}.so
           path: executorserver.so
+  build-windows:
+    name: Build-Windows
+    runs-on: windows-latest
+    steps:
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
+      - uses: actions/checkout@v2
+      - name: Download dependencies
+        run: go mod download
+      - name: Build on Windows
+        run: |
+          go build -o executorserver.exe ./cmd/executorserver
+          go build -buildmode=c-shared -o executorserver.dll ./cmd/executorserver
+      - name: Upload executorserver.exe on Windows
+        uses: actions/upload-artifact@master
+        with:
+          name: ExecutorServer.exe
+          path: executorserver.exe
+      - name: Upload executorserver.dll on Windows
+        uses: actions/upload-artifact@master
+        with:
+          name: ExecutorServer.dll
+          path: executorserver.dll

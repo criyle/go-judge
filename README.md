@@ -50,7 +50,7 @@ Build `executor_server.so`:
 
 `go build -buildmode=c-shared -o executor_server.so ./cmd/executorserver/`
 
-For example, in JavaScript, run with `ffi-napi`:
+For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported yet):
 
 ```javascript
 var ffi = require('ffi-napi');
@@ -91,6 +91,34 @@ const result = JSON.parse(executor_server.Exec(JSON.stringify({
     }]
 })));
 console.log(result);
+
+// Async
+executor_server.Exec.async(JSON.stringify({
+    "cmd": [{
+        "args": ["/bin/cat", "test.txt"],
+        "env": ["PATH=/usr/bin:/bin"],
+        "files": [{
+            "content": ""
+        }, {
+            "name": "stdout",
+            "max": 10240
+        }, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 10000000000,
+        "memoryLimit": 104857600,
+        "procLimit": 50,
+        "copyIn": {
+            "test.txt": {
+                "content": "TEST"
+            }
+        }
+    }]
+}), (err, res) => {
+    if (err) throw err;
+    console.log(JSON.parse(res));
+});
 ```
 
 Output:

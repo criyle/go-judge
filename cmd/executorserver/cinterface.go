@@ -46,6 +46,9 @@ func Init(i *C.char) C.int {
 		os.MkdirAll(ip.Dir, 0755)
 		fs = newFileLocalStore(ip.Dir)
 	}
+	cinitPath = &ip.CInitPath
+
+	printLog = func(v ...interface{}) {}
 	initEnvPool()
 
 	startWorkers()

@@ -19,6 +19,7 @@ var (
 	silent     = flag.Bool("silent", false, "do not print logs")
 	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
+	cinitPath  = flag.String("cinit", "", "container init absolute path")
 
 	envPool envexec.EnvironmentPool
 

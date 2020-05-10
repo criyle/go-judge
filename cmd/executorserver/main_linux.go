@@ -49,6 +49,7 @@ func initEnvPool() {
 		CredGenerator: newCredGen(),
 		Stderr:        true,
 		CloneFlags:    unshareFlags,
+		ExecFile:      *cinitPath,
 	}
 	cgb, err := cgroup.NewBuilder("executorserver").WithCPUAcct().WithMemory().WithPids().FilterByEnv()
 	if err != nil {

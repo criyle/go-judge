@@ -55,7 +55,7 @@ For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported 
 ```javascript
 var ffi = require('ffi-napi');
 
-var executor_server = ffi.Library('./executor_server.so', {
+var executor_server = ffi.Library('./executor_server', {
     'Init': ['int', ['string']],
     'Exec': ['string', ['string']]
 });
@@ -165,11 +165,27 @@ Build `executor_server.dll`: (need to install `gcc` as well)
 
 Run: `./executorserver`
 
-#### Security
+#### Windows Security
 
 - Resources are limited by [JobObject](https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects)
 - Privillege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
 - Low Mandatory Level directory is created for read / write
+
+### MacOS Support
+
+Build `executorserver` by:
+
+`go build ./cmd/executorserver/`
+
+Build `executor_server.dylib`: (need to install `XCode`)
+
+`go build -buildmode=c-shared -o executor_server.dylib ./cmd/executorserver/`
+
+Run: `./executorserver`
+
+#### MacOS Security
+
+- `sandbox-init` profile deny network access and file read / write
 
 ### API interface
 
@@ -437,5 +453,5 @@ Compile On Windows (cygwin):
 - [ ] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
 - [x] Add WebSocket for job submission
 - [x] Windows support
-- [ ] MacOS support
+- [x] MacOS support
   

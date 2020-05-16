@@ -57,7 +57,11 @@ var ffi = require('ffi-napi');
 
 var executor_server = ffi.Library('./executor_server', {
     'Init': ['int', ['string']],
-    'Exec': ['string', ['string']]
+    'Exec': ['string', ['string']],
+    'FileList': ['string', []],
+    'FileAdd': ['string', ['string']],
+    'FileGet': ['string', ['string']],
+    'FileDelete': ['string', ['string']]
 });
 
 if (executor_server.Init(JSON.stringify({
@@ -92,7 +96,7 @@ const result = JSON.parse(executor_server.Exec(JSON.stringify({
 })));
 console.log(result);
 
-// Async
+// Async 
 executor_server.Exec.async(JSON.stringify({
     "cmd": [{
         "args": ["/bin/cat", "test.txt"],
@@ -119,6 +123,42 @@ executor_server.Exec.async(JSON.stringify({
     if (err) throw err;
     console.log(JSON.parse(res));
 });
+
+const fileAdd = (param) => new Promise((resolve, reject) => {
+    executor_server.FileAdd.async(JSON.stringify(param), (err, res) => {
+        if (err != null) { reject(err); } else { resolve(res); }
+    });
+});
+const fileList = () => new Promise((resolve, reject) => {
+    executor_server.FileList.async((err, res) => {
+        if (err != null && res == null) { reject(err); } else { resolve(JSON.parse(res)); }
+    });
+});
+const fileGet = (param) => new Promise((resolve, reject) => {
+    executor_server.FileGet.async(JSON.stringify(param), (err, res) => {
+        if (err != null && res == null) { reject(err); } else { resolve(res); }
+    });
+});
+const fileDelete = (param) => new Promise((resolve, reject) => {
+    executor_server.FileDelete.async(JSON.stringify(param), (err, res) => {
+        if (err != null && res == null) { reject(err); } else { resolve(res); }
+    });
+});
+
+const fileOps = async () => {
+    const fileId = await fileAdd({ name: 'Name', content: 'Content' });
+    console.log(fileId);
+    const list = await fileList();
+    console.log(list);
+    const file = await fileGet({ id: fileId });
+    console.log(file);
+    const d = await fileDelete({ id: fileId });
+    console.log(d);
+    const e = await fileList();
+    console.log(e);
+};
+
+fileOps();
 ```
 
 Output:

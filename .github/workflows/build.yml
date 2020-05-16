@@ -102,7 +102,7 @@ jobs:
           registry-url: https://registry.npmjs.org/
       - uses: actions/download-artifact@master
         with:
-          name: ExecutorServer
+          name: ExecutorServer-amd64
       - uses: actions/download-artifact@master
         with:
           name: ExecutorServer.exe

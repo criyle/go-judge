@@ -18,7 +18,7 @@ jobs:
       - name: Download dependencies
         run: go mod download
       - name: Build on Linux
-        env: 
+        env:
           GOOS: linux
           GOARCH: ${{ matrix.GOARCH }}
         run: |
@@ -65,3 +65,28 @@ jobs:
         with:
           name: ExecutorServer.dll
           path: executorserver.dll
+  build-macos:
+    name: Build
+    runs-on: macos-latest
+    steps:
+      - name: Set up Go 1.14
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.14
+      - uses: actions/checkout@v2
+      - name: Download dependencies
+        run: go mod download
+      - name: Build on MacOS
+        run: |
+          go build -o executorserver ./cmd/executorserver
+          go build -buildmode=c-shared -o executorserver.dylib ./cmd/executorserver
+      - name: Upload executorserver
+        uses: actions/upload-artifact@master
+        with:
+          name: ExecutorServer-MacOS
+          path: executorserver
+      - name: Upload executorserver.so
+        uses: actions/upload-artifact@master
+        with:
+          name: ExecutorServer.dylib
+          path: executorserver.dylib

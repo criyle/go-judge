@@ -194,10 +194,16 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		}
 	}
 
+	timeLimit := time.Duration(rc.CPULimit)
+	if rc.RealCPULimit > rc.CPULimit {
+		timeLimit = time.Duration(rc.RealCPULimit)
+	}
+
 	return &envexec.Cmd{
 		Args:        rc.Args,
 		Env:         rc.Env,
 		Files:       files,
+		TimeLimit:   timeLimit,
 		MemoryLimit: runner.Size(rc.MemoryLimit),
 		ProcLimit:   rc.ProcLimit,
 		CopyIn:      copyIn,

@@ -90,3 +90,25 @@ jobs:
         with:
           name: ExecutorServer.dylib
           path: executorserver.dylib
+  publish:
+    name: Publish
+    runs: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node_version: '13.x'
+          registry-url: https://registry.npmjs.org/
+      - uses: actions/download-artifact@master
+        with:
+          name: ExecutorServer
+      - uses: actions/download-artifact@master
+        with:
+          name: ExecutorServer.exe
+      - run: |
+          yarn install
+          yarn build
+      - uses: actions/upload-artifact@master
+        with:
+          name: sandbox.hydro
+          path: sandbox.hydro

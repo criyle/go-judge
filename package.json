@@ -1,0 +1,26 @@
+{
+    "name": "@hydro/sandbox",
+    "version": "1.0.0",
+    "description": "Sandbox for hydro",
+    "main": "service.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "build": "hydro-build"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/hydro-dev/sandbox.git"
+    },
+    "keywords": [
+        "sandbox"
+    ],
+    "author": "criyle",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/hydro-dev/sandbox/issues"
+    },
+    "homepage": "https://github.com/hydro-dev/sandbox#readme",
+    "devDependencies": {
+        "hydro-build": "^0.1.0"
+    }
+}

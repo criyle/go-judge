@@ -21,6 +21,6 @@
     },
     "homepage": "https://github.com/hydro-dev/sandbox#readme",
     "devDependencies": {
-        "hydro-build": "^0.1.0"
+        "hydro-build": "^0.2.0"
     }
 }

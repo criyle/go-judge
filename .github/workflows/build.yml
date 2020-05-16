@@ -98,7 +98,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
-          node_version: '13.x'
+          version: '13.x'
           registry-url: https://registry.npmjs.org/
       - uses: actions/download-artifact@master
         with:

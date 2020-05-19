@@ -23,8 +23,13 @@ jobs:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
           go build -o executorserver ./cmd/executorserver
+      - name: Build shared objects
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.GOARCH }}
+        run: |
           go build -o cinit ./cmd/cinit
-          go build -buildmode=c-shared -o executorserver.so ./cmd/executorserver
+          go build -buildmode=c-shared -o executorserver.so ./cmd/ffi
       - name: Upload executorserver
         uses: actions/upload-artifact@master
         with:
@@ -54,7 +59,7 @@ jobs:
       - name: Build on Windows
         run: |
           go build -o executorserver.exe ./cmd/executorserver
-          go build -buildmode=c-shared -o executorserver.dll ./cmd/executorserver
+          go build -buildmode=c-shared -o executorserver.dll ./cmd/ffi
       - name: Upload executorserver.exe on Windows
         uses: actions/upload-artifact@master
         with:
@@ -66,7 +71,7 @@ jobs:
           name: ExecutorServer.dll
           path: executorserver.dll
   build-macos:
-    name: Build
+    name: Build macOS
     runs-on: macos-latest
     steps:
       - name: Set up Go 1.14
@@ -79,7 +84,7 @@ jobs:
       - name: Build on MacOS
         run: |
           go build -o executorserver ./cmd/executorserver
-          go build -buildmode=c-shared -o executorserver.dylib ./cmd/executorserver
+          go build -buildmode=c-shared -o executorserver.dylib ./cmd/ffi
       - name: Upload executorserver
         uses: actions/upload-artifact@master
         with:

@@ -5,8 +5,12 @@ import "C"
 import (
 	"bytes"
 	"encoding/json"
+	"log"
+	"os"
 
+	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/filestore"
+	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 )
 
@@ -19,7 +23,21 @@ type initParameter struct {
 	MountConf  string `json:"mountConf"`
 }
 
-var fs filestore.FileStore
+var (
+	fs   filestore.FileStore
+	work *worker.Worker
+)
+
+func newFilsStore(dir string) filestore.FileStore {
+	var fs filestore.FileStore
+	if dir == "" {
+		fs = filestore.NewFileMemoryStore()
+	} else {
+		os.MkdirAll(dir, 0755)
+		fs = filestore.NewFileLocalStore(dir)
+	}
+	return fs
+}
 
 // Init initialize the sandbox environment
 //export Init
@@ -33,23 +51,24 @@ func Init(i *C.char) C.int {
 	if ip.Parallism == 0 {
 		ip.Parallism = 4
 	}
-	parallism = &ip.Parallism
 
 	if ip.TmpFsParam == "" {
 		ip.TmpFsParam = "size=16m,nr_inodes=4k"
 	}
-	tmpFsParam = &ip.TmpFsParam
 
 	if ip.MountConf == "" {
 		ip.MountConf = "mount.yaml"
 	}
 
 	fs = newFilsStore(ip.Dir)
-	cinitPath = &ip.CInitPath
 
-	printLog = func(v ...interface{}) {}
-	envPool := newEnvPool()
-	work = worker.New(fs, envPool, *parallism, *dir)
+	printLog := func(v ...interface{}) {}
+	b, err := env.NewBuilder(ip.CInitPath, ip.MountConf, ip.TmpFsParam, ip.NetShare, printLog)
+	if err != nil {
+		log.Fatalln("create environment builder failed", err)
+	}
+	envPool := pool.NewPool(b)
+	work = worker.New(fs, envPool, ip.Parallism, ip.Dir)
 	work.Start()
 
 	return 0

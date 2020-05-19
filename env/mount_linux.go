@@ -1,4 +1,4 @@
-package main
+package env
 
 import (
 	"fmt"
@@ -55,7 +55,7 @@ func parseMountConfig(p string) (*mount.Builder, error) {
 	return b, nil
 }
 
-func getDefaultMount() *mount.Builder {
+func getDefaultMount(tmpFsConf string) *mount.Builder {
 	return mount.NewBuilder().
 		// basic exec and lib
 		WithBind("/bin", "bin", true).
@@ -78,7 +78,7 @@ func getDefaultMount() *mount.Builder {
 		// javaScript wants /dev/urandom
 		WithBind("/dev/urandom", "dev/urandom", true).
 		// work dir
-		WithTmpfs("w", *tmpFsParam).
+		WithTmpfs("w", tmpFsConf).
 		// tmp dir
-		WithTmpfs("tmp", *tmpFsParam)
+		WithTmpfs("tmp", tmpFsConf)
 }

@@ -7,7 +7,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/filestore"
+	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 )
@@ -46,7 +48,11 @@ func main() {
 	}
 
 	fs := newFilsStore(*dir)
-	envPool := newEnvPool()
+	b, err := env.NewBuilder(*cinitPath, *mountConf, *tmpFsParam, *netShare, printLog)
+	if err != nil {
+		log.Fatalln("create environment builder failed", err)
+	}
+	envPool := pool.NewPool(b)
 	work = worker.New(fs, envPool, *parallism, *dir)
 	work.Start()
 	printLog("Starting worker with parallism", *parallism)

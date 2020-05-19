@@ -48,7 +48,7 @@ Build container init `cinit`:
 
 Build `executor_server.so`:
 
-`go build -buildmode=c-shared -o executor_server.so ./cmd/executorserver/`
+`go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
 
 For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported yet):
 
@@ -96,7 +96,7 @@ const result = JSON.parse(executor_server.Exec(JSON.stringify({
 })));
 console.log(result);
 
-// Async 
+// Async
 executor_server.Exec.async(JSON.stringify({
     "cmd": [{
         "args": ["/bin/cat", "test.txt"],
@@ -201,7 +201,7 @@ Build `executorserver` by:
 
 Build `executor_server.dll`: (need to install `gcc` as well)
 
-`go build -buildmode=c-shared -o executor_server.so ./cmd/executorserver/`
+`go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
 
 Run: `./executorserver`
 
@@ -219,7 +219,7 @@ Build `executorserver` by:
 
 Build `executor_server.dylib`: (need to install `XCode`)
 
-`go build -buildmode=c-shared -o executor_server.dylib ./cmd/executorserver/`
+`go build -buildmode=c-shared -o executor_server.dylib ./cmd/ffi/`
 
 Run: `./executorserver`
 

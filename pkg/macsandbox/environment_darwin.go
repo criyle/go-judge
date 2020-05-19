@@ -10,9 +10,12 @@ import (
 	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
+	"github.com/criyle/go-sandbox/pkg/rlimit"
 	"github.com/criyle/go-sandbox/runner"
 	"golang.org/x/sys/unix"
 )
+
+const outputLimit = 256 << 20 // 256M
 
 var _ pool.Environment = &environment{}
 
@@ -23,11 +26,19 @@ type environment struct {
 }
 
 func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (envexec.Process, error) {
+	rLimits := rlimit.RLimits{
+		CPU:      uint64(param.Limit.Time.Truncate(time.Second)/time.Second) + 1,
+		Data:     param.Limit.Memory.Byte(),
+		FileSize: outputLimit,
+		Stack:    param.Limit.Stack.Byte(),
+	}
+
 	ch := &forkexec.Runner{
 		Args:           param.Args,
 		Env:            param.Env,
 		Files:          param.Files,
 		WorkDir:        e.wdPath,
+		RLimits:        rLimits.PrepareRLimit(),
 		SandboxProfile: e.profile,
 	}
 

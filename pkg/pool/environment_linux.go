@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"os"
 	"syscall"
+	"time"
 
 	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-sandbox/container"
+	"github.com/criyle/go-sandbox/pkg/rlimit"
 )
+
+const outputLimit = 256 << 20 // 256M
 
 var _ envexec.Environment = &environ{}
 
@@ -37,11 +41,19 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	cg.SetMemoryLimit(param.Limit.Memory)
 	cg.SetProcLimit(param.Limit.Proc)
 
+	rLimits := rlimit.RLimits{
+		CPU:      uint64(param.Limit.Time.Truncate(time.Second)/time.Second) + 1,
+		Data:     param.Limit.Memory.Byte(),
+		FileSize: outputLimit,
+		Stack:    param.Limit.Stack.Byte(),
+	}
+
 	p := container.ExecveParam{
 		Args:     param.Args,
 		Env:      param.Env,
 		Files:    param.Files,
 		ExecFile: param.ExecFile,
+		RLimits:  rLimits.PrepareRLimit(),
 		SyncFunc: cg.AddProc,
 	}
 	rt := c.Environment.Execve(ctx, p)

@@ -34,12 +34,21 @@ func (c *environ) Reset() error {
 
 // Execve execute process inside the environment
 func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexec.Process, error) {
-	cg, err := c.cgPool.Get()
-	if err != nil {
-		return nil, fmt.Errorf("execve: failed to get cgroup %v", err)
+	var (
+		cg       Cgroup
+		syncFunc func(int) error
+		err      error
+	)
+
+	if c.cgPool != nil {
+		cg, err = c.cgPool.Get()
+		if err != nil {
+			return nil, fmt.Errorf("execve: failed to get cgroup %v", err)
+		}
+		cg.SetMemoryLimit(param.Limit.Memory)
+		cg.SetProcLimit(param.Limit.Proc)
+		syncFunc = cg.AddProc
 	}
-	cg.SetMemoryLimit(param.Limit.Memory)
-	cg.SetProcLimit(param.Limit.Proc)
 
 	rLimits := rlimit.RLimits{
 		CPU:      uint64(param.Limit.Time.Truncate(time.Second)/time.Second) + 1,
@@ -54,7 +63,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		Files:    param.Files,
 		ExecFile: param.ExecFile,
 		RLimits:  rLimits.PrepareRLimit(),
-		SyncFunc: cg.AddProc,
+		SyncFunc: syncFunc,
 	}
 	rt := c.Environment.Execve(ctx, p)
 	return newProcess(rt, cg, c.cgPool), nil

@@ -1,6 +1,8 @@
 package pool
 
 import (
+	"time"
+
 	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-sandbox/runner"
 )
@@ -21,13 +23,17 @@ func newProcess(ch <-chan runner.Result, cg Cgroup, cgPool CgroupPool) *process 
 	}
 	go func() {
 		defer close(p.done)
-		defer cgPool.Put(cg)
-		p.rt = <-ch
-		if t, err := cg.CPUUsage(); err == nil {
-			p.rt.Time = t
+		if cgPool != nil {
+			defer cgPool.Put(cg)
 		}
-		if m, err := cg.MemoryUsage(); err == nil {
-			p.rt.Memory = m
+		p.rt = <-ch
+		if cg != nil {
+			if t, err := cg.CPUUsage(); err == nil {
+				p.rt.Time = t
+			}
+			if m, err := cg.MemoryUsage(); err == nil {
+				p.rt.Memory = m
+			}
 		}
 	}()
 	return p
@@ -43,8 +49,14 @@ func (p *process) Result() runner.Result {
 }
 
 func (p *process) Usage() envexec.Usage {
-	t, _ := p.cg.CPUUsage()
-	m, _ := p.cg.MemoryUsage()
+	var (
+		t time.Duration
+		m runner.Size
+	)
+	if p.cg != nil {
+		t, _ = p.cg.CPUUsage()
+		m, _ = p.cg.MemoryUsage()
+	}
 	return envexec.Usage{
 		Time:   t,
 		Memory: m,

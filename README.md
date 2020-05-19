@@ -505,9 +505,11 @@ Compile On Windows (cygwin):
 
 - [x] Github actions to auto build
 - [x] Configure mounts using YAML config file
-- [ ] Investigate root-free running mechanism (no cgroup && not set uid / gid)
-- [ ] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
+- [x] Investigate root-free running mechanism (no cgroup && not set uid / gid)
+- [x] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
 - [x] Add WebSocket for job submission
 - [x] Windows support
 - [x] MacOS support
+- [ ] GRPC + protobuf support
+- [ ] Token-based authentication
   

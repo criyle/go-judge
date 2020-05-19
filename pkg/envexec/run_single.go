@@ -70,8 +70,8 @@ func runSingle(m Environment, c *Cmd, fds []*os.File, ptc []pipeCollector) (resu
 		Memory:     rt.Memory,
 		Files:      files,
 	}
-	// collect error
-	if err != nil && result.Error == "" {
+	// collect error (only if the process exits normally)
+	if rt.Status == runner.StatusNormal && err != nil && result.Error == "" {
 		switch err := err.(type) {
 		case runner.Status:
 			result.Status = convertStatus(err)

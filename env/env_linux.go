@@ -39,10 +39,16 @@ func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog 
 		unshareFlags ^= syscall.CLONE_NEWNET
 	}
 
+	// use setuid container only if running in root privilege
+	var credGen container.CredGenerator
+	if os.Getuid() == 0 {
+		credGen = newCredGen()
+	}
+
 	b := &container.Builder{
 		Root:          root,
 		Mounts:        m,
-		CredGenerator: newCredGen(),
+		CredGenerator: credGen,
 		Stderr:        true,
 		CloneFlags:    unshareFlags,
 		ExecFile:      cinitPath,
@@ -52,8 +58,18 @@ func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog 
 		return nil, err
 	}
 	printLog("Created cgroup builder with:", cgb)
+	if cg, err := cgb.Build(); err != nil {
+		printLog("Tested created cgroup with error", err)
+		printLog("Failed back to rlimit / rusage mode")
+		cgb = nil
+	} else {
+		cg.Destroy()
+	}
 
-	cgroupPool := pool.NewFakeCgroupPool(cgb)
+	var cgroupPool pool.CgroupPool
+	if cgb != nil {
+		cgroupPool = pool.NewFakeCgroupPool(cgb)
+	}
 	return pool.NewEnvBuilder(b, cgroupPool), nil
 }
 

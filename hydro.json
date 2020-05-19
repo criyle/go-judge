@@ -1,5 +1,5 @@
 {
-    "name": "sandbox",
+    "id": "sandbox",
     "version": "1.0.0",
     "description": "Sandbox service for hydro"
 }

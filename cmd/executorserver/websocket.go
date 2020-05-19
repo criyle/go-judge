@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -27,7 +28,7 @@ func handleWS(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	resultCh := make(chan result, maxWaiting)
+	resultCh := make(chan worker.Result, 128)
 	// read request
 	go func() {
 		defer conn.Close()
@@ -37,15 +38,14 @@ func handleWS(c *gin.Context) {
 			return nil
 		})
 		for {
-			req := new(request)
+			req := new(worker.Request)
 			if err := conn.ReadJSON(req); err != nil {
 				printLog("ws read:", err)
 				return
 			}
-			workCh <- workRequest{
-				request:  req,
-				resultCh: resultCh,
-			}
+			go func() {
+				resultCh <- <-work.Submit(req)
+			}()
 		}
 	}()
 

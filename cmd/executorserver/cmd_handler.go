@@ -3,11 +3,12 @@ package main
 import (
 	"net/http"
 
+	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 )
 
 func handleRun(c *gin.Context) {
-	var req request
+	var req worker.Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
@@ -18,8 +19,7 @@ func handleRun(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, "no cmd provided")
 		return
 	}
-	ret := submitRequest(&req)
-	rt := <-ret
+	rt := <-work.Submit(&req)
 	if rt.Error != nil {
 		c.Error(rt.Error)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())

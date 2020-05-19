@@ -1,4 +1,4 @@
-package main
+package filestore
 
 import (
 	"bytes"
@@ -10,7 +10,8 @@ import (
 
 const randIDLength = 12
 
-type fileStore interface {
+// FileStore defines interface to store file
+type FileStore interface {
 	Add(string, []byte) (string, error) // Add creates a file with name & content to the storage, returns id
 	Remove(string) bool                 // Remove deletes a file by id
 	Get(string) file.File               // Get file by id, nil if not exists

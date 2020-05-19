@@ -1,4 +1,4 @@
-package main
+package filestore
 
 import (
 	"io/ioutil"
@@ -9,15 +9,14 @@ import (
 	"github.com/criyle/go-judge/file"
 )
 
-var _ fileStore = &fileLocalStore{}
-
 type fileLocalStore struct {
 	dir  string            // directory to store file
 	name map[string]string // id to name mapping if exists
 	mu   sync.RWMutex
 }
 
-func newFileLocalStore(dir string) *fileLocalStore {
+// NewFileLocalStore create new local file store
+func NewFileLocalStore(dir string) FileStore {
 	return &fileLocalStore{
 		dir:  dir,
 		name: make(map[string]string),

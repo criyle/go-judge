@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-judge/pkg/macsandbox"
 	"github.com/criyle/go-judge/pkg/pool"
 )
@@ -15,8 +16,8 @@ var defaultWrite = []string{
 	"/var/tmp",
 }
 
-func initEnvPool() {
+func newEnvPool() envexec.EnvironmentPool {
 	b := macsandbox.NewBuilder("", defaultRead, defaultWrite, *netShare)
 	printLog("created mac sandbox at", "")
-	envPool = pool.NewPool(b)
+	return pool.NewPool(b)
 }

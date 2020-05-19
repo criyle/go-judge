@@ -1,78 +1,106 @@
-package main
+package worker
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"sync"
 	"time"
 
 	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-sandbox/runner"
 )
 
 const maxWaiting = 512
 
-type workRequest struct {
-	*request
-	resultCh chan<- result
+// Worker defines executor worker
+type Worker struct {
+	fs        filestore.FileStore
+	envPool   envexec.EnvironmentPool
+	parallism int
+	workDir   string
+
+	startOnce sync.Once
+	stopOnce  sync.Once
+	wg        sync.WaitGroup
+	workCh    chan workRequest
 }
 
-var (
-	workStartOnce sync.Once
-	workStopOnce  sync.Once
+type workRequest struct {
+	*Request
+	resultCh chan<- Result
+}
 
-	workCh chan workRequest
-	workWg sync.WaitGroup
+// New creates new worker
+func New(fs filestore.FileStore, pool envexec.EnvironmentPool, parallism int, workDir string) *Worker {
+	return &Worker{
+		fs:        fs,
+		envPool:   pool,
+		parallism: parallism,
+		workDir:   workDir,
+	}
+}
 
-	workCtx       context.Context
-	workCtxCancel func()
-)
-
-func startWorkers() {
-	workStartOnce.Do(func() {
-		workCtx, workCtxCancel = context.WithCancel(context.Background())
-		workCh = make(chan workRequest, maxWaiting)
-		workWg.Add(*parallism)
-		for i := 0; i < *parallism; i++ {
-			go workerLoop()
+// Start starts worker loops with given parallism
+func (w *Worker) Start() {
+	w.startOnce.Do(func() {
+		w.workCh = make(chan workRequest, maxWaiting)
+		w.wg.Add(w.parallism)
+		for i := 0; i < w.parallism; i++ {
+			go w.loop()
 		}
 	})
 }
 
-func workerLoop() {
-	defer workWg.Done()
+// Submit submits a single request
+func (w *Worker) Submit(req *Request) <-chan Result {
+	ch := make(chan Result, 1)
+	w.workCh <- workRequest{
+		Request:  req,
+		resultCh: ch,
+	}
+	return ch
+}
+
+// Shutdown waits all worker to finish
+func (w *Worker) Shutdown() {
+	w.stopOnce.Do(func() {
+		close(w.workCh)
+		w.wg.Wait()
+	})
+}
+
+func (w *Worker) loop() {
+	defer w.wg.Done()
 	for {
-		var req workRequest
-		select {
-		case <-workCtx.Done():
+		req, ok := <-w.workCh
+		if !ok {
 			return
-		case req = <-workCh:
 		}
-		workDoCmd(req)
+		w.workDoCmd(req)
 	}
 }
 
-func workDoCmd(req workRequest) {
-	var rt result
+func (w *Worker) workDoCmd(req workRequest) {
+	var rt Result
 	if len(req.Cmd) == 1 {
-		rt = workDoSingle(req.Cmd[0])
+		rt = w.workDoSingle(req.Cmd[0])
 	} else {
-		rt = workDoGroup(req.Cmd, req.PipeMapping)
+		rt = w.workDoGroup(req.Cmd, req.PipeMapping)
 	}
 	rt.RequestID = req.RequestID
 	req.resultCh <- rt
 }
 
-func workDoSingle(rc cmd) (rt result) {
-	c, copyOutSet, err := prepareCmd(rc)
+func (w *Worker) workDoSingle(rc Cmd) (rt Result) {
+	c, copyOutSet, err := w.prepareCmd(rc)
 	if err != nil {
 		rt.Error = err
 		return
 	}
 	s := &envexec.Single{
-		EnvironmentPool: envPool,
+		EnvironmentPool: w.envPool,
 		Cmd:             c,
 	}
 	result, err := s.Run()
@@ -80,18 +108,18 @@ func workDoSingle(rc cmd) (rt result) {
 		rt.Error = err
 		return
 	}
-	res := convertResult(result, copyOutSet)
-	rt.Response = []response{res}
+	res := w.convertResult(result, copyOutSet)
+	rt.Response = []Response{res}
 	return
 }
 
-func workDoGroup(rc []cmd, pm []pipeMap) (rt result) {
-	var rts []response
+func (w *Worker) workDoGroup(rc []Cmd, pm []PipeMap) (rt Result) {
+	var rts []Response
 	p := preparePipeMapping(pm)
 	cs := make([]*envexec.Cmd, 0, len(rc))
 	copyOutSets := make([]map[string]bool, 0, len(rc))
 	for _, cc := range rc {
-		c, os, err := prepareCmd(cc)
+		c, os, err := w.prepareCmd(cc)
 		if err != nil {
 			rt.Error = err
 			return
@@ -100,7 +128,7 @@ func workDoGroup(rc []cmd, pm []pipeMap) (rt result) {
 		copyOutSets = append(copyOutSets, os)
 	}
 	g := envexec.Group{
-		EnvironmentPool: envPool,
+		EnvironmentPool: w.envPool,
 
 		Cmd:   cs,
 		Pipes: p,
@@ -110,17 +138,17 @@ func workDoGroup(rc []cmd, pm []pipeMap) (rt result) {
 		rt.Error = err
 		return
 	}
-	rts = make([]response, 0, len(results))
+	rts = make([]Response, 0, len(results))
 	for i, result := range results {
-		res := convertResult(result, copyOutSets[i])
+		res := w.convertResult(result, copyOutSets[i])
 		rts = append(rts, res)
 	}
 	rt.Response = rts
 	return
 }
 
-func convertResult(result envexec.Result, copyOutSet map[string]bool) (res response) {
-	res.Status = status(result.Status)
+func (w *Worker) convertResult(result envexec.Result, copyOutSet map[string]bool) (res Response) {
+	res.Status = Status(result.Status)
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
 	res.Time = uint64(result.Time)
@@ -131,16 +159,16 @@ func convertResult(result envexec.Result, copyOutSet map[string]bool) (res respo
 	for name, fi := range result.Files {
 		b, err := fi.Content()
 		if err != nil {
-			res.Status = status(envexec.StatusFileError)
+			res.Status = Status(envexec.StatusFileError)
 			res.Error = err.Error()
 			return
 		}
 		if copyOutSet[name] {
 			res.Files[name] = string(b)
 		} else {
-			id, err := fs.Add(name, b)
+			id, err := w.fs.Add(name, b)
 			if err != nil {
-				res.Status = status(envexec.StatusFileError)
+				res.Status = Status(envexec.StatusFileError)
 				res.Error = err.Error()
 				return
 			}
@@ -150,12 +178,12 @@ func convertResult(result envexec.Result, copyOutSet map[string]bool) (res respo
 	return res
 }
 
-func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
-	files, pipeFileName, err := prepareCmdFiles(rc.Files)
+func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
+	files, pipeFileName, err := w.prepareCmdFiles(rc.Files)
 	if err != nil {
 		return nil, nil, err
 	}
-	copyIn, err := prepareCopyIn(rc.CopyIn)
+	copyIn, err := w.prepareCopyIn(rc.CopyIn)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -180,7 +208,7 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		}
 	}
 
-	w := &waiter{
+	wait := &waiter{
 		timeLimit:     time.Duration(rc.CPULimit),
 		realTimeLimit: time.Duration(rc.RealCPULimit),
 	}
@@ -190,7 +218,7 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		if path.IsAbs(rc.CopyOutDir) {
 			copyOutDir = rc.CopyOutDir
 		} else {
-			copyOutDir = path.Join(*dir, rc.CopyOutDir)
+			copyOutDir = path.Join(w.workDir, rc.CopyOutDir)
 		}
 	}
 
@@ -209,11 +237,11 @@ func prepareCmd(rc cmd) (*envexec.Cmd, map[string]bool, error) {
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
 		CopyOutDir:  copyOutDir,
-		Waiter:      w.Wait,
+		Waiter:      wait.Wait,
 	}, copyOutSet, nil
 }
 
-func preparePipeMapping(pm []pipeMap) []*envexec.Pipe {
+func preparePipeMapping(pm []PipeMap) []*envexec.Pipe {
 	rt := make([]*envexec.Pipe, 0, len(pm))
 	for _, p := range pm {
 		rt = append(rt, &envexec.Pipe{
@@ -224,10 +252,10 @@ func preparePipeMapping(pm []pipeMap) []*envexec.Pipe {
 	return rt
 }
 
-func prepareCopyIn(cf map[string]cmdFile) (map[string]file.File, error) {
+func (w *Worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, error) {
 	rt := make(map[string]file.File)
 	for name, f := range cf {
-		pcf, err := prepareCmdFile(&f)
+		pcf, err := w.prepareCmdFile(&f)
 		if err != nil {
 			return nil, err
 		}
@@ -240,11 +268,11 @@ func prepareCopyIn(cf map[string]cmdFile) (map[string]file.File, error) {
 	return rt, nil
 }
 
-func prepareCmdFiles(files []*cmdFile) ([]interface{}, map[string]bool, error) {
+func (w *Worker) prepareCmdFiles(files []*CmdFile) ([]interface{}, map[string]bool, error) {
 	rt := make([]interface{}, 0, len(files))
 	pipeFileName := make(map[string]bool)
 	for _, f := range files {
-		cf, err := prepareCmdFile(f)
+		cf, err := w.prepareCmdFile(f)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -256,7 +284,7 @@ func prepareCmdFiles(files []*cmdFile) ([]interface{}, map[string]bool, error) {
 	return rt, pipeFileName, nil
 }
 
-func prepareCmdFile(f *cmdFile) (interface{}, error) {
+func (w *Worker) prepareCmdFile(f *CmdFile) (interface{}, error) {
 	switch {
 	case f == nil:
 		return nil, nil
@@ -265,7 +293,7 @@ func prepareCmdFile(f *cmdFile) (interface{}, error) {
 	case f.Content != nil:
 		return file.NewMemFile("file", []byte(*f.Content)), nil
 	case f.FileID != nil:
-		fd := fs.Get(*f.FileID)
+		fd := w.fs.Get(*f.FileID)
 		if fd == nil {
 			return nil, fmt.Errorf("file not exists for %v", *f.FileID)
 		}
@@ -275,20 +303,4 @@ func prepareCmdFile(f *cmdFile) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("file is not valid for cmd")
 	}
-}
-
-func submitRequest(req *request) <-chan result {
-	ch := make(chan result, 1)
-	workCh <- workRequest{
-		request:  req,
-		resultCh: ch,
-	}
-	return ch
-}
-
-func workerShutdown() {
-	workStopOnce.Do(func() {
-		workCtxCancel()
-		workWg.Wait()
-	})
 }

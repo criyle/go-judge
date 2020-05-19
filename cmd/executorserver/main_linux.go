@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"syscall"
 
+	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
@@ -17,7 +18,7 @@ func init() {
 	container.Init()
 }
 
-func initEnvPool() {
+func newEnvPool() envexec.EnvironmentPool {
 	root, err := ioutil.TempDir("", "executorserver")
 	if err != nil {
 		log.Fatalln(err)
@@ -59,7 +60,7 @@ func initEnvPool() {
 
 	cgroupPool := pool.NewFakeCgroupPool(cgb)
 	builder := pool.NewEnvBuilder(b, cgroupPool)
-	envPool = pool.NewPool(builder)
+	return pool.NewPool(builder)
 }
 
 type credGen struct {

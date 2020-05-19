@@ -1,4 +1,4 @@
-package main
+package filestore
 
 import (
 	"sync"
@@ -6,14 +6,13 @@ import (
 	"github.com/criyle/go-judge/file"
 )
 
-var _ fileStore = &fileMemoryStore{}
-
 type fileMemoryStore struct {
 	store map[string]file.File
 	mu    sync.RWMutex
 }
 
-func newFileMemoryStore() *fileMemoryStore {
+// NewFileMemoryStore create new memory file store
+func NewFileMemoryStore() FileStore {
 	return &fileMemoryStore{
 		store: make(map[string]file.File),
 	}

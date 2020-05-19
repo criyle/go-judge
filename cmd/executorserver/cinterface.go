@@ -5,7 +5,9 @@ import "C"
 import (
 	"bytes"
 	"encoding/json"
-	"os"
+
+	"github.com/criyle/go-judge/filestore"
+	"github.com/criyle/go-judge/worker"
 )
 
 type initParameter struct {
@@ -16,6 +18,8 @@ type initParameter struct {
 	NetShare   bool   `json:"netShare"`
 	MountConf  string `json:"mountConf"`
 }
+
+var fs filestore.FileStore
 
 // Init initialize the sandbox environment
 //export Init
@@ -40,18 +44,14 @@ func Init(i *C.char) C.int {
 		ip.MountConf = "mount.yaml"
 	}
 
-	if ip.Dir == "" {
-		fs = newFileMemoryStore()
-	} else {
-		os.MkdirAll(ip.Dir, 0755)
-		fs = newFileLocalStore(ip.Dir)
-	}
+	fs = newFilsStore(ip.Dir)
 	cinitPath = &ip.CInitPath
 
 	printLog = func(v ...interface{}) {}
-	initEnvPool()
+	envPool := newEnvPool()
+	work = worker.New(fs, envPool, *parallism, *dir)
+	work.Start()
 
-	startWorkers()
 	return 0
 }
 
@@ -59,11 +59,11 @@ func Init(i *C.char) C.int {
 //export Exec
 func Exec(e *C.char) *C.char {
 	es := C.GoString(e)
-	var req request
+	var req worker.Request
 	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&req); err != nil {
 		return nil
 	}
-	ret := <-submitRequest(&req)
+	ret := <-work.Submit(&req)
 	if ret.Error != nil {
 		ret.ErrorMsg = ret.Error.Error()
 	}

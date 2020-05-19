@@ -3,15 +3,16 @@ package main
 import (
 	"log"
 
+	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/pkg/winc"
 )
 
-func initEnvPool() {
+func newEnvPool() envexec.EnvironmentPool {
 	b, err := winc.NewBuilder("")
 	if err != nil {
 		log.Fatalln("init container", err)
 	}
 	printLog("created winc builder")
-	envPool = pool.NewPool(b)
+	return pool.NewPool(b)
 }

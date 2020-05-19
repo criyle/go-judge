@@ -317,6 +317,22 @@ interface WSResult {
 }
 ```
 
+### Architecture
+
+#### Overall Architecture
+
+```text
++----------------------------------------------------------------------------------+
+| Transport Layer (HTTP / WebSocket / FFI / ...)                                   |
++----------------------------------------------------------------------------------+
+| Executor Worker                                                                  |
++-----------------------------------------------------------+----------------------+
+| EnvExec + Environment Pool + Environment Builder          | File Store           |
++--------------------+----------------+---------------------+--------+-------+-----+
+| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Local | ... |
++--------------------+----------------+---------------------+--------+-------+-----+
+```
+
 ### Example Request & Response
 
 Single (this example require `apt install g++` inside the container):

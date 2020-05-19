@@ -7,7 +7,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/filestore"
+	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 )
 
@@ -21,30 +22,34 @@ var (
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
 	cinitPath  = flag.String("cinit", "", "container init absolute path")
 
-	envPool envexec.EnvironmentPool
+	printLog = func(v ...interface{}) {}
 
-	fs fileStore
-
-	printLog = log.Println
+	work *worker.Worker
 )
+
+func newFilsStore(dir string) filestore.FileStore {
+	var fs filestore.FileStore
+	if dir == "" {
+		fs = filestore.NewFileMemoryStore()
+	} else {
+		os.MkdirAll(dir, 0755)
+		fs = filestore.NewFileLocalStore(dir)
+	}
+	return fs
+}
 
 func main() {
 	flag.Parse()
 
-	if *dir == "" {
-		fs = newFileMemoryStore()
-	} else {
-		os.MkdirAll(*dir, 0755)
-		fs = newFileLocalStore(*dir)
-	}
-	if *silent {
-		printLog = func(v ...interface{}) {}
+	if !*silent {
+		printLog = log.Println
 	}
 
-	initEnvPool()
-
+	fs := newFilsStore(*dir)
+	envPool := newEnvPool()
+	work = worker.New(fs, envPool, *parallism, *dir)
+	work.Start()
 	printLog("Starting worker with parallism", *parallism)
-	startWorkers()
 
 	var r *gin.Engine
 	if *silent {
@@ -54,12 +59,18 @@ func main() {
 	} else {
 		r = gin.Default()
 	}
-	r.GET("/file", fileGet)
-	r.POST("/file", filePost)
-	r.GET("/file/:fid", fileIDGet)
-	r.DELETE("/file/:fid", fileIDDelete)
+
+	// File Handles
+	fh := &fileHandle{fs: fs}
+	r.GET("/file", fh.fileGet)
+	r.POST("/file", fh.filePost)
+	r.GET("/file/:fid", fh.fileIDGet)
+	r.DELETE("/file/:fid", fh.fileIDDelete)
+
+	// Run Handle
 	r.POST("/run", handleRun)
 
+	// WebSocket Handle
 	r.GET("/ws", handleWS)
 
 	printLog("Starting http server at", *addr)

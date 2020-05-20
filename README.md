@@ -512,4 +512,5 @@ Compile On Windows (cygwin):
 - [x] MacOS support
 - [ ] GRPC + protobuf support
 - [ ] Token-based authentication
+- [ ] Prometheus metrics support
   

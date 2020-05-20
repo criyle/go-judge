@@ -2,75 +2,57 @@ package worker
 
 import "github.com/criyle/go-judge/pkg/envexec"
 
-// CmdFile defines file from multiple source including local / memory / cached or pipe collector
-type CmdFile struct {
-	Src     *string `json:"src"`
-	Content *string `json:"content"`
-	FileID  *string `json:"fileId"`
-	Name    *string `json:"name"`
-	Max     *int64  `json:"max"`
-}
-
 // Cmd defines command and limits to start a program using in envexec
 type Cmd struct {
-	Args  []string   `json:"args"`
-	Env   []string   `json:"env,omitempty"`
-	Files []*CmdFile `json:"files,omitempty"`
+	Args  []string
+	Env   []string
+	Files []CmdFile
 
-	CPULimit     uint64 `json:"cpuLimit"`
-	RealCPULimit uint64 `json:"realCpuLimit"`
-	MemoryLimit  uint64 `json:"memoryLimit"`
-	ProcLimit    uint64 `json:"procLimit"`
+	CPULimit     uint64
+	RealCPULimit uint64
+	MemoryLimit  uint64
+	ProcLimit    uint64
 
-	CopyIn map[string]CmdFile `json:"copyIn"`
+	CopyIn map[string]CmdFile
 
-	CopyOut       []string `json:"copyOut"`
-	CopyOutCached []string `json:"copyOutCached"`
-	CopyOutDir    string   `json:"copyOutDir"`
+	CopyOut       []string
+	CopyOutCached []string
+	CopyOutDir    string
 }
 
 // PipeIndex defines indexing for a pipe fd
 type PipeIndex struct {
-	Index int `json:"index"`
-	Fd    int `json:"fd"`
+	Index int
+	Fd    int
 }
 
 // PipeMap defines in / out pipe for multiple program
 type PipeMap struct {
-	In  PipeIndex `json:"in"`
-	Out PipeIndex `json:"out"`
+	In  PipeIndex
+	Out PipeIndex
 }
 
 // Request defines single worker request
 type Request struct {
-	RequestID   string    `json:"requestId"`
-	Cmd         []Cmd     `json:"cmd"`
-	PipeMapping []PipeMap `json:"pipeMapping"`
+	RequestID   string
+	Cmd         []Cmd
+	PipeMapping []PipeMap
 }
 
-// Status offers JSON marshal for envexec.Status
-type Status envexec.Status
-
-// MarshalJSON convert status into string
-func (s Status) MarshalJSON() ([]byte, error) {
-	return []byte("\"" + (envexec.Status)(s).String() + "\""), nil
-}
-
-// Response defines single command response
-type Response struct {
-	Status     Status            `json:"status"`
-	ExitStatus int               `json:"exitStatus"`
-	Error      string            `json:"error,omitempty"`
-	Time       uint64            `json:"time"`
-	Memory     uint64            `json:"memory"`
-	Files      map[string]string `json:"files,omitempty"`
-	FileIDs    map[string]string `json:"fileIds,omitempty"`
-}
-
-// Result defines worker response for single request
+// Result defines single command response
 type Result struct {
-	RequestID string     `json:"requestId"`
-	Response  []Response `json:"results"`
-	Error     error      `json:"-"`
-	ErrorMsg  string     `json:"error,omitempty"`
+	Status     envexec.Status
+	ExitStatus int
+	Error      string
+	Time       uint64
+	Memory     uint64
+	Files      map[string][]byte
+	FileIDs    map[string]string
+}
+
+// Response defines worker response for single request
+type Response struct {
+	RequestID string
+	Results   []Result
+	Error     error
 }

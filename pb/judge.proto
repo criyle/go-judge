@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package pb;
+
+option go_package = "github.com/criyle/go-judge/pb";
+
+service Executor { rpc Exec(Request) returns (Result); };
+
+message Request {
+  message LocalFile { string src = 1; }
+
+  message MemoryFile { bytes content = 1; }
+
+  message CachedFile { string FileID = 1; }
+
+  message PipeCollector {
+    string Name = 1;
+    int64 Max = 2;
+  }
+
+  message File {
+    oneof file {
+      LocalFile local = 1;
+      MemoryFile memory = 2;
+      CachedFile cached = 3;
+      PipeCollector pipe = 4;
+    }
+  }
+
+  message CmdType {
+    repeated string Args = 1;
+    repeated string Env = 2;
+    repeated File Files = 3;
+
+    uint64 CPULimit = 4;
+    uint64 RealCPULimit = 5;
+    uint64 MemoryLimit = 6;
+    uint64 ProcLimit = 7;
+
+    map<string, File> CopyIn = 8;
+
+    repeated string CopyOut = 9;
+    repeated string CopyOutCached = 10;
+    string CopyOutDir = 11;
+  }
+
+  message PipeMap {
+    message PipeIndex {
+      int32 Index = 1;
+      int32 Fd = 2;
+    }
+
+    PipeIndex In = 1;
+    PipeIndex Out = 2;
+  }
+
+  string RequestID = 1;
+  repeated CmdType Cmd = 2;
+  repeated PipeMap PipeMapping = 3;
+}
+
+message Result {
+  message ResponseType {
+    enum StatusType {
+      Invalid = 0;
+      Accepted = 1;
+      WrongAnswer = 2;      // Not used
+      PartiallyCorrect = 3; // Not used
+      MemoryLimitExceeded = 4;
+      TimeLimitExceeded = 5;
+      OutputLimitExceeded = 6;
+      FileError = 7;
+      NonZeroExitStatus = 8;
+      Signalled = 9;
+      DangerousSyscall = 10;
+      JudgementFailed = 11;
+      InvalidInteraction = 12; // Not used
+      InternalError = 13;
+    }
+
+    StatusType Status = 1;
+    int32 ExitStatus = 2;
+    string Error = 3;
+    uint64 Time = 4;
+    uint64 Memory = 5;
+    map<string, bytes> Files = 6;
+    map<string, string> FileIds = 7;
+  }
+  string RequestID = 1;
+  repeated ResponseType Response = 2;
+  string Error = 3;
+}

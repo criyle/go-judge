@@ -29,7 +29,7 @@ type Worker struct {
 
 type workRequest struct {
 	*Request
-	resultCh chan<- Result
+	resultCh chan<- Response
 }
 
 // New creates new worker
@@ -54,8 +54,8 @@ func (w *Worker) Start() {
 }
 
 // Submit submits a single request
-func (w *Worker) Submit(req *Request) <-chan Result {
-	ch := make(chan Result, 1)
+func (w *Worker) Submit(req *Request) <-chan Response {
+	ch := make(chan Response, 1)
 	w.workCh <- workRequest{
 		Request:  req,
 		resultCh: ch,
@@ -83,7 +83,7 @@ func (w *Worker) loop() {
 }
 
 func (w *Worker) workDoCmd(req workRequest) {
-	var rt Result
+	var rt Response
 	if len(req.Cmd) == 1 {
 		rt = w.workDoSingle(req.Cmd[0])
 	} else {
@@ -93,7 +93,7 @@ func (w *Worker) workDoCmd(req workRequest) {
 	req.resultCh <- rt
 }
 
-func (w *Worker) workDoSingle(rc Cmd) (rt Result) {
+func (w *Worker) workDoSingle(rc Cmd) (rt Response) {
 	c, copyOutSet, err := w.prepareCmd(rc)
 	if err != nil {
 		rt.Error = err
@@ -109,12 +109,12 @@ func (w *Worker) workDoSingle(rc Cmd) (rt Result) {
 		return
 	}
 	res := w.convertResult(result, copyOutSet)
-	rt.Response = []Response{res}
+	rt.Results = []Result{res}
 	return
 }
 
-func (w *Worker) workDoGroup(rc []Cmd, pm []PipeMap) (rt Result) {
-	var rts []Response
+func (w *Worker) workDoGroup(rc []Cmd, pm []PipeMap) (rt Response) {
+	var rts []Result
 	p := preparePipeMapping(pm)
 	cs := make([]*envexec.Cmd, 0, len(rc))
 	copyOutSets := make([]map[string]bool, 0, len(rc))
@@ -138,37 +138,37 @@ func (w *Worker) workDoGroup(rc []Cmd, pm []PipeMap) (rt Result) {
 		rt.Error = err
 		return
 	}
-	rts = make([]Response, 0, len(results))
+	rts = make([]Result, 0, len(results))
 	for i, result := range results {
 		res := w.convertResult(result, copyOutSets[i])
 		rts = append(rts, res)
 	}
-	rt.Response = rts
+	rt.Results = rts
 	return
 }
 
-func (w *Worker) convertResult(result envexec.Result, copyOutSet map[string]bool) (res Response) {
-	res.Status = Status(result.Status)
+func (w *Worker) convertResult(result envexec.Result, copyOutSet map[string]bool) (res Result) {
+	res.Status = result.Status
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
 	res.Time = uint64(result.Time)
 	res.Memory = uint64(result.Memory)
-	res.Files = make(map[string]string)
+	res.Files = make(map[string][]byte)
 	res.FileIDs = make(map[string]string)
 
 	for name, fi := range result.Files {
 		b, err := fi.Content()
 		if err != nil {
-			res.Status = Status(envexec.StatusFileError)
+			res.Status = envexec.StatusFileError
 			res.Error = err.Error()
 			return
 		}
 		if copyOutSet[name] {
-			res.Files[name] = string(b)
+			res.Files[name] = b
 		} else {
 			id, err := w.fs.Add(name, b)
 			if err != nil {
-				res.Status = Status(envexec.StatusFileError)
+				res.Status = envexec.StatusFileError
 				res.Error = err.Error()
 				return
 			}
@@ -255,7 +255,10 @@ func preparePipeMapping(pm []PipeMap) []*envexec.Pipe {
 func (w *Worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, error) {
 	rt := make(map[string]file.File)
 	for name, f := range cf {
-		pcf, err := w.prepareCmdFile(&f)
+		if f == nil {
+			return nil, fmt.Errorf("nil type cannot be used for copyIn %s", name)
+		}
+		pcf, err := f.EnvFile(w.fs)
 		if err != nil {
 			return nil, err
 		}
@@ -268,11 +271,15 @@ func (w *Worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, err
 	return rt, nil
 }
 
-func (w *Worker) prepareCmdFiles(files []*CmdFile) ([]interface{}, map[string]bool, error) {
+func (w *Worker) prepareCmdFiles(files []CmdFile) ([]interface{}, map[string]bool, error) {
 	rt := make([]interface{}, 0, len(files))
 	pipeFileName := make(map[string]bool)
 	for _, f := range files {
-		cf, err := w.prepareCmdFile(f)
+		if f == nil {
+			rt = append(rt, nil)
+			continue
+		}
+		cf, err := f.EnvFile(w.fs)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -282,25 +289,4 @@ func (w *Worker) prepareCmdFiles(files []*CmdFile) ([]interface{}, map[string]bo
 		}
 	}
 	return rt, pipeFileName, nil
-}
-
-func (w *Worker) prepareCmdFile(f *CmdFile) (interface{}, error) {
-	switch {
-	case f == nil:
-		return nil, nil
-	case f.Src != nil:
-		return file.NewLocalFile(*f.Src, *f.Src), nil
-	case f.Content != nil:
-		return file.NewMemFile("file", []byte(*f.Content)), nil
-	case f.FileID != nil:
-		fd := w.fs.Get(*f.FileID)
-		if fd == nil {
-			return nil, fmt.Errorf("file not exists for %v", *f.FileID)
-		}
-		return fd, nil
-	case f.Max != nil && f.Name != nil:
-		return envexec.PipeCollector{Name: *f.Name, SizeLimit: *f.Max}, nil
-	default:
-		return nil, fmt.Errorf("file is not valid for cmd")
-	}
 }

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/criyle/go-judge/worker"
+	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -28,7 +28,7 @@ func handleWS(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	resultCh := make(chan worker.Result, 128)
+	resultCh := make(chan model.Response, 128)
 	// read request
 	go func() {
 		defer conn.Close()
@@ -38,13 +38,19 @@ func handleWS(c *gin.Context) {
 			return nil
 		})
 		for {
-			req := new(worker.Request)
+			req := new(model.Request)
 			if err := conn.ReadJSON(req); err != nil {
 				printLog("ws read:", err)
 				return
 			}
+			r, err := model.ConvertRequest(req)
+			if err != nil {
+				printLog("convert", err)
+				return
+			}
 			go func() {
-				resultCh <- <-work.Submit(req)
+				ret := <-work.Submit(r)
+				resultCh <- model.ConvertResponse(ret)
 			}()
 		}
 	}()
@@ -57,9 +63,6 @@ func handleWS(c *gin.Context) {
 		for {
 			select {
 			case r := <-resultCh:
-				if r.Error != nil {
-					r.ErrorMsg = r.Error.Error()
-				}
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
 					printLog("ws write:", err)

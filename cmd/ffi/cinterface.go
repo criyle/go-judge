@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pkg/pool"
@@ -78,14 +79,16 @@ func Init(i *C.char) C.int {
 //export Exec
 func Exec(e *C.char) *C.char {
 	es := C.GoString(e)
-	var req worker.Request
+	var req model.Request
 	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&req); err != nil {
 		return nil
 	}
-	ret := <-work.Submit(&req)
-	if ret.Error != nil {
-		ret.ErrorMsg = ret.Error.Error()
+	r, err := model.ConvertRequest(&req)
+	if err != nil {
+		return nil
 	}
+	rt := <-work.Submit(r)
+	ret := model.ConvertResponse(rt)
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(ret); err != nil {
 		return nil

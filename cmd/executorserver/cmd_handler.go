@@ -3,12 +3,12 @@ package main
 import (
 	"net/http"
 
-	"github.com/criyle/go-judge/worker"
+	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/gin-gonic/gin"
 )
 
 func handleRun(c *gin.Context) {
-	var req worker.Request
+	var req model.Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
@@ -19,11 +19,17 @@ func handleRun(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, "no cmd provided")
 		return
 	}
-	rt := <-work.Submit(&req)
+	r, err := model.ConvertRequest(&req)
+	if err != nil {
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error)
+		return
+	}
+	rt := <-work.Submit(r)
 	if rt.Error != nil {
 		c.Error(rt.Error)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())
 		return
 	}
-	c.JSON(http.StatusOK, rt.Response)
+	c.JSON(http.StatusOK, model.ConvertResponse(rt).Results)
 }

@@ -3,19 +3,28 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log"
+	"net"
+	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/filestore"
+	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc"
 )
 
 var (
 	addr       = flag.String("http", ":5050", "specifies the http binding address")
+	grpcAddr   = flag.String("grpc", ":5051", "specifies the grpc binding address")
 	parallism  = flag.Int("parallism", 4, "control the # of concurrency execution")
 	tmpFsParam = flag.String("tmpfs", "size=16m,nr_inodes=4k", "tmpfs mount data (only for default mount with no mount.yaml)")
 	dir        = flag.String("dir", "", "specifies directory to store file upload / download (in memory by default)")
@@ -79,6 +88,60 @@ func main() {
 	// WebSocket Handle
 	r.GET("/ws", handleWS)
 
-	printLog("Starting http server at", *addr)
-	r.Run(*addr)
+	grpcServer := grpc.NewServer()
+	pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs})
+
+	lis, err := net.Listen("tcp", *grpcAddr)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	srv := http.Server{
+		Addr:    *addr,
+		Handler: r,
+	}
+
+	go func() {
+		printLog("Starting grpc server at", *addr)
+		printLog("GRPC serve", grpcServer.Serve(lis))
+	}()
+
+	go func() {
+		printLog("Starting http server at", *grpcAddr)
+		printLog("Http serve", srv.ListenAndServe())
+	}()
+
+	// Graceful shutdown...
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt)
+	<-sig
+
+	printLog("Shutting Down...")
+
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
+	defer cancel()
+
+	var eg errgroup.Group
+	eg.Go(func() error {
+		printLog("Http server shutdown")
+		return srv.Shutdown(ctx)
+	})
+
+	eg.Go(func() error {
+		work.Shutdown()
+		printLog("Worker shutdown")
+		return nil
+	})
+
+	eg.Go(func() error {
+		grpcServer.GracefulStop()
+		printLog("GRPC server shutdown")
+		return nil
+	})
+
+	go func() {
+		printLog("Shutdown Finished", eg.Wait())
+		cancel()
+	}()
+	<-ctx.Done()
 }

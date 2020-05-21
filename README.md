@@ -34,6 +34,8 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 
 The default binding address for the executor server is `:5050`. Can be specified with `-http` flag.
 
+The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc` flag.
+
 The default concurrency is `4`, Can be specified with `-parallism` flag.
 
 The default file store is in memory, local cache can be specified with `-dir` flag.
@@ -510,7 +512,7 @@ Compile On Windows (cygwin):
 - [x] Add WebSocket for job submission
 - [x] Windows support
 - [x] MacOS support
-- [ ] GRPC + protobuf support
+- [x] GRPC + protobuf support
 - [ ] Token-based authentication
 - [ ] Prometheus metrics support
   

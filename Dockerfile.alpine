@@ -21,6 +21,6 @@ WORKDIR /opt
 
 COPY --from=build /go/judge/executorserver /go/judge/mount.yaml /opt/
 
-EXPOSE 5050/tcp
+EXPOSE 5050/tcp 5051/tcp
 
 ENTRYPOINT ["./executorserver"]

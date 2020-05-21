@@ -4,18 +4,35 @@ package pb;
 
 option go_package = "github.com/criyle/go-judge/pb";
 
-service Executor { rpc Exec(Request) returns (Result); };
+service Executor {
+  rpc Exec(Request) returns (Response);
+  rpc FileList(Empty) returns (FileListType);
+  rpc FileGet(FileID) returns (FileContent);
+  rpc FileAdd(FileContent) returns (FileID);
+  rpc FileDelete(FileID) returns (Empty);
+};
+
+message Empty {}
+
+message FileID { string fileID = 1; }
+
+message FileContent {
+  string name = 1;
+  bytes content = 2;
+}
+
+message FileListType { repeated string fileIDs = 1; }
 
 message Request {
   message LocalFile { string src = 1; }
 
   message MemoryFile { bytes content = 1; }
 
-  message CachedFile { string FileID = 1; }
+  message CachedFile { string fileID = 1; }
 
   message PipeCollector {
-    string Name = 1;
-    int64 Max = 2;
+    string name = 1;
+    int64 max = 2;
   }
 
   message File {
@@ -28,39 +45,39 @@ message Request {
   }
 
   message CmdType {
-    repeated string Args = 1;
-    repeated string Env = 2;
-    repeated File Files = 3;
+    repeated string args = 1;
+    repeated string env = 2;
+    repeated File files = 3;
 
     uint64 CPULimit = 4;
-    uint64 RealCPULimit = 5;
-    uint64 MemoryLimit = 6;
-    uint64 ProcLimit = 7;
+    uint64 realCPULimit = 5;
+    uint64 memoryLimit = 6;
+    uint64 procLimit = 7;
 
-    map<string, File> CopyIn = 8;
+    map<string, File> copyIn = 8;
 
-    repeated string CopyOut = 9;
-    repeated string CopyOutCached = 10;
-    string CopyOutDir = 11;
+    repeated string copyOut = 9;
+    repeated string copyOutCached = 10;
+    string copyOutDir = 11;
   }
 
   message PipeMap {
     message PipeIndex {
-      int32 Index = 1;
-      int32 Fd = 2;
+      int32 index = 1;
+      int32 fd = 2;
     }
 
-    PipeIndex In = 1;
-    PipeIndex Out = 2;
+    PipeIndex in = 1;
+    PipeIndex out = 2;
   }
 
-  string RequestID = 1;
-  repeated CmdType Cmd = 2;
-  repeated PipeMap PipeMapping = 3;
+  string requestID = 1;
+  repeated CmdType cmd = 2;
+  repeated PipeMap pipeMapping = 3;
 }
 
-message Result {
-  message ResponseType {
+message Response {
+  message Result {
     enum StatusType {
       Invalid = 0;
       Accepted = 1;
@@ -78,15 +95,15 @@ message Result {
       InternalError = 13;
     }
 
-    StatusType Status = 1;
-    int32 ExitStatus = 2;
-    string Error = 3;
-    uint64 Time = 4;
-    uint64 Memory = 5;
-    map<string, bytes> Files = 6;
-    map<string, string> FileIds = 7;
+    StatusType status = 1;
+    int32 exitStatus = 2;
+    string error = 3;
+    uint64 time = 4;
+    uint64 memory = 5;
+    map<string, bytes> files = 6;
+    map<string, string> fileIDs = 7;
   }
-  string RequestID = 1;
-  repeated ResponseType Response = 2;
-  string Error = 3;
+  string requestID = 1;
+  repeated Result results = 2;
+  string error = 3;
 }

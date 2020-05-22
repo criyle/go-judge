@@ -335,6 +335,34 @@ interface WSResult {
 +--------------------+----------------+---------------------+--------+-------+-----+
 ```
 
+### Benchmark
+
+By `wrk` with `t.lua`: ~140-160 op/s on Docker Desktop on macOS
+
+```lua
+wrk.method = "POST"
+wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"files":[{"content":""},{"name":"stdout","max":10240},{"name":"stderr","max":10240}],"cpuLimit":10000000000,"memoryLimit":104857600,"procLimit":50,"copyIn":{"a.hs":{"content":"main = putStrLn \\"Hello, World!\\""},"b":{"content":"TEST"}}}]}'
+wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
+```
+
+`wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`
+
+```text
+Running 30s test @ http://localhost:5050/run
+  1 threads and 1 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.28ms    1.66ms  19.00ms   90.63%
+    Req/Sec   160.60     23.15   200.00     83.33%
+  Latency Distribution
+     50%    5.89ms
+     75%    6.57ms
+     90%    7.53ms
+     99%   14.21ms
+  4810 requests in 30.05s, 1.19MB read
+Requests/sec:    160.05
+Transfer/sec:     40.59KB
+```
+
 ### Example Request & Response
 
 Single (this example require `apt install g++` inside the container):

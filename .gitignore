@@ -19,6 +19,9 @@
 env*.sh
 init.sql
 
+# wrk stress test
+/*.lua
+
 node_modules
 /cinit
 

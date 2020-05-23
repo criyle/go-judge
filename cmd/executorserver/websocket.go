@@ -50,6 +50,7 @@ func handleWS(c *gin.Context) {
 			}
 			go func() {
 				ret := <-work.Submit(r)
+				execObserve(ret)
 				resultCh <- model.ConvertResponse(ret)
 			}()
 		}

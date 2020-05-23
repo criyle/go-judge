@@ -26,6 +26,7 @@ func handleRun(c *gin.Context) {
 		return
 	}
 	rt := <-work.Submit(r)
+	execObserve(rt)
 	if rt.Error != nil {
 		c.Error(rt.Error)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())

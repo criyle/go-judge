@@ -20,6 +20,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 		return nil, err
 	}
 	rt := <-work.Submit(r)
+	execObserve(rt)
 	if rt.Error != nil {
 		return nil, err
 	}

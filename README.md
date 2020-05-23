@@ -12,6 +12,7 @@ A rest service to run program in restricted environment and it is basically a wr
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
+- /metrics prometheus metrics 
 
 ### Install & Run Developing Server
 
@@ -542,5 +543,5 @@ Compile On Windows (cygwin):
 - [x] MacOS support
 - [x] GRPC + protobuf support
 - [ ] Token-based authentication
-- [ ] Prometheus metrics support
+- [x] Prometheus metrics support
   

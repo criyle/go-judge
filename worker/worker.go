@@ -25,6 +25,7 @@ type Worker struct {
 	stopOnce  sync.Once
 	wg        sync.WaitGroup
 	workCh    chan workRequest
+	done      chan struct{}
 }
 
 type workRequest struct {
@@ -46,6 +47,7 @@ func New(fs filestore.FileStore, pool envexec.EnvironmentPool, parallism int, wo
 func (w *Worker) Start() {
 	w.startOnce.Do(func() {
 		w.workCh = make(chan workRequest, maxWaiting)
+		w.done = make(chan struct{})
 		w.wg.Add(w.parallism)
 		for i := 0; i < w.parallism; i++ {
 			go w.loop()
@@ -66,7 +68,7 @@ func (w *Worker) Submit(req *Request) <-chan Response {
 // Shutdown waits all worker to finish
 func (w *Worker) Shutdown() {
 	w.stopOnce.Do(func() {
-		close(w.workCh)
+		close(w.done)
 		w.wg.Wait()
 	})
 }
@@ -74,11 +76,15 @@ func (w *Worker) Shutdown() {
 func (w *Worker) loop() {
 	defer w.wg.Done()
 	for {
-		req, ok := <-w.workCh
-		if !ok {
+		select {
+		case req, ok := <-w.workCh:
+			if !ok {
+				return
+			}
+			w.workDoCmd(req)
+		case <-w.done:
 			return
 		}
-		w.workDoCmd(req)
 	}
 }
 

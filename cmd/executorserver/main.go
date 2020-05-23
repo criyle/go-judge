@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/criyle/go-judge/env"
@@ -17,7 +19,10 @@ import (
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
+	ginpprof "github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
@@ -32,6 +37,8 @@ var (
 	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
 	cinitPath  = flag.String("cinit", "", "container init absolute path")
+
+	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	printLog = func(v ...interface{}) {}
 
@@ -51,6 +58,18 @@ func newFilsStore(dir string) filestore.FileStore {
 
 func main() {
 	flag.Parse()
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal("could not create CPU profile: ", err)
+		}
+		defer f.Close() // error handling omitted for example
+		if err := pprof.StartCPUProfile(f); err != nil {
+			log.Fatal("could not start CPU profile: ", err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	if !*silent {
 		printLog = log.Println
@@ -75,6 +94,19 @@ func main() {
 		r = gin.Default()
 	}
 
+	// Metrics Handle
+	p := ginprometheus.NewPrometheus("gin")
+	p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
+		url := c.Request.URL.Path
+		for _, p := range c.Params {
+			if p.Key == "fid" {
+				url = strings.Replace(url, p.Value, ":fid", 1)
+			}
+		}
+		return url
+	}
+	p.Use(r)
+
 	// File Handles
 	fh := &fileHandle{fs: fs}
 	r.GET("/file", fh.fileGet)
@@ -88,8 +120,17 @@ func main() {
 	// WebSocket Handle
 	r.GET("/ws", handleWS)
 
-	grpcServer := grpc.NewServer()
+	// pprof
+	ginpprof.Register(r)
+
+	// gRPC server
+	grpcServer := grpc.NewServer(
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+	)
 	pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs})
+	grpc_prometheus.Register(grpcServer)
+	grpc_prometheus.EnableHandlingTimeHistogram()
 
 	lis, err := net.Listen("tcp", *grpcAddr)
 	if err != nil {
@@ -102,12 +143,12 @@ func main() {
 	}
 
 	go func() {
-		printLog("Starting grpc server at", *addr)
+		printLog("Starting grpc server at", *grpcAddr)
 		printLog("GRPC serve", grpcServer.Serve(lis))
 	}()
 
 	go func() {
-		printLog("Starting http server at", *grpcAddr)
+		printLog("Starting http server at", *addr)
 		printLog("Http serve", srv.ListenAndServe())
 	}()
 

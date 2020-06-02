@@ -5,10 +5,26 @@ package pb;
 option go_package = "github.com/criyle/go-judge/pb";
 
 service Executor {
+  // Exec defines unary RPC to run a program with resource limitations
   rpc Exec(Request) returns (Response);
+
+  // ExecStream defines streaming RPC to run a program with real-time input &
+  // output. The first request must be execRequest and the following request
+  // must be execInput. The last response must be execResponse and the others
+  // are execOutput. TTY attribute will create single pty for the program thus
+  // stdout & stderr should have same name
+  rpc ExecStream(stream StreamRequest) returns (stream StreamResponse);
+
+  // FileList lists all files avaliable in the file store
   rpc FileList(Empty) returns (FileListType);
+
+  // FileGet download the file from the file store
   rpc FileGet(FileID) returns (FileContent);
+
+  // FileAdd create a file into the file store
   rpc FileAdd(FileContent) returns (FileID);
+
+  // FileDelete deletes a file from the file store
   rpc FileDelete(FileID) returns (Empty);
 };
 
@@ -35,12 +51,25 @@ message Request {
     int64 max = 2;
   }
 
+  message StreamInput {
+    string name = 1;
+    bool tty = 2;
+  }
+
+  message StreamOutput { string name = 1; }
+
   message File {
     oneof file {
       LocalFile local = 1;
       MemoryFile memory = 2;
       CachedFile cached = 3;
       PipeCollector pipe = 4;
+
+      // streamIn only valid in streaming RPC
+      StreamInput streamIn = 5;
+
+      // streamOut only valid in streaming RPC
+      StreamOutput streamOut = 6;
     }
   }
 
@@ -106,4 +135,37 @@ message Response {
   string requestID = 1;
   repeated Result results = 2;
   string error = 3;
+}
+
+message StreamRequest {
+  message Input {
+    string name = 1;
+    bytes content = 2;
+  }
+
+  message Resize {
+    string name = 1;
+    uint32 rows = 2;
+    uint32 cols = 3;
+    uint32 x = 4;
+    uint32 y = 5;
+  }
+
+  oneof request {
+    Request execRequest = 1;
+    Input execInput = 2;
+    Resize execResize = 3;
+  }
+}
+
+message StreamResponse {
+  message Output {
+    string name = 1;
+    bytes content = 2;
+  }
+
+  oneof response {
+    Response execResponse = 1;
+    Output execOutput = 2;
+  }
 }

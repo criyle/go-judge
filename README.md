@@ -4,6 +4,22 @@
 
 ## Executor Service
 
+### Architecture
+
+#### Overall Architecture
+
+```text
++----------------------------------------------------------------------------------+
+| Transport Layer (HTTP / WebSocket / FFI / ...)                                   |
++----------------------------------------------------------------------------------+
+| Executor Worker                                                                  |
++-----------------------------------------------------------+----------------------+
+| EnvExec + Environment Pool + Environment Builder          | File Store           |
++--------------------+----------------+---------------------+--------+-------+-----+
+| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Local | ... |
++--------------------+----------------+---------------------+--------+-------+-----+
+```
+
 A rest service to run program in restricted environment and it is basically a wrapper for `pkg/envexec` to run single / multiple programs.
 
 - /run POST execute program in the restricted environment
@@ -12,7 +28,7 @@ A rest service to run program in restricted environment and it is basically a wr
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
-- /metrics prometheus metrics 
+- /metrics prometheus metrics
 
 ### Install & Run Developing Server
 
@@ -54,6 +70,202 @@ Build `executor_server.so`:
 `go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
 
 For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported yet):
+
+### Build Executor Proxy
+
+Build `go build ./cmd/executorproxy`
+
+Run `./executorproxy`, connect to gRPC endpoint and offers REST endpoint.
+
+### Build Executor Shell
+
+Build `go build ./cmd/executorshell`
+
+Run `./executorshell`, connect to gRPC endpoint with interactive shell.
+
+### Container Root Filesystem
+
+- [x] necessary lib / exec / compiler / header readonly bind mounted from current file system: /lib /lib64 /bin /usr
+- [x] work directory tmpfs mount: /w (work dir), /tmp (compiler temp files)
+
+The following mounts point are examples that can be configured through config file later
+
+- additional compiler scripts / exec readonly bind mounted: /c
+- additional header readonly bind mounted: /i
+
+### Utilities
+
+- pkg/envexec: run single / group of programs in parallel within restricted environment and resource constraints
+- pkg/pool: reference implementation for Cgroup & Environment Pool
+
+### Windows Support
+
+Build `executorserver` by:
+
+`go build ./cmd/executorserver/`
+
+Build `executor_server.dll`: (need to install `gcc` as well)
+
+`go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
+
+Run: `./executorserver`
+
+#### Windows Security
+
+- Resources are limited by [JobObject](https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects)
+- Privillege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
+- Low Mandatory Level directory is created for read / write
+
+### MacOS Support
+
+Build `executorserver` by:
+
+`go build ./cmd/executorserver/`
+
+Build `executor_server.dylib`: (need to install `XCode`)
+
+`go build -buildmode=c-shared -o executor_server.dylib ./cmd/ffi/`
+
+Run: `./executorserver`
+
+#### MacOS Security
+
+- `sandbox-init` profile deny network access and file read / write
+
+### Benchmark
+
+By `wrk` with `t.lua`: Tested ~140-160 op/s macOS Docker Desktop & ~1100-1200 op/s Windows 10 WSL2.
+
+```lua
+wrk.method = "POST"
+wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"files":[{"content":""},{"name":"stdout","max":10240},{"name":"stderr","max":10240}],"cpuLimit":10000000000,"memoryLimit":104857600,"procLimit":50,"copyIn":{"a.hs":{"content":"main = putStrLn \\"Hello, World!\\""},"b":{"content":"TEST"}}}]}'
+wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
+```
+
+`wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`
+
+```text
+Running 30s test @ http://localhost:5050/run
+  1 threads and 1 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.28ms    1.66ms  19.00ms   90.63%
+    Req/Sec   160.60     23.15   200.00     83.33%
+  Latency Distribution
+     50%    5.89ms
+     75%    6.57ms
+     90%    7.53ms
+     99%   14.21ms
+  4810 requests in 30.05s, 1.19MB read
+Requests/sec:    160.05
+Transfer/sec:     40.59KB
+```
+
+## TODO
+
+- [x] Github actions to auto build
+- [x] Configure mounts using YAML config file
+- [x] Investigate root-free running mechanism (no cgroup && not set uid / gid)
+- [x] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
+- [x] Add WebSocket for job submission
+- [x] Windows support
+- [x] MacOS support
+- [x] GRPC + protobuf support
+- [ ] Token-based authentication
+- [x] Prometheus metrics support
+
+## API interface
+
+```typescript
+interface LocalFile {
+    src: string; // absolute path for the file
+}
+
+interface MemoryFile {
+    content: string | Buffer; // file contents
+}
+
+interface PreparedFile {
+    fileId: string; // fileId defines file uploaded by /file
+}
+
+interface Pipe {
+    name: string; // file name in copyOut
+    max: number;  // maximum bytes to collect from pipe
+}
+
+interface Cmd {
+    args: string[]; // command line argument
+    env?: string[]; // environment
+
+    // specifies file input / pipe collector for program file descriptors
+    files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
+
+    // limitations
+    cpuLimit?: number;     // ns
+    realCpuLimit?: number; // ns
+    memoryLimit?: number;  // byte
+    procLimit?: number;
+
+    // copy the correspond file to the container dst path
+    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
+
+    // copy out specifies files need to be copied out from the container after execution
+    copyOut?: string[];
+    // similar to copyOut but stores file in executor service and returns fileId, later download through /file/:fileId
+    copyOutCached?: string[];
+    // specifies the directory to dump container /w content
+    copyOutDir: string
+}
+
+enum Status {
+    Accepted,            // normal
+    MemoryLimitExceeded, // mle
+    TimeLimitExceeded,   // tle
+    OutputLimitExceeded, // ole
+    FileError,           // fe
+    RuntimeError,        // re
+    DangerousSyscall,    // dgs
+    InternalError,       // system error
+}
+
+interface PipeIndex {
+    index: number; // the index of cmd
+    fd: number;    // the fd number of cmd
+}
+
+interface PipeMap {
+    in: PipeIndex;  // input end of the pipe
+    out: PipeIndex; // output end of the pipe
+}
+
+interface Request {
+    requestId?: string; // for WebSocket requests
+    cmd: Cmd[];
+    pipeMapping: PipeMap[];
+}
+
+interface Result {
+    status: Status;
+    error?: string; // potential system error message
+    time: number;   // ns
+    memory: number; // byte
+    // copyFile name -> content
+    files?: {[name:string]:string};
+    // copyFileCached name -> fileId
+    fileIds?: {[name:string]:string};
+}
+
+// WebSocket results
+interface WSResult {
+    requestId: string;
+    results: []Result;
+    error?: string;
+}
+```
+
+### Example Request & Response
+
+FFI:
 
 ```javascript
 var ffi = require('ffi-napi');
@@ -180,191 +392,6 @@ Output:
   ]
 }
 ```
-
-### Container Root Filesystem
-
-- [x] necessary lib / exec / compiler / header readonly bind mounted from current file system: /lib /lib64 /bin /usr
-- [x] work directory tmpfs mount: /w (work dir), /tmp (compiler temp files)
-
-The following mounts point are examples that can be configured through config file later
-
-- additional compiler scripts / exec readonly bind mounted: /c
-- additional header readonly bind mounted: /i
-
-### Utilities
-
-- pkg/envexec: run single / group of programs in parallel within restricted environment and resource constraints
-- pkg/pool: reference implementation for Cgroup & Environment Pool
-
-### Windows Support
-
-Build `executorserver` by:
-
-`go build ./cmd/executorserver/`
-
-Build `executor_server.dll`: (need to install `gcc` as well)
-
-`go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
-
-Run: `./executorserver`
-
-#### Windows Security
-
-- Resources are limited by [JobObject](https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects)
-- Privillege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
-- Low Mandatory Level directory is created for read / write
-
-### MacOS Support
-
-Build `executorserver` by:
-
-`go build ./cmd/executorserver/`
-
-Build `executor_server.dylib`: (need to install `XCode`)
-
-`go build -buildmode=c-shared -o executor_server.dylib ./cmd/ffi/`
-
-Run: `./executorserver`
-
-#### MacOS Security
-
-- `sandbox-init` profile deny network access and file read / write
-
-### API interface
-
-```typescript
-interface LocalFile {
-    src: string; // absolute path for the file
-}
-
-interface MemoryFile {
-    content: string | Buffer; // file contents
-}
-
-interface PreparedFile {
-    fileId: string; // fileId defines file uploaded by /file
-}
-
-interface Pipe {
-    name: string; // file name in copyOut
-    max: number;  // maximum bytes to collect from pipe
-}
-
-interface Cmd {
-    args: string[]; // command line argument
-    env?: string[]; // environment
-
-    // specifies file input / pipe collector for program file descriptors
-    files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
-
-    // limitations
-    cpuLimit?: number;     // ns
-    realCpuLimit?: number; // ns
-    memoryLimit?: number;  // byte
-    procLimit?: number;
-
-    // copy the correspond file to the container dst path
-    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
-
-    // copy out specifies files need to be copied out from the container after execution
-    copyOut?: string[];
-    // similar to copyOut but stores file in executor service and returns fileId, later download through /file/:fileId
-    copyOutCached?: string[];
-    // specifies the directory to dump container /w content
-    copyOutDir: string
-}
-
-enum Status {
-    Accepted,            // normal
-    MemoryLimitExceeded, // mle
-    TimeLimitExceeded,   // tle
-    OutputLimitExceeded, // ole
-    FileError,           // fe
-    RuntimeError,        // re
-    DangerousSyscall,    // dgs
-    InternalError,       // system error
-}
-
-interface PipeIndex {
-    index: number; // the index of cmd
-    fd: number;    // the fd number of cmd
-}
-
-interface PipeMap {
-    in: PipeIndex;  // input end of the pipe
-    out: PipeIndex; // output end of the pipe
-}
-
-interface Request {
-    requestId?: string; // for WebSocket requests
-    cmd: Cmd[];
-    pipeMapping: PipeMap[];
-}
-
-interface Result {
-    status: Status;
-    error?: string; // potential system error message
-    time: number;   // ns
-    memory: number; // byte
-    // copyFile name -> content
-    files?: {[name:string]:string};
-    // copyFileCached name -> fileId
-    fileIds?: {[name:string]:string};
-}
-
-// WebSocket results
-interface WSResult {
-    requestId: string;
-    results: []Result;
-    error?: string;
-}
-```
-
-### Architecture
-
-#### Overall Architecture
-
-```text
-+----------------------------------------------------------------------------------+
-| Transport Layer (HTTP / WebSocket / FFI / ...)                                   |
-+----------------------------------------------------------------------------------+
-| Executor Worker                                                                  |
-+-----------------------------------------------------------+----------------------+
-| EnvExec + Environment Pool + Environment Builder          | File Store           |
-+--------------------+----------------+---------------------+--------+-------+-----+
-| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Local | ... |
-+--------------------+----------------+---------------------+--------+-------+-----+
-```
-
-### Benchmark
-
-By `wrk` with `t.lua`: ~140-160 op/s on Docker Desktop on macOS
-
-```lua
-wrk.method = "POST"
-wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"files":[{"content":""},{"name":"stdout","max":10240},{"name":"stderr","max":10240}],"cpuLimit":10000000000,"memoryLimit":104857600,"procLimit":50,"copyIn":{"a.hs":{"content":"main = putStrLn \\"Hello, World!\\""},"b":{"content":"TEST"}}}]}'
-wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
-```
-
-`wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`
-
-```text
-Running 30s test @ http://localhost:5050/run
-  1 threads and 1 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     6.28ms    1.66ms  19.00ms   90.63%
-    Req/Sec   160.60     23.15   200.00     83.33%
-  Latency Distribution
-     50%    5.89ms
-     75%    6.57ms
-     90%    7.53ms
-     99%   14.21ms
-  4810 requests in 30.05s, 1.19MB read
-Requests/sec:    160.05
-Transfer/sec:     40.59KB
-```
-
-### Example Request & Response
 
 Single (this example require `apt install g++` inside the container):
 
@@ -531,17 +558,3 @@ Compile On Windows (cygwin):
     }
 ]
 ```
-
-## TODO
-
-- [x] Github actions to auto build
-- [x] Configure mounts using YAML config file
-- [x] Investigate root-free running mechanism (no cgroup && not set uid / gid)
-- [x] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
-- [x] Add WebSocket for job submission
-- [x] Windows support
-- [x] MacOS support
-- [x] GRPC + protobuf support
-- [ ] Token-based authentication
-- [x] Prometheus metrics support
-  

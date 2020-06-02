@@ -32,3 +32,4 @@ example.js
 executor_server.h
 /executor_server
 /executorproxy
+/executorshell

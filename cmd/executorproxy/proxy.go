@@ -119,6 +119,7 @@ func (p *execProxy) FileDelete(c *gin.Context) {
 }
 
 func main() {
+	flag.Parse()
 	conn, err := grpc.Dial(*srvAddr, grpc.WithInsecure())
 	if err != nil {
 		log.Fatalln("client", err)

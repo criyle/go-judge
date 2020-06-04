@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -37,6 +38,10 @@ func handleWS(c *gin.Context) {
 			conn.SetReadDeadline(time.Now().Add(pongWait))
 			return nil
 		})
+
+		ctx, cancel := context.WithCancel(context.TODO())
+		defer cancel()
+
 		for {
 			req := new(model.Request)
 			if err := conn.ReadJSON(req); err != nil {
@@ -49,7 +54,7 @@ func handleWS(c *gin.Context) {
 				return
 			}
 			go func() {
-				ret := <-work.Submit(r)
+				ret := <-work.Submit(ctx, r)
 				execObserve(ret)
 				resultCh <- model.ConvertResponse(ret)
 			}()

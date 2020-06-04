@@ -1,6 +1,7 @@
 package envexec
 
 import (
+	"context"
 	"fmt"
 
 	"golang.org/x/sync/errgroup"
@@ -32,7 +33,7 @@ type Pipe struct {
 }
 
 // Run starts the cmd and returns exec results
-func (r *Group) Run() ([]Result, error) {
+func (r *Group) Run(ctx context.Context) ([]Result, error) {
 	// prepare files
 	fds, pipeToCollect, fileToClose, err := prepareFds(r)
 	defer func() { closeFiles(fileToClose) }()
@@ -58,7 +59,7 @@ func (r *Group) Run() ([]Result, error) {
 	for i, c := range r.Cmd {
 		i, c := i, c
 		g.Go(func() error {
-			r, err := runSingle(ms[i], c, fds[i], pipeToCollect[i])
+			r, err := runSingle(ctx, ms[i], c, fds[i], pipeToCollect[i])
 			result[i] = r
 			if err != nil {
 				result[i].Status = StatusInternalError

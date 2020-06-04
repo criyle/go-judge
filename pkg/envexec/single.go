@@ -1,6 +1,7 @@
 package envexec
 
 import (
+	"context"
 	"fmt"
 )
 
@@ -15,7 +16,7 @@ type Single struct {
 }
 
 // Run starts the cmd and returns exec results
-func (s *Single) Run() (result Result, err error) {
+func (s *Single) Run(ctx context.Context) (result Result, err error) {
 	// prepare files
 	fd, fileToClose, pipeToCollect, err := prepareCmdFd(s.Cmd, len(s.Cmd.Files))
 	defer func() { closeFiles(fileToClose) }()
@@ -31,7 +32,7 @@ func (s *Single) Run() (result Result, err error) {
 	}
 	defer s.EnvironmentPool.Put(m)
 
-	result, err = runSingle(m, s.Cmd, fd, pipeToCollect)
+	result, err = runSingle(ctx, m, s.Cmd, fd, pipeToCollect)
 	fileToClose = nil // already closed by runOne
 	if err != nil {
 		result.Status = StatusInternalError

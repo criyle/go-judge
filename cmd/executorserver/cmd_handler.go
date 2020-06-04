@@ -25,7 +25,7 @@ func handleRun(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error)
 		return
 	}
-	rt := <-work.Submit(r)
+	rt := <-work.Submit(c.Request.Context(), r)
 	execObserve(rt)
 	if rt.Error != nil {
 		c.Error(rt.Error)

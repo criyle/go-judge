@@ -34,7 +34,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	if len(si) > 0 || len(so) > 0 {
 		return nil, fmt.Errorf("Stream in / out are not avaliable for exec request")
 	}
-	rt := <-work.Submit(r)
+	rt := <-work.Submit(ctx, r)
 	execObserve(rt)
 	if rt.Error != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 		}
 	}
 
-	rtCh := work.Submit(rq)
+	rtCh := work.Execute(es.Context(), rq)
 	for {
 		select {
 		case err := <-errCh:

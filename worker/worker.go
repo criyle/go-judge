@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"sync"
@@ -30,6 +31,7 @@ type Worker struct {
 
 type workRequest struct {
 	*Request
+	context.Context
 	resultCh chan<- Response
 }
 
@@ -56,12 +58,29 @@ func (w *Worker) Start() {
 }
 
 // Submit submits a single request
-func (w *Worker) Submit(req *Request) <-chan Response {
+func (w *Worker) Submit(ctx context.Context, req *Request) <-chan Response {
 	ch := make(chan Response, 1)
 	w.workCh <- workRequest{
 		Request:  req,
+		Context:  ctx,
 		resultCh: ch,
 	}
+	return ch
+}
+
+// Execute will execute the request in new goroutine (bypass the parallism limit)
+func (w *Worker) Execute(ctx context.Context, req *Request) <-chan Response {
+	ch := make(chan Response, 1)
+	w.wg.Add(1)
+	go func() {
+		defer w.wg.Done()
+		wq := workRequest{
+			Request:  req,
+			Context:  ctx,
+			resultCh: ch,
+		}
+		w.workDoCmd(wq)
+	}()
 	return ch
 }
 
@@ -91,15 +110,15 @@ func (w *Worker) loop() {
 func (w *Worker) workDoCmd(req workRequest) {
 	var rt Response
 	if len(req.Cmd) == 1 {
-		rt = w.workDoSingle(req.Cmd[0])
+		rt = w.workDoSingle(req.Context, req.Cmd[0])
 	} else {
-		rt = w.workDoGroup(req.Cmd, req.PipeMapping)
+		rt = w.workDoGroup(req.Context, req.Cmd, req.PipeMapping)
 	}
 	rt.RequestID = req.RequestID
 	req.resultCh <- rt
 }
 
-func (w *Worker) workDoSingle(rc Cmd) (rt Response) {
+func (w *Worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 	c, copyOutSet, err := w.prepareCmd(rc)
 	if err != nil {
 		rt.Error = err
@@ -109,7 +128,7 @@ func (w *Worker) workDoSingle(rc Cmd) (rt Response) {
 		EnvironmentPool: w.envPool,
 		Cmd:             c,
 	}
-	result, err := s.Run()
+	result, err := s.Run(ctx)
 	if err != nil {
 		rt.Error = err
 		return
@@ -119,7 +138,7 @@ func (w *Worker) workDoSingle(rc Cmd) (rt Response) {
 	return
 }
 
-func (w *Worker) workDoGroup(rc []Cmd, pm []PipeMap) (rt Response) {
+func (w *Worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Response) {
 	var rts []Result
 	p := preparePipeMapping(pm)
 	cs := make([]*envexec.Cmd, 0, len(rc))
@@ -139,7 +158,7 @@ func (w *Worker) workDoGroup(rc []Cmd, pm []PipeMap) (rt Response) {
 		Cmd:   cs,
 		Pipes: p,
 	}
-	results, err := g.Run()
+	results, err := g.Run(ctx)
 	if err != nil {
 		rt.Error = err
 		return

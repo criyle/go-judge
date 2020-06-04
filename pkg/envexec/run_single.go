@@ -8,7 +8,7 @@ import (
 )
 
 // runSingle runs Cmd inside the given environment and cgroup
-func runSingle(m Environment, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
+func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
 	fdToClose := fds
 	defer func() { closeFiles(fdToClose) }()
 
@@ -32,7 +32,7 @@ func runSingle(m Environment, c *Cmd, fds []*os.File, ptc []pipeCollector) (resu
 	}
 
 	// start the cmd (they will be canceled in other goroutines)
-	ctx, cancel := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(pc)
 	waiterCtx, waiterCancel := context.WithCancel(ctx)
 
 	process, err := m.Execve(ctx, execParam)

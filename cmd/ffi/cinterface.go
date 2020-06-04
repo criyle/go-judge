@@ -4,6 +4,7 @@ import "C"
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"log"
 	"os"
@@ -87,7 +88,7 @@ func Exec(e *C.char) *C.char {
 	if err != nil {
 		return nil
 	}
-	rt := <-work.Submit(r)
+	rt := <-work.Submit(context.TODO(), r)
 	ret := model.ConvertResponse(rt)
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(ret); err != nil {

@@ -256,6 +256,7 @@ func convertPBResult(r worker.Result) *pb.Response_Result {
 		ExitStatus: int32(r.ExitStatus),
 		Error:      r.Error,
 		Time:       r.Time,
+		RunTime:    r.RunTime,
 		Memory:     r.Memory,
 		Files:      r.Files,
 		FileIDs:    r.FileIDs,

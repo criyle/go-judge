@@ -431,6 +431,7 @@ Single (this example require `apt install g++` inside the container):
         "exitStatus": 0,
         "time": 303225231,
         "memory": 32243712,
+        "runTime": 524177700,
         "files": {
             "stderr": "",
             "stdout": ""
@@ -493,6 +494,7 @@ Multiple (interaction problem):
         "exitStatus": 0,
         "time": 1545123,
         "memory": 253952,
+        "runTime": 4148800,
         "files": {
             "stderr": ""
         },
@@ -503,6 +505,7 @@ Multiple (interaction problem):
         "exitStatus": 0,
         "time": 1501463,
         "memory": 253952,
+        "runTime": 5897700,
         "files": {
             "stderr": "",
             "stdout": "TEST 1"

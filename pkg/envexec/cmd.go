@@ -55,8 +55,9 @@ type Result struct {
 
 	Error string // error
 
-	Time   time.Duration
-	Memory runner.Size // byte
+	Time    time.Duration
+	RunTime time.Duration
+	Memory  runner.Size // byte
 
 	// Files stores copy out files
 	Files map[string]file.File

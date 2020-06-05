@@ -45,6 +45,7 @@ type Result struct {
 	ExitStatus int
 	Error      string
 	Time       uint64
+	RunTime    uint64
 	Memory     uint64
 	Files      map[string][]byte
 	FileIDs    map[string]string

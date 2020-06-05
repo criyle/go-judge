@@ -67,6 +67,7 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 		ExitStatus: rt.ExitStatus,
 		Error:      rt.Error,
 		Time:       rt.Time,
+		RunTime:    rt.RunningTime,
 		Memory:     rt.Memory,
 		Files:      files,
 	}
@@ -79,6 +80,9 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 			result.Status = StatusFileError
 		}
 		result.Error = err.Error()
+	}
+	if result.Time > c.TimeLimit {
+		result.Status = StatusTimeLimitExceeded
 	}
 	if result.Memory > c.MemoryLimit {
 		result.Status = StatusMemoryLimitExceeded

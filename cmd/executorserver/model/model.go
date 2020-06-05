@@ -68,6 +68,7 @@ type Result struct {
 	Error      string            `json:"error,omitempty"`
 	Time       uint64            `json:"time"`
 	Memory     uint64            `json:"memory"`
+	RunTime    uint64            `json:"runTime"`
 	Files      map[string]string `json:"files,omitempty"`
 	FileIDs    map[string]string `json:"fileIds,omitempty"`
 }
@@ -120,6 +121,7 @@ func convertResult(r worker.Result) Result {
 		ExitStatus: r.ExitStatus,
 		Error:      r.Error,
 		Time:       r.Time,
+		RunTime:    r.RunTime,
 		Memory:     r.Memory,
 		FileIDs:    r.FileIDs,
 	}

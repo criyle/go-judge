@@ -177,6 +177,7 @@ func (w *Worker) convertResult(result envexec.Result, copyOutSet map[string]bool
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
 	res.Time = uint64(result.Time)
+	res.RunTime = uint64(result.RunTime)
 	res.Memory = uint64(result.Memory)
 	res.Files = make(map[string][]byte)
 	res.FileIDs = make(map[string]string)

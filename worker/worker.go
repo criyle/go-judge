@@ -259,6 +259,7 @@ func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		Files:       files,
 		TimeLimit:   timeLimit,
 		MemoryLimit: runner.Size(rc.MemoryLimit),
+		StackLimit:  runner.Size(rc.StackLimit),
 		ProcLimit:   rc.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,

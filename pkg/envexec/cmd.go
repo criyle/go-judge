@@ -23,7 +23,8 @@ type Cmd struct {
 
 	// resource limits
 	TimeLimit   time.Duration
-	MemoryLimit runner.Size // in bytes
+	MemoryLimit runner.Size
+	StackLimit  runner.Size
 	ProcLimit   uint64
 
 	// file contents to copyin before exec

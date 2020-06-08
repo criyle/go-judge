@@ -19,6 +19,16 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 		}
 	}
 
+	memoryLimit := c.MemoryLimit + runner.Size(memoryLimitExtra)
+
+	var stackLimit runner.Size
+	if c.StackLimit > 0 {
+		stackLimit = c.StackLimit + runner.Size(memoryLimitExtra)
+	}
+	if stackLimit > memoryLimit {
+		stackLimit = memoryLimit
+	}
+
 	// set running parameters
 	execParam := ExecveParam{
 		Args:  c.Args,
@@ -26,8 +36,9 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 		Files: getFdArray(fds),
 		Limit: Limit{
 			Time:   c.TimeLimit,
-			Memory: c.MemoryLimit + runner.Size(memoryLimitExtra),
+			Memory: memoryLimit,
 			Proc:   c.ProcLimit,
+			Stack:  stackLimit,
 		},
 	}
 

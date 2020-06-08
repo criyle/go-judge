@@ -204,6 +204,7 @@ interface Cmd {
     cpuLimit?: number;     // ns
     realCpuLimit?: number; // ns
     memoryLimit?: number;  // byte
+    stackLimit?: number;   // byte (N/A on windows, macOS cannot set over 32M)
     procLimit?: number;
 
     // copy the correspond file to the container dst path
@@ -247,8 +248,9 @@ interface Request {
 interface Result {
     status: Status;
     error?: string; // potential system error message
-    time: number;   // ns
+    time: number;   // ns (cgroup recorded time)
     memory: number; // byte
+    runTime: number; // ns (wall clock time)
     // copyFile name -> content
     files?: {[name:string]:string};
     // copyFileCached name -> fileId

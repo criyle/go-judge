@@ -9,8 +9,8 @@ RUN go mod download
 COPY ./ /go/judge
 
 RUN go build -o executorserver ./cmd/executorserver \
-    go build -o cinit ./cmd/cinit && \
-    go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/
+    && go build -o cinit ./cmd/cinit \
+    && go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/
 
 FROM debian:latest
 

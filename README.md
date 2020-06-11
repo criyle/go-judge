@@ -178,7 +178,7 @@ Transfer/sec:     40.59KB
 - [x] Windows support
 - [x] MacOS support
 - [x] GRPC + protobuf support
-- [ ] Token-based authentication
+- [x] Token-based authentication
 - [x] Prometheus metrics support
 
 ## API interface

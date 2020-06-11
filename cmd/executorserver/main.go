@@ -21,10 +21,15 @@ import (
 	"github.com/criyle/go-judge/worker"
 	ginpprof "github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -35,6 +40,7 @@ const (
 	envGRPC      = "GRPC"
 	envGRPCAddr  = "GRPC_ADDR"
 	envParallism = "PARALLISM"
+	envToken     = "TOKEN"
 )
 
 var (
@@ -47,6 +53,7 @@ var (
 	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
 	cinitPath  = flag.String("cinit", "", "container init absolute path")
+	token      = flag.String("token", "", "bearer token auth for REST / gRPC")
 
 	printLog = func(v ...interface{}) {}
 
@@ -82,6 +89,9 @@ func initEnv() (bool, error) {
 			return false, err
 		}
 		parallism = &p
+	}
+	if s := os.Getenv(envToken); s != "" {
+		token = &s
 	}
 	return eneableGRPC, nil
 }
@@ -131,6 +141,12 @@ func main() {
 		p.Use(r)
 	}
 
+	// Add auth token
+	if *token != "" {
+		r.Use(tokenAuth(*token))
+		printLog("Attach token auth with token:", *token)
+	}
+
 	// File Handles
 	fh := &fileHandle{fs: fs}
 	r.GET("/file", fh.fileGet)
@@ -152,9 +168,22 @@ func main() {
 	// gRPC server
 	var grpcServer *grpc.Server
 	if enableGRPC {
+		streamMiddleware := []grpc.StreamServerInterceptor{
+			grpc_prometheus.StreamServerInterceptor,
+			grpc_recovery.StreamServerInterceptor(),
+		}
+		unaryMiddleware := []grpc.UnaryServerInterceptor{
+			grpc_prometheus.UnaryServerInterceptor,
+			grpc_recovery.UnaryServerInterceptor(),
+		}
+		if *token != "" {
+			authFunc := grpcTokenAuth(*token)
+			streamMiddleware = append(streamMiddleware, grpc_auth.StreamServerInterceptor(authFunc))
+			unaryMiddleware = append(unaryMiddleware, grpc_auth.UnaryServerInterceptor(authFunc))
+		}
 		grpcServer = grpc.NewServer(
-			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamMiddleware...)),
+			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryMiddleware...)),
 		)
 		pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs})
 		grpc_prometheus.Register(grpcServer)
@@ -215,4 +244,29 @@ func main() {
 		cancel()
 	}()
 	<-ctx.Done()
+}
+
+func tokenAuth(token string) gin.HandlerFunc {
+	const bearer = "Bearer "
+	return func(c *gin.Context) {
+		reqToken := c.GetHeader("Authorization")
+		if strings.HasPrefix(reqToken, bearer) && reqToken[len(bearer):] == token {
+			c.Next()
+			return
+		}
+		c.AbortWithStatus(http.StatusUnauthorized)
+	}
+}
+
+func grpcTokenAuth(token string) func(context.Context) (context.Context, error) {
+	return func(ctx context.Context) (context.Context, error) {
+		reqToken, err := grpc_auth.AuthFromMD(ctx, "bearer")
+		if err != nil {
+			return nil, err
+		}
+		if reqToken != token {
+			return nil, status.Errorf(codes.Unauthenticated, "invalid auth token: %v", err)
+		}
+		return ctx, nil
+	}
 }

@@ -15,6 +15,7 @@ import (
 	"github.com/criyle/go-judge/pb"
 	"golang.org/x/crypto/ssh/terminal"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -41,7 +42,13 @@ func main() {
 		args = []string{"/bin/bash"}
 	}
 
-	conn, err := grpc.Dial(*srvAddr, grpc.WithInsecure())
+	token := os.Getenv("TOKEN")
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+	if token != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(newTokenAuth(token)))
+	}
+	conn, err := grpc.Dial(*srvAddr, opts...)
+
 	if err != nil {
 		log.Fatalln("client", err)
 	}
@@ -209,4 +216,23 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 			return sr.ExecResponse, nil
 		}
 	}
+}
+
+type tokenAuth struct {
+	token string
+}
+
+func newTokenAuth(token string) credentials.PerRPCCredentials {
+	return &tokenAuth{token: token}
+}
+
+// Return value is mapped to request headers.
+func (t *tokenAuth) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": "Bearer " + t.token,
+	}, nil
+}
+
+func (*tokenAuth) RequireTransportSecurity() bool {
+	return false
 }

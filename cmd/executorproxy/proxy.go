@@ -2,15 +2,18 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/criyle/go-judge/pb"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -120,7 +123,12 @@ func (p *execProxy) FileDelete(c *gin.Context) {
 
 func main() {
 	flag.Parse()
-	conn, err := grpc.Dial(*srvAddr, grpc.WithInsecure())
+	token := os.Getenv("TOKEN")
+	opts := []grpc.DialOption{grpc.WithInsecure()}
+	if token != "" {
+		opts = append(opts, grpc.WithPerRPCCredentials(newTokenAuth(token)))
+	}
+	conn, err := grpc.Dial(*srvAddr, opts...)
 	if err != nil {
 		log.Fatalln("client", err)
 	}
@@ -136,4 +144,23 @@ func main() {
 	r.DELETE("/file/:fid", p.FileDelete)
 
 	log.Println(r.Run(*addr))
+}
+
+type tokenAuth struct {
+	token string
+}
+
+func newTokenAuth(token string) credentials.PerRPCCredentials {
+	return &tokenAuth{token: token}
+}
+
+// Return value is mapped to request headers.
+func (t *tokenAuth) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
+	return map[string]string{
+		"authorization": "Bearer " + t.token,
+	}, nil
+}
+
+func (*tokenAuth) RequireTransportSecurity() bool {
+	return false
 }

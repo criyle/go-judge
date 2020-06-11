@@ -57,12 +57,16 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 - The default concurrency is `4`, Can be specified with `-parallism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
 - The default log level is debug, use `-silent` to disable logs.
+- `-token` to add token-based authentication to REST / gRPC
 
 #### Environment Variables
+
+Environment variable will override command line arguments if they both present.
 
 - The http binding address specifies as `HTTP_ADDR=addr`
 - The grpc binding address specifies as `GRPC_ADDR=addr`
 - The parallism specifies as `PARALLISM=4`
+- The token specifies as `TOKEN=token`
 - `GRPC=1` enables gRPC
 - `METRICS=1` enables metrics
 - `DEBUG=1` enables debug

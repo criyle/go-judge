@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"runtime/pprof"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,6 +27,16 @@ import (
 	"google.golang.org/grpc"
 )
 
+const (
+	envDebug   = "DEBUG"
+	envMetrics = "METRICS"
+
+	envAddr      = "HTTP_ADDR"
+	envGRPC      = "GRPC"
+	envGRPCAddr  = "GRPC_ADDR"
+	envParallism = "PARALLISM"
+)
+
 var (
 	addr       = flag.String("http", ":5050", "specifies the http binding address")
 	grpcAddr   = flag.String("grpc", ":5051", "specifies the grpc binding address")
@@ -37,8 +47,6 @@ var (
 	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
 	cinitPath  = flag.String("cinit", "", "container init absolute path")
-
-	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 	printLog = func(v ...interface{}) {}
 
@@ -56,25 +64,39 @@ func newFilsStore(dir string) filestore.FileStore {
 	return fs
 }
 
+func initEnv() (bool, error) {
+	eneableGRPC := false
+	if s := os.Getenv(envAddr); s != "" {
+		addr = &s
+	}
+	if os.Getenv(envGRPC) == "1" {
+		eneableGRPC = true
+	}
+	if s := os.Getenv(envGRPCAddr); s != "" {
+		eneableGRPC = true
+		grpcAddr = &s
+	}
+	if s := os.Getenv(envParallism); s != "" {
+		p, err := strconv.Atoi(s)
+		if err != nil {
+			return false, err
+		}
+		parallism = &p
+	}
+	return eneableGRPC, nil
+}
+
 func main() {
 	flag.Parse()
-
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal("could not create CPU profile: ", err)
-		}
-		defer f.Close() // error handling omitted for example
-		if err := pprof.StartCPUProfile(f); err != nil {
-			log.Fatal("could not start CPU profile: ", err)
-		}
-		defer pprof.StopCPUProfile()
-	}
-
 	if !*silent {
 		printLog = log.Println
 	}
+	enableGRPC, err := initEnv()
+	if err != nil {
+		log.Fatalln("init environment variable failed", err)
+	}
 
+	// Init environment pool
 	fs := newFilsStore(*dir)
 	b, err := env.NewBuilder(*cinitPath, *mountConf, *tmpFsParam, *netShare, printLog)
 	if err != nil {
@@ -95,17 +117,19 @@ func main() {
 	}
 
 	// Metrics Handle
-	p := ginprometheus.NewPrometheus("gin")
-	p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
-		url := c.Request.URL.Path
-		for _, p := range c.Params {
-			if p.Key == "fid" {
-				url = strings.Replace(url, p.Value, ":fid", 1)
+	if os.Getenv(envMetrics) == "1" {
+		p := ginprometheus.NewPrometheus("gin")
+		p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
+			url := c.Request.URL.Path
+			for _, p := range c.Params {
+				if p.Key == "fid" {
+					url = strings.Replace(url, p.Value, ":fid", 1)
+				}
 			}
+			return url
 		}
-		return url
+		p.Use(r)
 	}
-	p.Use(r)
 
 	// File Handles
 	fh := &fileHandle{fs: fs}
@@ -121,31 +145,35 @@ func main() {
 	r.GET("/ws", handleWS)
 
 	// pprof
-	ginpprof.Register(r)
+	if os.Getenv(envDebug) != "" {
+		ginpprof.Register(r)
+	}
 
 	// gRPC server
-	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
-		grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
-	)
-	pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs})
-	grpc_prometheus.Register(grpcServer)
-	grpc_prometheus.EnableHandlingTimeHistogram()
+	var grpcServer *grpc.Server
+	if enableGRPC {
+		grpcServer = grpc.NewServer(
+			grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+			grpc.UnaryInterceptor(grpc_prometheus.UnaryServerInterceptor),
+		)
+		pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs})
+		grpc_prometheus.Register(grpcServer)
+		grpc_prometheus.EnableHandlingTimeHistogram()
 
-	lis, err := net.Listen("tcp", *grpcAddr)
-	if err != nil {
-		log.Fatalln(err)
+		lis, err := net.Listen("tcp", *grpcAddr)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		go func() {
+			printLog("Starting grpc server at", *grpcAddr)
+			printLog("GRPC serve", grpcServer.Serve(lis))
+		}()
 	}
 
 	srv := http.Server{
 		Addr:    *addr,
 		Handler: r,
 	}
-
-	go func() {
-		printLog("Starting grpc server at", *grpcAddr)
-		printLog("GRPC serve", grpcServer.Serve(lis))
-	}()
 
 	go func() {
 		printLog("Starting http server at", *addr)
@@ -174,11 +202,13 @@ func main() {
 		return nil
 	})
 
-	eg.Go(func() error {
-		grpcServer.GracefulStop()
-		printLog("GRPC server shutdown")
-		return nil
-	})
+	if grpcServer != nil {
+		eg.Go(func() error {
+			grpcServer.GracefulStop()
+			printLog("GRPC server shutdown")
+			return nil
+		})
+	}
 
 	go func() {
 		printLog("Shutdown Finished", eg.Wait())

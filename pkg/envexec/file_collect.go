@@ -1,6 +1,7 @@
 package envexec
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 
@@ -23,6 +24,17 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 				return err
 			}
 			defer cf.Close()
+
+			// check size limit
+			if c.CopyOutMax != 0 {
+				stat, err := cf.Stat()
+				if err != nil {
+					return err
+				}
+				if s := stat.Size(); s > int64(c.CopyOutMax) {
+					return fmt.Errorf("File %s have size %d exceeded the limit %d", n, s, c.CopyOutMax)
+				}
+			}
 
 			c, err := ioutil.ReadAll(cf)
 			if err != nil {

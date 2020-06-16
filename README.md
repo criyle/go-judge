@@ -211,6 +211,8 @@ interface Cmd {
 
     // specifies file input / pipe collector for program file descriptors
     files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
+    tty?: boolean; // enables tty on the input and output pipes (should have just one input & one output)
+    // Notice: must have TERM environment variables (e.g. TERM=xterm)
 
     // limitations
     cpuLimit?: number;     // ns
@@ -228,6 +230,8 @@ interface Cmd {
     copyOutCached?: string[];
     // specifies the directory to dump container /w content
     copyOutDir: string
+    // specifies the max file size to copy out
+    copyOutMax: number; // byte
 }
 
 enum Status {

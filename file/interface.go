@@ -11,11 +11,16 @@ type Opener interface {
 	Open() (*os.File, error)
 }
 
+// ReaderOpener creates readCloser for caller
+type ReaderOpener interface {
+	Reader() (io.ReadCloser, error)
+}
+
 // File defines file name with its content
 // file could on file system or memory
 type File interface {
 	Opener
+	ReaderOpener
 	Content() ([]byte, error)
 	Name() string
-	Reader() (io.ReadCloser, error)
 }

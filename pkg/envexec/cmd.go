@@ -20,6 +20,7 @@ type Cmd struct {
 	// file.Opener: will be opened and passed to runner
 	// PipeCollector: a pipe write end will be passed to runner and collected as a copyout file
 	Files []interface{}
+	TTY   bool // use pty as input / output
 
 	// resource limits
 	TimeLimit   time.Duration
@@ -31,7 +32,8 @@ type Cmd struct {
 	CopyIn map[string]file.File
 
 	// file names to copyout after exec
-	CopyOut []string
+	CopyOut    []string
+	CopyOutMax runner.Size // file size limit
 
 	// CopyOutDir specifies a dir to dump all /w contnet
 	CopyOutDir string

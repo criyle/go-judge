@@ -167,6 +167,7 @@ func convertPBCmd(c *pb.Request_CmdType) (cm worker.Cmd, streamIn []*fileStreamI
 	cm = worker.Cmd{
 		Args:          c.GetArgs(),
 		Env:           c.GetEnv(),
+		TTY:           c.GetTty(),
 		CPULimit:      c.GetCPULimit(),
 		RealCPULimit:  c.GetRealCPULimit(),
 		MemoryLimit:   c.GetMemoryLimit(),
@@ -174,6 +175,7 @@ func convertPBCmd(c *pb.Request_CmdType) (cm worker.Cmd, streamIn []*fileStreamI
 		ProcLimit:     c.GetProcLimit(),
 		CopyOut:       c.GetCopyOut(),
 		CopyOutCached: c.GetCopyOutCached(),
+		CopyOutMax:    c.GetCopyOutMax(),
 		CopyOutDir:    c.GetCopyOutDir(),
 	}
 	var (

@@ -1,9 +1,13 @@
 package envexec
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"sync"
 
+	"github.com/creack/pty"
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-sandbox/pkg/pipe"
 )
@@ -13,7 +17,96 @@ type pipeCollector struct {
 	name string
 }
 
+// prepare Files for tty input / output
+func prepareCmdFdTTY(c *Cmd, count int) (fd, ftc []*os.File, ptc []pipeCollector, err error) {
+	var fPty, fTty *os.File
+	if c.TTY {
+		fPty, fTty, err = pty.Open()
+		if err != nil {
+			err = fmt.Errorf("failed to open tty %v", err)
+			return nil, nil, nil, err
+		}
+	}
+	ftc = append(ftc, fTty)
+
+	fd = make([]*os.File, count)
+	hasInput := false
+	var output *pipe.Buffer
+	var wg sync.WaitGroup
+
+	for j, t := range c.Files {
+		switch t := t.(type) {
+		case nil: // ignore
+		case *os.File:
+			fd[j] = t
+			ftc = append(ftc, t)
+
+		case file.ReaderOpener:
+			if hasInput {
+				err = fmt.Errorf("cannot have multiple input when tty enabled")
+				goto openError
+			}
+			hasInput = true
+
+			r, err := t.Reader()
+			if err != nil {
+				err = fmt.Errorf("failed to open file %v", t)
+				goto openError
+			}
+			fd[j] = fTty
+
+			// copy input
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				io.Copy(fPty, r)
+			}()
+
+		case PipeCollector:
+			fd[j] = fTty
+			if output != nil {
+				break
+			}
+
+			done := make(chan struct{})
+			output = &pipe.Buffer{
+				W:      fTty,
+				Max:    t.SizeLimit,
+				Buffer: new(bytes.Buffer),
+				Done:   done,
+			}
+			ptc = append(ptc, pipeCollector{output, t.Name})
+
+			wg.Add(1)
+			go func() {
+				defer close(done)
+				defer wg.Done()
+				io.CopyN(output.Buffer, fPty, output.Max+1)
+			}()
+
+		default:
+			err = fmt.Errorf("unknown file type %v %t", t, t)
+			goto openError
+		}
+	}
+
+	// ensure pty close after use
+	go func() {
+		wg.Wait()
+		fPty.Close()
+	}()
+
+	return
+
+openError:
+	closeFiles(ftc)
+	return nil, nil, nil, err
+}
+
 func prepareCmdFd(c *Cmd, count int) (fd, ftc []*os.File, ptc []pipeCollector, err error) {
+	if c.TTY {
+		return prepareCmdFdTTY(c, count)
+	}
 	fd = make([]*os.File, count)
 	// record same name buffer for one command to avoid multiple pipe creation
 	pb := make(map[string]*pipe.Buffer)
@@ -28,7 +121,7 @@ func prepareCmdFd(c *Cmd, count int) (fd, ftc []*os.File, ptc []pipeCollector, e
 		case file.Opener:
 			f, err := t.Open()
 			if err != nil {
-				err = fmt.Errorf("fail to open file %v", t)
+				err = fmt.Errorf("failed to open file %v", t)
 				goto openError
 			}
 			fd[j] = f

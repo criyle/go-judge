@@ -21,6 +21,7 @@ type Cmd struct {
 	Args  []string   `json:"args"`
 	Env   []string   `json:"env,omitempty"`
 	Files []*CmdFile `json:"files,omitempty"`
+	TTY   bool       `json:"tty,omitempty"`
 
 	CPULimit     uint64 `json:"cpuLimit"`
 	RealCPULimit uint64 `json:"realCpuLimit"`
@@ -32,6 +33,7 @@ type Cmd struct {
 
 	CopyOut       []string `json:"copyOut"`
 	CopyOutCached []string `json:"copyOutCached"`
+	CopyOutMax    uint64   `json:"copyOutMax"`
 	CopyOutDir    string   `json:"copyOutDir"`
 }
 
@@ -153,6 +155,7 @@ func convertCmd(c Cmd) (worker.Cmd, error) {
 		Args:          c.Args,
 		Env:           c.Env,
 		Files:         make([]worker.CmdFile, 0, len(c.Files)),
+		TTY:           c.TTY,
 		CPULimit:      c.CPULimit,
 		RealCPULimit:  c.RealCPULimit,
 		MemoryLimit:   c.MemoryLimit,
@@ -160,6 +163,7 @@ func convertCmd(c Cmd) (worker.Cmd, error) {
 		ProcLimit:     c.ProcLimit,
 		CopyOut:       c.CopyOut,
 		CopyOutCached: c.CopyOutCached,
+		CopyOutMax:    c.CopyOutMax,
 		CopyOutDir:    c.CopyOutDir,
 	}
 	for _, f := range c.Files {

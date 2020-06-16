@@ -257,6 +257,7 @@ func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		Args:        rc.Args,
 		Env:         rc.Env,
 		Files:       files,
+		TTY:         rc.TTY,
 		TimeLimit:   timeLimit,
 		MemoryLimit: runner.Size(rc.MemoryLimit),
 		StackLimit:  runner.Size(rc.StackLimit),
@@ -264,6 +265,7 @@ func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
 		CopyOutDir:  copyOutDir,
+		CopyOutMax:  runner.Size(rc.CopyOutMax),
 		Waiter:      wait.Wait,
 	}, copyOutSet, nil
 }

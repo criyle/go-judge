@@ -7,6 +7,7 @@ type Cmd struct {
 	Args  []string
 	Env   []string
 	Files []CmdFile
+	TTY   bool
 
 	CPULimit     uint64
 	RealCPULimit uint64
@@ -18,6 +19,7 @@ type Cmd struct {
 
 	CopyOut       []string
 	CopyOutCached []string
+	CopyOutMax    uint64
 	CopyOutDir    string
 }
 

@@ -20,12 +20,16 @@ import (
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 	ginpprof "github.com/gin-contrib/pprof"
+	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -41,6 +45,7 @@ const (
 	envGRPCAddr  = "GRPC_ADDR"
 	envParallism = "PARALLISM"
 	envToken     = "TOKEN"
+	envRelease   = "RELEASE"
 )
 
 var (
@@ -54,6 +59,7 @@ var (
 	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
 	cinitPath  = flag.String("cinit", "", "container init absolute path")
 	token      = flag.String("token", "", "bearer token auth for REST / gRPC")
+	release    = flag.Bool("release", false, "use release mode for log")
 
 	printLog = func(v ...interface{}) {}
 
@@ -93,17 +99,37 @@ func initEnv() (bool, error) {
 	if s := os.Getenv(envToken); s != "" {
 		token = &s
 	}
+	if os.Getpid() == 1 || os.Getenv(envRelease) == "1" {
+		*release = true
+	}
 	return eneableGRPC, nil
 }
 
 func main() {
 	flag.Parse()
-	if !*silent {
-		printLog = log.Println
-	}
+
 	enableGRPC, err := initEnv()
 	if err != nil {
 		log.Fatalln("init environment variable failed", err)
+	}
+
+	var logger *zap.Logger
+	if !*silent {
+		if *release {
+			logger, err = zap.NewProduction()
+		} else {
+			config := zap.NewDevelopmentConfig()
+			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+			logger, err = config.Build()
+		}
+		if err != nil {
+			log.Fatalln("init logger failed", err)
+		}
+		defer logger.Sync()
+
+		printLog = logger.Sugar().Info
+	} else {
+		logger = zap.NewNop()
 	}
 
 	// Init environment pool
@@ -118,12 +144,15 @@ func main() {
 	printLog("Starting worker with parallism", *parallism)
 
 	var r *gin.Engine
-	if *silent {
+	if *release {
 		gin.SetMode(gin.ReleaseMode)
-		r = gin.New()
+	}
+	r = gin.New()
+	if *silent {
 		r.Use(gin.Recovery())
 	} else {
-		r = gin.Default()
+		r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+		r.Use(ginzap.RecoveryWithZap(logger, true))
 	}
 
 	// Metrics Handle
@@ -168,12 +197,15 @@ func main() {
 	// gRPC server
 	var grpcServer *grpc.Server
 	if enableGRPC {
+		grpc_zap.ReplaceGrpcLoggerV2(logger)
 		streamMiddleware := []grpc.StreamServerInterceptor{
 			grpc_prometheus.StreamServerInterceptor,
+			grpc_zap.StreamServerInterceptor(logger),
 			grpc_recovery.StreamServerInterceptor(),
 		}
 		unaryMiddleware := []grpc.UnaryServerInterceptor{
 			grpc_prometheus.UnaryServerInterceptor,
+			grpc_zap.UnaryServerInterceptor(logger),
 			grpc_recovery.UnaryServerInterceptor(),
 		}
 		if *token != "" {

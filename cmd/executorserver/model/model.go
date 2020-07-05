@@ -2,6 +2,9 @@ package model
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-judge/worker"
@@ -99,14 +102,14 @@ func ConvertResponse(r worker.Response) Response {
 }
 
 // ConvertRequest converts json request into worker request
-func ConvertRequest(r *Request) (*worker.Request, error) {
+func ConvertRequest(r *Request, srcPrefix string) (*worker.Request, error) {
 	req := &worker.Request{
 		RequestID:   r.RequestID,
 		Cmd:         make([]worker.Cmd, 0, len(r.Cmd)),
 		PipeMapping: make([]worker.PipeMap, 0, len(r.PipeMapping)),
 	}
 	for _, c := range r.Cmd {
-		wc, err := convertCmd(c)
+		wc, err := convertCmd(c, srcPrefix)
 		if err != nil {
 			return nil, err
 		}
@@ -150,7 +153,7 @@ func convertPipe(p PipeMap) worker.PipeMap {
 	}
 }
 
-func convertCmd(c Cmd) (worker.Cmd, error) {
+func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 	w := worker.Cmd{
 		Args:          c.Args,
 		Env:           c.Env,
@@ -167,7 +170,7 @@ func convertCmd(c Cmd) (worker.Cmd, error) {
 		CopyOutDir:    c.CopyOutDir,
 	}
 	for _, f := range c.Files {
-		cf, err := convertCmdFile(f)
+		cf, err := convertCmdFile(f, srcPrefix)
 		if err != nil {
 			return w, err
 		}
@@ -176,7 +179,7 @@ func convertCmd(c Cmd) (worker.Cmd, error) {
 	if c.CopyIn != nil {
 		w.CopyIn = make(map[string]worker.CmdFile)
 		for k, f := range c.CopyIn {
-			cf, err := convertCmdFile(&f)
+			cf, err := convertCmdFile(&f, srcPrefix)
 			if err != nil {
 				return w, err
 			}
@@ -186,11 +189,20 @@ func convertCmd(c Cmd) (worker.Cmd, error) {
 	return w, nil
 }
 
-func convertCmdFile(f *CmdFile) (worker.CmdFile, error) {
+func convertCmdFile(f *CmdFile, srcPrefix string) (worker.CmdFile, error) {
 	switch {
 	case f == nil:
 		return nil, nil
 	case f.Src != nil:
+		if srcPrefix != "" {
+			ok, err := checkPathPrefix(*f.Src, srcPrefix)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, fmt.Errorf("file (%s) does not under (%s)", *f.Src, srcPrefix)
+			}
+		}
 		return &worker.LocalFile{Src: *f.Src}, nil
 	case f.Content != nil:
 		return &worker.MemoryFile{Content: []byte(*f.Content)}, nil
@@ -201,4 +213,15 @@ func convertCmdFile(f *CmdFile) (worker.CmdFile, error) {
 	default:
 		return nil, fmt.Errorf("file is not valid for cmd")
 	}
+}
+
+func checkPathPrefix(path, prefix string) (bool, error) {
+	if filepath.IsAbs(path) {
+		return strings.HasPrefix(filepath.Clean(path), prefix), nil
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
 }

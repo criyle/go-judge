@@ -23,11 +23,14 @@ type initParameter struct {
 	Dir        string `json:"dir"`
 	NetShare   bool   `json:"netShare"`
 	MountConf  string `json:"mountConf"`
+	SrcPrefix  string `json:"srcPrefix"`
 }
 
 var (
 	fs   filestore.FileStore
 	work *worker.Worker
+
+	srcPrefix string
 )
 
 func newFilsStore(dir string) filestore.FileStore {
@@ -62,6 +65,8 @@ func Init(i *C.char) C.int {
 		ip.MountConf = "mount.yaml"
 	}
 
+	srcPrefix = ip.SrcPrefix
+
 	fs = newFilsStore(ip.Dir)
 
 	printLog := func(v ...interface{}) {}
@@ -84,7 +89,7 @@ func Exec(e *C.char) *C.char {
 	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&req); err != nil {
 		return nil
 	}
-	r, err := model.ConvertRequest(&req)
+	r, err := model.ConvertRequest(&req, srcPrefix)
 	if err != nil {
 		return nil
 	}

@@ -48,7 +48,7 @@ func handleWS(c *gin.Context) {
 				printLog("ws read:", err)
 				return
 			}
-			r, err := model.ConvertRequest(req)
+			r, err := model.ConvertRequest(req, *srcPrefix)
 			if err != nil {
 				printLog("convert", err)
 				return

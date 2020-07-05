@@ -60,6 +60,7 @@ var (
 	cinitPath  = flag.String("cinit", "", "container init absolute path")
 	token      = flag.String("token", "", "bearer token auth for REST / gRPC")
 	release    = flag.Bool("release", false, "use release mode for log")
+	srcPrefix  = flag.String("srcprefix", "", "specifies directory prefix for source type copyin")
 
 	printLog = func(v ...interface{}) {}
 
@@ -217,7 +218,7 @@ func main() {
 			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamMiddleware...)),
 			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryMiddleware...)),
 		)
-		pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs})
+		pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs, srcPrefix: *srcPrefix})
 		grpc_prometheus.Register(grpcServer)
 		grpc_prometheus.EnableHandlingTimeHistogram()
 

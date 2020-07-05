@@ -58,6 +58,7 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 - The default file store is in memory, local cache can be specified with `-dir` flag.
 - The default log level is debug, use `-silent` to disable logs.
 - `-token` to add token-based authentication to REST / gRPC
+- `-srcprefix` to restrict `src` copyIn path (need to be absolute path)
 
 #### Environment Variables
 

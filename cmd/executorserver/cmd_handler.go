@@ -19,10 +19,10 @@ func handleRun(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, "no cmd provided")
 		return
 	}
-	r, err := model.ConvertRequest(&req)
+	r, err := model.ConvertRequest(&req, *srcPrefix)
 	if err != nil {
 		c.Error(err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error)
+		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
 		return
 	}
 	rt := <-work.Submit(c.Request.Context(), r)

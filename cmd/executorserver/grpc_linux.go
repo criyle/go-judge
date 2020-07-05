@@ -17,7 +17,7 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 	if req == nil {
 		return fmt.Errorf("The first stream request must be exec request")
 	}
-	rq, streamIn, streamOut, err := convertPBRequest(req)
+	rq, streamIn, streamOut, err := convertPBRequest(req, e.srcPrefix)
 	if err != nil {
 		return err
 	}

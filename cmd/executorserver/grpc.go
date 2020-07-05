@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/creack/pty"
@@ -22,11 +24,12 @@ var buffPool = sync.Pool{
 
 type execServer struct {
 	pb.UnimplementedExecutorServer
-	fs filestore.FileStore
+	fs        filestore.FileStore
+	srcPrefix string
 }
 
 func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, error) {
-	r, si, so, err := convertPBRequest(req)
+	r, si, so, err := convertPBRequest(req, e.srcPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +107,7 @@ func convertPBResult(r worker.Result) *pb.Response_Result {
 	}
 }
 
-func convertPBRequest(r *pb.Request) (req *worker.Request, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
+func convertPBRequest(r *pb.Request, srcPrefix string) (req *worker.Request, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
 	defer func() {
 		if err != nil {
 			for _, fi := range streamIn {
@@ -123,7 +126,7 @@ func convertPBRequest(r *pb.Request) (req *worker.Request, streamIn []*fileStrea
 		PipeMapping: make([]worker.PipeMap, 0, len(r.PipeMapping)),
 	}
 	for _, c := range r.Cmd {
-		cm, si, so, err := convertPBCmd(c)
+		cm, si, so, err := convertPBCmd(c, srcPrefix)
 		streamIn = append(streamIn, si...)
 		streamOut = append(streamOut, so...)
 		if err != nil {
@@ -151,7 +154,7 @@ func convertPBPipeMap(p *pb.Request_PipeMap) worker.PipeMap {
 	}
 }
 
-func convertPBCmd(c *pb.Request_CmdType) (cm worker.Cmd, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
+func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
 	defer func() {
 		if err != nil {
 			for _, fi := range streamIn {
@@ -227,7 +230,7 @@ func convertPBCmd(c *pb.Request_CmdType) (cm worker.Cmd, streamIn []*fileStreamI
 			cf = so
 
 		default:
-			cf, err = convertPBFile(f)
+			cf, err = convertPBFile(f, srcPrefix)
 		}
 		if err != nil {
 			return cm, streamIn, streamOut, err
@@ -237,7 +240,7 @@ func convertPBCmd(c *pb.Request_CmdType) (cm worker.Cmd, streamIn []*fileStreamI
 	if copyIn := c.GetCopyIn(); copyIn != nil {
 		cm.CopyIn = make(map[string]worker.CmdFile)
 		for k, f := range copyIn {
-			cf, err := convertPBFile(f)
+			cf, err := convertPBFile(f, srcPrefix)
 			if err != nil {
 				return cm, streamIn, streamOut, err
 			}
@@ -247,11 +250,20 @@ func convertPBCmd(c *pb.Request_CmdType) (cm worker.Cmd, streamIn []*fileStreamI
 	return cm, streamIn, streamOut, nil
 }
 
-func convertPBFile(c *pb.Request_File) (worker.CmdFile, error) {
+func convertPBFile(c *pb.Request_File, srcPrefix string) (worker.CmdFile, error) {
 	switch c := c.File.(type) {
 	case nil:
 		return nil, nil
 	case *pb.Request_File_Local:
+		if srcPrefix != "" {
+			ok, err := checkPathPrefix(c.Local.GetSrc(), srcPrefix)
+			if err != nil {
+				return nil, err
+			}
+			if !ok {
+				return nil, fmt.Errorf("file (%s) does not under (%s)", c.Local.GetSrc(), srcPrefix)
+			}
+		}
 		return &worker.LocalFile{Src: c.Local.GetSrc()}, nil
 	case *pb.Request_File_Memory:
 		return &worker.MemoryFile{Content: c.Memory.GetContent()}, nil
@@ -261,4 +273,15 @@ func convertPBFile(c *pb.Request_File) (worker.CmdFile, error) {
 		return &worker.PipeCollector{Name: c.Pipe.GetName(), Max: c.Pipe.GetMax()}, nil
 	}
 	return nil, fmt.Errorf("request file type not supported yet %v", c)
+}
+
+func checkPathPrefix(path, prefix string) (bool, error) {
+	if filepath.IsAbs(path) {
+		return strings.HasPrefix(filepath.Clean(path), prefix), nil
+	}
+	wd, err := os.Getwd()
+	if err != nil {
+		return false, err
+	}
+	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
 }

@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/creack/pty v1.1.11
-	github.com/criyle/go-sandbox v0.4.3
+	github.com/criyle/go-sandbox v0.4.4
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-contrib/zap v0.0.1
 	github.com/gin-gonic/gin v1.6.3

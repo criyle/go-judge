@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"runtime"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/gin-gonic/gin"
@@ -33,4 +34,13 @@ func handleRun(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, model.ConvertResponse(rt).Results)
+}
+
+func handleVersion(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"buildVersion": Version,
+		"goVersion":    runtime.Version(),
+		"platform":     runtime.GOARCH,
+		"os":           runtime.GOOS,
+	})
 }

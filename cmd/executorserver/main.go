@@ -171,6 +171,9 @@ func main() {
 		p.Use(r)
 	}
 
+	// Version handle
+	r.GET("/version", handleVersion)
+
 	// Add auth token
 	if *token != "" {
 		r.Use(tokenAuth(*token))

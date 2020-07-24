@@ -4,7 +4,7 @@ on:
     branches: [master]
 jobs:
   build:
-    name: Build
+    name: Build-Linux
     strategy:
       matrix:
         GOARCH: [amd64]
@@ -22,6 +22,7 @@ jobs:
           GOOS: linux
           GOARCH: ${{ matrix.GOARCH }}
         run: |
+          go generate ./cmd/executorserver
           go build -o executorserver ./cmd/executorserver
       - name: Build shared objects
         env:
@@ -58,6 +59,7 @@ jobs:
         run: go mod download
       - name: Build on Windows
         run: |
+          go generate ./cmd/executorserver
           go build -o executorserver.exe ./cmd/executorserver
           go build -buildmode=c-shared -o executorserver.dll ./cmd/ffi
       - name: Upload executorserver.exe on Windows
@@ -83,6 +85,7 @@ jobs:
         run: go mod download
       - name: Build on MacOS
         run: |
+          go generate ./cmd/executorserver
           go build -o executorserver ./cmd/executorserver
           go build -buildmode=c-shared -o executorserver.dylib ./cmd/ffi
       - name: Upload executorserver

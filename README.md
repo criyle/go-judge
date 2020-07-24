@@ -30,6 +30,7 @@ A rest service to run program in restricted environment and it is basically a wr
 - /ws WebSocket for /run
 - /metrics prometheus metrics (specifies `METRICS=1` environment variable to enable metrics)
 - /debug (specifies `DEBUG=1` environment variable to enable go runtime debug endpoint)
+- /version gets build git version (e.g. `v0.6.4-1-g20d2815`) together with runtime information (go version, os, platform)
 
 ### Install & Run Developing Server
 

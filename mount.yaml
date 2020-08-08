@@ -39,7 +39,6 @@ mount:
   - type: bind
     source: /dev/urandom
     target: /dev/urandom
-    readonly: true
   # work dir
   - type: tmpfs
     target: /w

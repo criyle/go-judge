@@ -76,7 +76,7 @@ func getDefaultMount(tmpFsConf string) *mount.Builder {
 		// ghc wants /var/lib/ghc
 		WithBind("/var/lib/ghc", "var/lib/ghc", true).
 		// javaScript wants /dev/urandom
-		WithBind("/dev/urandom", "dev/urandom", true).
+		WithBind("/dev/urandom", "dev/urandom", false).
 		// work dir
 		WithTmpfs("w", tmpFsConf).
 		// tmp dir

@@ -2,9 +2,11 @@ name: Build
 on:
   push:
     branches: [master]
+    tags: v*
 jobs:
   create-release:
     name: Create release
+    if: ${{ startsWith(github.ref, 'v') }}
     runs-on: ubuntu-latest
     outputs: 
       upload_url: ${{ steps.create_release.outputs.upload_url }} 
@@ -83,7 +85,7 @@ jobs:
           name: ExecutorServer-${{ matrix.GOARCH }}.so
           path: executorserver.so
       - name: Upload assets for linux
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'v') }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -114,7 +116,7 @@ jobs:
           name: ExecutorServer-${{ matrix.GOARCH }}.dll
           path: executorserver.dll
       - name: Upload assets for windows
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: ${{ matrix.os == 'windows-latest' && startsWith(github.ref, 'v') }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,7 +147,7 @@ jobs:
           name: ExecutorServer-${{ matrix.GOARCH }}.dylib
           path: executorserver.dylib  
       - name: Upload assets for macOS
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: ${{ matrix.os == 'macos-latest' && startsWith(github.ref, 'v') }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

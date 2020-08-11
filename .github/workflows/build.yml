@@ -10,8 +10,9 @@ jobs:
     outputs: 
       upload_url: ${{ steps.create_release.outputs.upload_url }} 
     steps:
+      - run: echo Release ${{ github.ref }}
       - name: Create Release
-        if: ${{ startsWith(github.ref, 'v') }}
+        if: ${{ contains(github.ref, 'v') }}
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -85,7 +86,7 @@ jobs:
           name: ExecutorServer-${{ matrix.GOARCH }}.so
           path: executorserver.so
       - name: Upload assets for linux
-        if: ${{ matrix.os == 'ubuntu-latest' && startsWith(github.ref, 'v') }}
+        if: ${{ matrix.os == 'ubuntu-latest' && contains(github.ref, 'v') }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -116,7 +117,7 @@ jobs:
           name: ExecutorServer-${{ matrix.GOARCH }}.dll
           path: executorserver.dll
       - name: Upload assets for windows
-        if: ${{ matrix.os == 'windows-latest' && startsWith(github.ref, 'v') }}
+        if: ${{ matrix.os == 'windows-latest' && contains(github.ref, 'v') }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -147,7 +148,7 @@ jobs:
           name: ExecutorServer-${{ matrix.GOARCH }}.dylib
           path: executorserver.dylib  
       - name: Upload assets for macOS
-        if: ${{ matrix.os == 'macos-latest' && startsWith(github.ref, 'v') }}
+        if: ${{ matrix.os == 'macos-latest' && contains(github.ref, 'v') }}
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

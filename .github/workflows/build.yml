@@ -3,101 +3,154 @@ on:
   push:
     branches: [master]
 jobs:
+  create-release:
+    name: Create release
+    runs-on: ubuntu-latest
+    outputs: 
+      upload_url: ${{ steps.create_release.outputs.upload_url }} 
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with: 
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
   build:
-    name: Build-Linux
+    name: Build-${{ matrix.os }}
+    needs: create-release
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        GOARCH: [amd64]
-    runs-on: ubuntu-latest
+        os:
+          - windows-latest
+          - ubuntu-latest
+          - macos-latest
+        GOARCH:
+          - amd64 
     steps:
       - name: Set up Go 1.14
         uses: actions/setup-go@v2
         with:
           go-version: 1.14
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow --tags
+      - name: Check out
+        uses: actions/checkout@v2
+      - name: Get git tag ref
+        run: git fetch --prune --unshallow --tags
+      - name: Restore Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - name: Download dependencies
         run: go mod download
+
       - name: Build on Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
         env:
-          GOOS: linux
           GOARCH: ${{ matrix.GOARCH }}
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver ./cmd/executorserver
-      - name: Build shared objects
+      - name: Build shared objects on Linux
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
         env:
-          GOOS: linux
           GOARCH: ${{ matrix.GOARCH }}
         run: |
           go build -o cinit ./cmd/cinit
           go build -buildmode=c-shared -o executorserver.so ./cmd/ffi
-      - name: Upload executorserver
-        uses: actions/upload-artifact@master
+      - name: Upload executorserver on linux
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        uses: actions/upload-artifact@v2
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}
           path: executorserver
-      - name: Upload cinit
-        uses: actions/upload-artifact@master
+      - name: Upload cinit on linux
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        uses: actions/upload-artifact@v2
         with:
           name: cinit-${{ matrix.GOARCH }}
           path: cinit
-      - name: Upload executorserver.so
-        uses: actions/upload-artifact@master
+      - name: Upload executorserver.so on linux
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        uses: actions/upload-artifact@v2
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.so
           path: executorserver.so
-  build-windows:
-    name: Build-Windows
-    runs-on: windows-latest
-    steps:
-      - name: Set up Go 1.14
-        uses: actions/setup-go@v2
+      - name: Upload assets for linux
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          go-version: 1.14
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow --tags
-      - name: Download dependencies
-        run: go mod download
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: executorserver
+          asset_name: executorserver-${{ matrix.GOARCH }}
+          asset_content_type: application/octet-stream
+
       - name: Build on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        env:
+          GOARCH: ${{ matrix.GOARCH }}
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver.exe ./cmd/executorserver
           go build -buildmode=c-shared -o executorserver.dll ./cmd/ffi
       - name: Upload executorserver.exe on Windows
-        uses: actions/upload-artifact@master
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v2
         with:
-          name: ExecutorServer.exe
+          name: ExecutorServer-${{ matrix.GOARCH }}.exe
           path: executorserver.exe
       - name: Upload executorserver.dll on Windows
-        uses: actions/upload-artifact@master
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v2
         with:
-          name: ExecutorServer.dll
+          name: ExecutorServer-${{ matrix.GOARCH }}.dll
           path: executorserver.dll
-  build-macos:
-    name: Build macOS
-    runs-on: macos-latest
-    steps:
-      - name: Set up Go 1.14
-        uses: actions/setup-go@v2
+      - name: Upload assets for windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          go-version: 1.14
-      - uses: actions/checkout@v2
-      - run: git fetch --prune --unshallow --tags
-      - name: Download dependencies
-        run: go mod download
-      - name: Build on MacOS
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: executorserver.exe
+          asset_name: executorserver-${{ matrix.GOARCH }}.exe
+          asset_content_type: application/octet-stream
+
+      - name: Build on macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        env:
+          GOARCH: ${{ matrix.GOARCH }}
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver ./cmd/executorserver
           go build -buildmode=c-shared -o executorserver.dylib ./cmd/ffi
-      - name: Upload executorserver
-        uses: actions/upload-artifact@master
+      - name: Upload executorserver on macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        uses: actions/upload-artifact@v2
         with:
-          name: ExecutorServer-MacOS
+          name: ExecutorServer-MacOS-${{ matrix.GOARCH }}
           path: executorserver
-      - name: Upload executorserver.so
-        uses: actions/upload-artifact@master
+      - name: Upload executorserver.dylib on macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        uses: actions/upload-artifact@v2
         with:
-          name: ExecutorServer.dylib
-          path: executorserver.dylib
+          name: ExecutorServer-${{ matrix.GOARCH }}.dylib
+          path: executorserver.dylib  
+      - name: Upload assets for macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: executorserver
+          asset_name: executorserver-macOS-${{ matrix.GOARCH }}
+          asset_content_type: application/octet-stream

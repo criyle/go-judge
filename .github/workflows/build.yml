@@ -6,12 +6,12 @@ on:
 jobs:
   create-release:
     name: Create release
-    if: ${{ startsWith(github.ref, 'v') }}
     runs-on: ubuntu-latest
     outputs: 
       upload_url: ${{ steps.create_release.outputs.upload_url }} 
     steps:
       - name: Create Release
+        if: ${{ startsWith(github.ref, 'v') }}
         id: create_release
         uses: actions/create-release@v1
         env:

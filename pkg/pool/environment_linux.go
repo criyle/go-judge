@@ -61,6 +61,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		Args:     param.Args,
 		Env:      param.Env,
 		Files:    param.Files,
+		CTTY:     param.TTY,
 		ExecFile: param.ExecFile,
 		RLimits:  rLimits.PrepareRLimit(),
 		SyncFunc: syncFunc,

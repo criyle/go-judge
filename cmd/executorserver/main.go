@@ -40,27 +40,27 @@ const (
 	envDebug   = "DEBUG"
 	envMetrics = "METRICS"
 
-	envAddr      = "HTTP_ADDR"
-	envGRPC      = "GRPC"
-	envGRPCAddr  = "GRPC_ADDR"
-	envParallism = "PARALLISM"
-	envToken     = "TOKEN"
-	envRelease   = "RELEASE"
+	envAddr        = "HTTP_ADDR"
+	envGRPC        = "GRPC"
+	envGRPCAddr    = "GRPC_ADDR"
+	envParallelism = "PARALLELISM"
+	envToken       = "TOKEN"
+	envRelease     = "RELEASE"
 )
 
 var (
-	addr       = flag.String("http", ":5050", "specifies the http binding address")
-	grpcAddr   = flag.String("grpc", ":5051", "specifies the grpc binding address")
-	parallism  = flag.Int("parallism", 4, "control the # of concurrency execution")
-	tmpFsParam = flag.String("tmpfs", "size=16m,nr_inodes=4k", "tmpfs mount data (only for default mount with no mount.yaml)")
-	dir        = flag.String("dir", "", "specifies directory to store file upload / download (in memory by default)")
-	silent     = flag.Bool("silent", false, "do not print logs")
-	netShare   = flag.Bool("net", false, "do not unshare net namespace with host")
-	mountConf  = flag.String("mount", "mount.yaml", "specifics mount configuration file")
-	cinitPath  = flag.String("cinit", "", "container init absolute path")
-	token      = flag.String("token", "", "bearer token auth for REST / gRPC")
-	release    = flag.Bool("release", false, "use release mode for log")
-	srcPrefix  = flag.String("srcprefix", "", "specifies directory prefix for source type copyin")
+	addr        = flag.String("http", ":5050", "specifies the http binding address")
+	grpcAddr    = flag.String("grpc", ":5051", "specifies the grpc binding address")
+	parallelism = flag.Int("parallelism", 4, "control the # of concurrency execution")
+	tmpFsParam  = flag.String("tmpfs", "size=16m,nr_inodes=4k", "tmpfs mount data (only for default mount with no mount.yaml)")
+	dir         = flag.String("dir", "", "specifies directory to store file upload / download (in memory by default)")
+	silent      = flag.Bool("silent", false, "do not print logs")
+	netShare    = flag.Bool("net", false, "do not unshare net namespace with host")
+	mountConf   = flag.String("mount", "mount.yaml", "specifics mount configuration file")
+	cinitPath   = flag.String("cinit", "", "container init absolute path")
+	token       = flag.String("token", "", "bearer token auth for REST / gRPC")
+	release     = flag.Bool("release", false, "use release mode for log")
+	srcPrefix   = flag.String("srcprefix", "", "specifies directory prefix for source type copyin")
 
 	printLog = func(v ...interface{}) {}
 
@@ -90,12 +90,12 @@ func initEnv() (bool, error) {
 		eneableGRPC = true
 		grpcAddr = &s
 	}
-	if s := os.Getenv(envParallism); s != "" {
+	if s := os.Getenv(envParallelism); s != "" {
 		p, err := strconv.Atoi(s)
 		if err != nil {
 			return false, err
 		}
-		parallism = &p
+		parallelism = &p
 	}
 	if s := os.Getenv(envToken); s != "" {
 		token = &s
@@ -140,9 +140,9 @@ func main() {
 		log.Fatalln("create environment builder failed", err)
 	}
 	envPool := pool.NewPool(b)
-	work = worker.New(fs, envPool, *parallism, *dir)
+	work = worker.New(fs, envPool, *parallelism, *dir)
 	work.Start()
-	printLog("Starting worker with parallism", *parallism)
+	printLog("Starting worker with parallelism=", *parallelism)
 
 	var r *gin.Engine
 	if *release {

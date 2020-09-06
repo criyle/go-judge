@@ -17,10 +17,10 @@ const maxWaiting = 512
 
 // Worker defines executor worker
 type Worker struct {
-	fs        filestore.FileStore
-	envPool   envexec.EnvironmentPool
-	parallism int
-	workDir   string
+	fs          filestore.FileStore
+	envPool     envexec.EnvironmentPool
+	parallelism int
+	workDir     string
 
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -36,22 +36,22 @@ type workRequest struct {
 }
 
 // New creates new worker
-func New(fs filestore.FileStore, pool envexec.EnvironmentPool, parallism int, workDir string) *Worker {
+func New(fs filestore.FileStore, pool envexec.EnvironmentPool, parallelism int, workDir string) *Worker {
 	return &Worker{
-		fs:        fs,
-		envPool:   pool,
-		parallism: parallism,
-		workDir:   workDir,
+		fs:          fs,
+		envPool:     pool,
+		parallelism: parallelism,
+		workDir:     workDir,
 	}
 }
 
-// Start starts worker loops with given parallism
+// Start starts worker loops with given parallelism
 func (w *Worker) Start() {
 	w.startOnce.Do(func() {
 		w.workCh = make(chan workRequest, maxWaiting)
 		w.done = make(chan struct{})
-		w.wg.Add(w.parallism)
-		for i := 0; i < w.parallism; i++ {
+		w.wg.Add(w.parallelism)
+		for i := 0; i < w.parallelism; i++ {
 			go w.loop()
 		}
 	})
@@ -68,7 +68,7 @@ func (w *Worker) Submit(ctx context.Context, req *Request) <-chan Response {
 	return ch
 }
 
-// Execute will execute the request in new goroutine (bypass the parallism limit)
+// Execute will execute the request in new goroutine (bypass the parallelism limit)
 func (w *Worker) Execute(ctx context.Context, req *Request) <-chan Response {
 	ch := make(chan Response, 1)
 	w.wg.Add(1)

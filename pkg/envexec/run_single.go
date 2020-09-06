@@ -34,6 +34,7 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 		Args:  c.Args,
 		Env:   c.Env,
 		Files: getFdArray(fds),
+		TTY:   c.TTY,
 		Limit: Limit{
 			Time:   c.TimeLimit,
 			Memory: memoryLimit,

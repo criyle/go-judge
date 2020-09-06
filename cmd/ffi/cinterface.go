@@ -17,13 +17,13 @@ import (
 )
 
 type initParameter struct {
-	CInitPath  string `json:"cinitPath`
-	Parallism  int    `json:"parallism"`
-	TmpFsParam string `json:"tmpfsParam"`
-	Dir        string `json:"dir"`
-	NetShare   bool   `json:"netShare"`
-	MountConf  string `json:"mountConf"`
-	SrcPrefix  string `json:"srcPrefix"`
+	CInitPath   string `json:"cinitPath`
+	Parallelism int    `json:"parallelism"`
+	TmpFsParam  string `json:"tmpfsParam"`
+	Dir         string `json:"dir"`
+	NetShare    bool   `json:"netShare"`
+	MountConf   string `json:"mountConf"`
+	SrcPrefix   string `json:"srcPrefix"`
 }
 
 var (
@@ -53,8 +53,8 @@ func Init(i *C.char) C.int {
 		return -1
 	}
 
-	if ip.Parallism == 0 {
-		ip.Parallism = 4
+	if ip.Parallelism == 0 {
+		ip.Parallelism = 4
 	}
 
 	if ip.TmpFsParam == "" {
@@ -75,7 +75,7 @@ func Init(i *C.char) C.int {
 		log.Fatalln("create environment builder failed", err)
 	}
 	envPool := pool.NewPool(b)
-	work = worker.New(fs, envPool, ip.Parallism, ip.Dir)
+	work = worker.New(fs, envPool, ip.Parallelism, ip.Dir)
 	work.Start()
 
 	return 0

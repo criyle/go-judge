@@ -190,7 +190,7 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 		switch fi := f.File.(type) {
 		case *pb.Request_File_StreamIn:
 			var si *fileStreamIn
-			if fi.StreamIn.Tty {
+			if c.Tty {
 				fPty, fTty, err = pty.Open()
 				if err != nil {
 					return cm, streamIn, streamOut, err

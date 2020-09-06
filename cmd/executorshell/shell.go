@@ -33,6 +33,7 @@ const (
 var env = []string{
 	pathEnv,
 	"HOME=/tmp",
+	"TERM=" + os.Getenv("TERM"),
 }
 
 func main() {
@@ -72,7 +73,6 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 					File: &pb.Request_File_StreamIn{
 						StreamIn: &pb.Request_StreamInput{
 							Name: "stdin",
-							Tty:  true,
 						},
 					},
 				},
@@ -95,6 +95,7 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 			RealCPULimit: uint64(sessionLimit),
 			MemoryLimit:  memoryLimit,
 			ProcLimit:    procLimit,
+			Tty:          true,
 		}},
 	}
 	err := sc.Send(&pb.StreamRequest{

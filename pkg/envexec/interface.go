@@ -22,6 +22,9 @@ type ExecveParam struct {
 	// ExecFile specifies file descriptor for executable file using fexecve
 	ExecFile uintptr
 
+	// TTY specifies whether to use TTY
+	TTY bool
+
 	// Process Limitations
 	Limit Limit
 }
@@ -43,7 +46,7 @@ type Usage struct {
 // Process reference to the running process group
 type Process interface {
 	Done() <-chan struct{} // Done returns a channel for wait process to exit
-	Result() runner.Result // Result is avaliable after done is closed
+	Result() runner.Result // Result is available after done is closed
 	Usage() Usage          // Usage retrieves the process usage during the run time
 }
 

@@ -2,4 +2,4 @@
 
 package main
 
-const Version = `v0.6.4-1-g20d2815`
+const Version = `v0.6.10`

@@ -15,7 +15,7 @@ service Executor {
   // stdout & stderr should have same name
   rpc ExecStream(stream StreamRequest) returns (stream StreamResponse);
 
-  // FileList lists all files avaliable in the file store
+  // FileList lists all files available in the file store
   rpc FileList(Empty) returns (FileListType);
 
   // FileGet download the file from the file store
@@ -51,10 +51,7 @@ message Request {
     int64 max = 2;
   }
 
-  message StreamInput {
-    string name = 1;
-    bool tty = 2;
-  }
+  message StreamInput { string name = 1; }
 
   message StreamOutput { string name = 1; }
 

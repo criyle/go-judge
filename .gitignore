@@ -23,7 +23,6 @@ init.sql
 /*.lua
 
 node_modules
-/cinit
 
 # not release yet
 package*.json
@@ -33,3 +32,5 @@ executor_server.h
 /executor_server
 /executorproxy
 /executorshell
+/executorserver
+/cinit

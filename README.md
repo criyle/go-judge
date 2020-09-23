@@ -148,7 +148,10 @@ Run: `./executorserver`
 
 ### Benchmark
 
-By `wrk` with `t.lua`: Tested ~140-160 op/s macOS Docker Desktop & ~1100-1200 op/s Windows 10 WSL2.
+By `wrk` with `t.lua`: 
+
+- Tested single thread ~140-160 op/s macOS Docker Desktop & ~400-460 op/s Windows 10 WSL2.
+- Tested multi thread ~1100-1200 op/s Windows 10 WSL2
 
 ```lua
 wrk.method = "POST"
@@ -158,20 +161,22 @@ wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
 
 `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`
 
+e.g.:
+
 ```text
 Running 30s test @ http://localhost:5050/run
   1 threads and 1 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     6.28ms    1.66ms  19.00ms   90.63%
-    Req/Sec   160.60     23.15   200.00     83.33%
+    Latency     2.17ms  446.05us  22.37ms   93.88%
+    Req/Sec   463.26     26.15   500.00     78.67%
   Latency Distribution
-     50%    5.89ms
-     75%    6.57ms
-     90%    7.53ms
-     99%   14.21ms
-  4810 requests in 30.05s, 1.19MB read
-Requests/sec:    160.05
-Transfer/sec:     40.59KB
+     50%    2.08ms
+     75%    2.27ms
+     90%    2.50ms
+     99%    3.13ms
+  13846 requests in 30.01s, 3.65MB read
+Requests/sec:    461.30
+Transfer/sec:    124.38KB
 ```
 
 ## TODO

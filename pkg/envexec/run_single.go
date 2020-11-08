@@ -15,7 +15,9 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 	// copyin
 	if len(c.CopyIn) > 0 {
 		if err := copyIn(m, c.CopyIn); err != nil {
-			return result, err
+			result.Status = StatusInternalError
+			result.Error = err.Error()
+			return result, nil
 		}
 	}
 

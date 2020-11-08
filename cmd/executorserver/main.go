@@ -17,6 +17,7 @@ import (
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
+	"github.com/criyle/go-judge/pkg/envexec"
 	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 	ginpprof "github.com/gin-contrib/pprof"
@@ -46,6 +47,7 @@ const (
 	envParallelism = "PARALLELISM"
 	envToken       = "TOKEN"
 	envRelease     = "RELEASE"
+	envPrefork     = "PREFORK"
 )
 
 var (
@@ -61,6 +63,7 @@ var (
 	token       = flag.String("token", "", "bearer token auth for REST / gRPC")
 	release     = flag.Bool("release", false, "use release mode for log")
 	srcPrefix   = flag.String("srcprefix", "", "specifies directory prefix for source type copyin")
+	prefork     = flag.Int("prefork", 0, "control # of the prefork workers")
 
 	printLog = func(v ...interface{}) {}
 
@@ -99,6 +102,13 @@ func initEnv() (bool, error) {
 	}
 	if s := os.Getenv(envToken); s != "" {
 		token = &s
+	}
+	if s := os.Getenv(envPrefork); s != "" {
+		p, err := strconv.Atoi(s)
+		if err != nil {
+			return false, err
+		}
+		prefork = &p
 	}
 	if os.Getpid() == 1 || os.Getenv(envRelease) == "1" {
 		*release = true
@@ -140,6 +150,20 @@ func main() {
 		log.Fatalln("create environment builder failed", err)
 	}
 	envPool := pool.NewPool(b)
+	if *prefork > 0 {
+		printLog("create ", *prefork, " prefork containers")
+		m := make([]envexec.Environment, 0, *prefork)
+		for i := 0; i < *prefork; i++ {
+			e, err := envPool.Get()
+			if err != nil {
+				log.Fatalln("prefork environment failed", err)
+			}
+			m = append(m, e)
+		}
+		for _, e := range m {
+			envPool.Put(e)
+		}
+	}
 	work = worker.New(fs, envPool, *parallelism, *dir)
 	work.Start()
 	printLog("Starting worker with parallelism=", *parallelism)

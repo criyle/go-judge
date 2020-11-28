@@ -34,3 +34,4 @@ executor_server.h
 /executorshell
 /executorserver
 /cinit
+/tmp

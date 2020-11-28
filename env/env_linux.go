@@ -28,10 +28,7 @@ func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog 
 		printLog("Use the default container mount")
 		mb = getDefaultMount(tmpFsConf)
 	}
-	m, err := mb.Build(true)
-	if err != nil {
-		return nil, err
-	}
+	m := mb.FilterNotExist().Mounts
 	printLog("Created container mount at:", mb)
 
 	unshareFlags := uintptr(forkexec.UnshareFlags)
@@ -49,7 +46,7 @@ func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog 
 		Root:          root,
 		Mounts:        m,
 		CredGenerator: credGen,
-		Stderr:        true,
+		Stderr:        os.Stderr,
 		CloneFlags:    unshareFlags,
 		ExecFile:      cinitPath,
 	}

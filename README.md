@@ -38,7 +38,7 @@ Install GO 1.13+ from [download](https://golang.org/dl/)
 
 ```bash
 go get github.com/criyle/go-judge/cmd/executorserver
-sudo ~/go/bin/executorserver # or executorserver if $(GOPATH)/bin is in your $PATH
+~/go/bin/executorserver # or executorserver if $(GOPATH)/bin is in your $PATH
 ```
 
 Or, by docker
@@ -49,29 +49,30 @@ docker run -it --rm --privileged -p 5050:5050 criyle/executorserver:demo
 
 Build by your own `docker build -t executorserver -f Dockerfile.exec .`
 
-The `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/go-judger`, `/sys/fs/cgroup/memory/go-judger`, `/sys/fs/cgroup/pids/go-judger` and make execution user readable or use `sudo` to run it.
+The `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/executor_server`, `/sys/fs/cgroup/memory/executor_server`, `/sys/fs/cgroup/pids/executor_server` and make execution user readable or use `sudo` to run it.
 
 #### Command Line Arguments
 
-- The default binding address for the executor server is `:5050`. Can be specified with `-http` flag.
-- The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc` flag. (Notice: need to set `GRPC=1` environment variable to enable GRPC endpoint)
+- The default binding address for the executor server is `:5050`. Can be specified with `-http-addr` flag.
+- The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag. (Notice: need to set `ES_ENABLE_GRPC=1` environment variable to enable GRPC endpoint)
 - The default concurrency is `4`, Can be specified with `-parallelism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
 - The default log level is debug, use `-silent` to disable logs.
 - `-token` to add token-based authentication to REST / gRPC
-- `-srcprefix` to restrict `src` copyIn path (need to be absolute path)
+- `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
+- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
 
 #### Environment Variables
 
 Environment variable will override command line arguments if they both present.
 
-- The http binding address specifies as `HTTP_ADDR=addr`
-- The grpc binding address specifies as `GRPC_ADDR=addr`
-- The parallelism specifies as `PARALLELISM=4`
-- The token specifies as `TOKEN=token`
-- `GRPC=1` enables gRPC
-- `METRICS=1` enables metrics
-- `DEBUG=1` enables debug
+- The http binding address specifies as `ES_HTTP_ADDR=addr`
+- The grpc binding address specifies as `ES_GRPC_ADDR=addr`
+- The parallelism specifies as `ES_PARALLELISM=4`
+- The token specifies as `ES_AUTH_TOKEN=token`
+- `ES_ENABLE_GRPC=1` enables gRPC
+- `ES_ENABLE_METRICS=1` enables metrics
+- `ES_ENABLE_DEBUG=1` enables debug
 
 ### Build Shared object
 
@@ -191,6 +192,7 @@ Transfer/sec:    124.38KB
 - [x] GRPC + protobuf support
 - [x] Token-based authentication
 - [x] Prometheus metrics support
+- [ ] Customize container work dir
 
 ## API interface
 

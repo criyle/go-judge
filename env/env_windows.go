@@ -6,11 +6,11 @@ import (
 )
 
 // NewBuilder build a environment builder
-func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog func(v ...interface{})) (pool.EnvBuilder, error) {
+func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	b, err := winc.NewBuilder("")
 	if err != nil {
 		return nil, err
 	}
-	printLog("created winc builder")
+	c.Info("created winc builder")
 	return b, nil
 }

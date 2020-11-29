@@ -56,7 +56,7 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 		}
 	}
 
-	rtCh := work.Execute(es.Context(), rq)
+	rtCh := e.worker.Execute(es.Context(), rq)
 	for {
 		select {
 		case err := <-errCh:

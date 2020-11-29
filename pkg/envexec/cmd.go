@@ -8,6 +8,12 @@ import (
 	"github.com/criyle/go-sandbox/runner"
 )
 
+// Size represent data size in bytes
+type Size = runner.Size
+
+// RunnerResult represent process finish result
+type RunnerResult = runner.Result
+
 // Cmd defines instruction to run a program in container environment
 type Cmd struct {
 	// argument, environment
@@ -23,17 +29,18 @@ type Cmd struct {
 	TTY   bool // use pty as input / output
 
 	// resource limits
-	TimeLimit   time.Duration
-	MemoryLimit runner.Size
-	StackLimit  runner.Size
-	ProcLimit   uint64
+	TimeLimit        time.Duration
+	MemoryLimit      Size
+	StackLimit       Size
+	ExtraMemoryLimit Size
+	ProcLimit        uint64
 
 	// file contents to copyin before exec
 	CopyIn map[string]file.File
 
 	// file names to copyout after exec
 	CopyOut    []string
-	CopyOutMax runner.Size // file size limit
+	CopyOutMax Size // file size limit
 
 	// CopyOutDir specifies a dir to dump all /w contnet
 	CopyOutDir string
@@ -60,7 +67,7 @@ type Result struct {
 
 	Time    time.Duration
 	RunTime time.Duration
-	Memory  runner.Size // byte
+	Memory  Size // byte
 
 	// Files stores copy out files
 	Files map[string]file.File

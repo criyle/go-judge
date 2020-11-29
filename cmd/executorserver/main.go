@@ -10,10 +10,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"strings"
 	"time"
 
+	"github.com/criyle/go-judge/cmd/executorserver/config"
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
@@ -37,96 +37,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const (
-	envDebug   = "DEBUG"
-	envMetrics = "METRICS"
-
-	envAddr        = "HTTP_ADDR"
-	envGRPC        = "GRPC"
-	envGRPCAddr    = "GRPC_ADDR"
-	envParallelism = "PARALLELISM"
-	envToken       = "TOKEN"
-	envRelease     = "RELEASE"
-	envPrefork     = "PREFORK"
-)
-
-var (
-	addr        = flag.String("http", ":5050", "specifies the http binding address")
-	grpcAddr    = flag.String("grpc", ":5051", "specifies the grpc binding address")
-	parallelism = flag.Int("parallelism", 4, "control the # of concurrency execution")
-	tmpFsParam  = flag.String("tmpfs", "size=16m,nr_inodes=4k", "tmpfs mount data (only for default mount with no mount.yaml)")
-	dir         = flag.String("dir", "", "specifies directory to store file upload / download (in memory by default)")
-	silent      = flag.Bool("silent", false, "do not print logs")
-	netShare    = flag.Bool("net", false, "do not unshare net namespace with host")
-	mountConf   = flag.String("mount", "mount.yaml", "specifics mount configuration file")
-	cinitPath   = flag.String("cinit", "", "container init absolute path")
-	token       = flag.String("token", "", "bearer token auth for REST / gRPC")
-	release     = flag.Bool("release", false, "use release mode for log")
-	srcPrefix   = flag.String("srcprefix", "", "specifies directory prefix for source type copyin")
-	prefork     = flag.Int("prefork", 0, "control # of the prefork workers")
-
-	printLog = func(v ...interface{}) {}
-
-	work *worker.Worker
-)
-
-func newFilsStore(dir string) filestore.FileStore {
-	var fs filestore.FileStore
-	if dir == "" {
-		fs = filestore.NewFileMemoryStore()
-	} else {
-		os.MkdirAll(dir, 0755)
-		fs = filestore.NewFileLocalStore(dir)
-	}
-	return fs
-}
-
-func initEnv() (bool, error) {
-	eneableGRPC := false
-	if s := os.Getenv(envAddr); s != "" {
-		addr = &s
-	}
-	if os.Getenv(envGRPC) == "1" {
-		eneableGRPC = true
-	}
-	if s := os.Getenv(envGRPCAddr); s != "" {
-		eneableGRPC = true
-		grpcAddr = &s
-	}
-	if s := os.Getenv(envParallelism); s != "" {
-		p, err := strconv.Atoi(s)
-		if err != nil {
-			return false, err
-		}
-		parallelism = &p
-	}
-	if s := os.Getenv(envToken); s != "" {
-		token = &s
-	}
-	if s := os.Getenv(envPrefork); s != "" {
-		p, err := strconv.Atoi(s)
-		if err != nil {
-			return false, err
-		}
-		prefork = &p
-	}
-	if os.Getpid() == 1 || os.Getenv(envRelease) == "1" {
-		*release = true
-	}
-	return eneableGRPC, nil
-}
+var logger *zap.Logger
 
 func main() {
-	flag.Parse()
-
-	enableGRPC, err := initEnv()
-	if err != nil {
-		log.Fatalln("init environment variable failed", err)
+	var conf config.Config
+	if err := conf.Load(); err != nil {
+		if err == flag.ErrHelp {
+			return
+		}
+		log.Fatalln("load config failed", err)
 	}
 
-	var logger *zap.Logger
-	if !*silent {
-		if *release {
+	if !conf.Silent {
+		var err error
+		if conf.Release {
 			logger, err = zap.NewProduction()
 		} else {
 			config := zap.NewDevelopmentConfig()
@@ -137,23 +61,30 @@ func main() {
 			log.Fatalln("init logger failed", err)
 		}
 		defer logger.Sync()
-
-		printLog = logger.Sugar().Info
 	} else {
 		logger = zap.NewNop()
 	}
 
+	logger.Sugar().Infof("config loaded: %+v", conf)
+
 	// Init environment pool
-	fs := newFilsStore(*dir)
-	b, err := env.NewBuilder(*cinitPath, *mountConf, *tmpFsParam, *netShare, printLog)
+	fs := newFilsStore(conf.Dir)
+	b, err := env.NewBuilder(env.Config{
+		ContainerInitPath: conf.ContainerInitPath,
+		MountConf:         conf.MountConf,
+		TmpFsParam:        conf.TmpFsParam,
+		NetShare:          conf.NetShare,
+		CgroupPrefix:      conf.CgroupPrefix,
+		Logger:            logger.Sugar(),
+	})
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)
 	}
 	envPool := pool.NewPool(b)
-	if *prefork > 0 {
-		printLog("create ", *prefork, " prefork containers")
-		m := make([]envexec.Environment, 0, *prefork)
-		for i := 0; i < *prefork; i++ {
+	if conf.PreFork > 0 {
+		logger.Sugar().Info("create ", conf.PreFork, " prefork containers")
+		m := make([]envexec.Environment, 0, conf.PreFork)
+		for i := 0; i < conf.PreFork; i++ {
 			e, err := envPool.Get()
 			if err != nil {
 				log.Fatalln("prefork environment failed", err)
@@ -164,16 +95,23 @@ func main() {
 			envPool.Put(e)
 		}
 	}
-	work = worker.New(fs, envPool, *parallelism, *dir)
+	work := worker.New(worker.Config{
+		FileStore:             fs,
+		EnvironmentPool:       envPool,
+		Parallelism:           conf.Parallelism,
+		WorkDir:               conf.Dir,
+		TimeLimitTickInterval: conf.TimeLimitCheckerInterval,
+	})
 	work.Start()
-	printLog("Starting worker with parallelism=", *parallelism)
+	logger.Sugar().Infof("Starting worker with parallelism=%d, workdir=%s, timeLimitCheckInterval=%v",
+		conf.Parallelism, conf.Dir, conf.TimeLimitCheckerInterval)
 
 	var r *gin.Engine
-	if *release {
+	if conf.Release {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r = gin.New()
-	if *silent {
+	if conf.Silent {
 		r.Use(gin.Recovery())
 	} else {
 		r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
@@ -181,7 +119,7 @@ func main() {
 	}
 
 	// Metrics Handle
-	if os.Getenv(envMetrics) == "1" {
+	if conf.EnableMetrics {
 		p := ginprometheus.NewPrometheus("gin")
 		p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
 			url := c.Request.URL.Path
@@ -199,9 +137,9 @@ func main() {
 	r.GET("/version", handleVersion)
 
 	// Add auth token
-	if *token != "" {
-		r.Use(tokenAuth(*token))
-		printLog("Attach token auth with token:", *token)
+	if conf.AuthToken != "" {
+		r.Use(tokenAuth(conf.AuthToken))
+		logger.Sugar().Info("Attach token auth with token:", conf.AuthToken)
 	}
 
 	// File Handles
@@ -212,19 +150,21 @@ func main() {
 	r.DELETE("/file/:fid", fh.fileIDDelete)
 
 	// Run Handle
-	r.POST("/run", handleRun)
+	rh := &cmdHandle{worker: work, srcPrefix: conf.SrcPrefix}
+	r.POST("/run", rh.handleRun)
 
 	// WebSocket Handle
-	r.GET("/ws", handleWS)
+	wh := &wsHandle{worker: work, srcPrefix: conf.SrcPrefix}
+	r.GET("/ws", wh.handleWS)
 
 	// pprof
-	if os.Getenv(envDebug) != "" {
+	if conf.EnableDebug {
 		ginpprof.Register(r)
 	}
 
 	// gRPC server
 	var grpcServer *grpc.Server
-	if enableGRPC {
+	if conf.EnableGRPC {
 		grpc_zap.ReplaceGrpcLoggerV2(logger)
 		streamMiddleware := []grpc.StreamServerInterceptor{
 			grpc_prometheus.StreamServerInterceptor,
@@ -236,8 +176,8 @@ func main() {
 			grpc_zap.UnaryServerInterceptor(logger),
 			grpc_recovery.UnaryServerInterceptor(),
 		}
-		if *token != "" {
-			authFunc := grpcTokenAuth(*token)
+		if conf.AuthToken != "" {
+			authFunc := grpcTokenAuth(conf.AuthToken)
 			streamMiddleware = append(streamMiddleware, grpc_auth.StreamServerInterceptor(authFunc))
 			unaryMiddleware = append(unaryMiddleware, grpc_auth.UnaryServerInterceptor(authFunc))
 		}
@@ -245,28 +185,32 @@ func main() {
 			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamMiddleware...)),
 			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryMiddleware...)),
 		)
-		pb.RegisterExecutorServer(grpcServer, &execServer{fs: fs, srcPrefix: *srcPrefix})
+		pb.RegisterExecutorServer(grpcServer, &execServer{
+			fs:        fs,
+			worker:    work,
+			srcPrefix: conf.SrcPrefix,
+		})
 		grpc_prometheus.Register(grpcServer)
 		grpc_prometheus.EnableHandlingTimeHistogram()
 
-		lis, err := net.Listen("tcp", *grpcAddr)
+		lis, err := net.Listen("tcp", conf.GRPCAddr)
 		if err != nil {
 			log.Fatalln(err)
 		}
 		go func() {
-			printLog("Starting grpc server at", *grpcAddr)
-			printLog("GRPC serve", grpcServer.Serve(lis))
+			logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr)
+			logger.Sugar().Info("gRPC serve finished: ", grpcServer.Serve(lis))
 		}()
 	}
 
 	srv := http.Server{
-		Addr:    *addr,
+		Addr:    conf.HTTPAddr,
 		Handler: r,
 	}
 
 	go func() {
-		printLog("Starting http server at", *addr)
-		printLog("Http serve", srv.ListenAndServe())
+		logger.Sugar().Info("Starting http server at ", conf.HTTPAddr)
+		logger.Sugar().Info("Http serve finished: ", srv.ListenAndServe())
 	}()
 
 	// Graceful shutdown...
@@ -274,33 +218,33 @@ func main() {
 	signal.Notify(sig, os.Interrupt)
 	<-sig
 
-	printLog("Shutting Down...")
+	logger.Sugar().Info("Shutting Down...")
 
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
 	defer cancel()
 
 	var eg errgroup.Group
 	eg.Go(func() error {
-		printLog("Http server shutdown")
+		logger.Sugar().Info("Http server shutdown")
 		return srv.Shutdown(ctx)
 	})
 
 	eg.Go(func() error {
 		work.Shutdown()
-		printLog("Worker shutdown")
+		logger.Sugar().Info("Worker shutdown")
 		return nil
 	})
 
 	if grpcServer != nil {
 		eg.Go(func() error {
 			grpcServer.GracefulStop()
-			printLog("GRPC server shutdown")
+			logger.Sugar().Info("GRPC server shutdown")
 			return nil
 		})
 	}
 
 	go func() {
-		printLog("Shutdown Finished", eg.Wait())
+		logger.Sugar().Info("Shutdown Finished: ", eg.Wait())
 		cancel()
 	}()
 	<-ctx.Done()
@@ -329,4 +273,15 @@ func grpcTokenAuth(token string) func(context.Context) (context.Context, error) 
 		}
 		return ctx, nil
 	}
+}
+
+func newFilsStore(dir string) filestore.FileStore {
+	var fs filestore.FileStore
+	if dir == "" {
+		fs = filestore.NewFileMemoryStore()
+	} else {
+		os.MkdirAll(dir, 0755)
+		fs = filestore.NewFileLocalStore(dir)
+	}
+	return fs
 }

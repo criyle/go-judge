@@ -24,6 +24,7 @@ var buffPool = sync.Pool{
 
 type execServer struct {
 	pb.UnimplementedExecutorServer
+	worker    worker.Worker
 	fs        filestore.FileStore
 	srcPrefix string
 }
@@ -36,7 +37,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	if len(si) > 0 || len(so) > 0 {
 		return nil, fmt.Errorf("Stream in / out are not avaliable for exec request")
 	}
-	rt := <-work.Submit(ctx, r)
+	rt := <-e.worker.Submit(ctx, r)
 	execObserve(rt)
 	if rt.Error != nil {
 		return nil, err

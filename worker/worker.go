@@ -10,17 +10,35 @@ import (
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pkg/envexec"
-	"github.com/criyle/go-sandbox/runner"
 )
 
 const maxWaiting = 512
 
-// Worker defines executor worker
-type Worker struct {
+// Config defines worker configuration
+type Config struct {
+	FileStore             filestore.FileStore
+	EnvironmentPool       envexec.EnvironmentPool
+	Parallelism           int
+	WorkDir               string
+	TimeLimitTickInterval time.Duration
+}
+
+// Worker defines interface for executor
+type Worker interface {
+	Start()
+	Submit(context.Context, *Request) <-chan Response
+	Execute(context.Context, *Request) <-chan Response
+	Shutdown()
+}
+
+// worker defines executor worker
+type worker struct {
 	fs          filestore.FileStore
 	envPool     envexec.EnvironmentPool
 	parallelism int
 	workDir     string
+
+	timeLimitTickInterval time.Duration
 
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -36,17 +54,18 @@ type workRequest struct {
 }
 
 // New creates new worker
-func New(fs filestore.FileStore, pool envexec.EnvironmentPool, parallelism int, workDir string) *Worker {
-	return &Worker{
-		fs:          fs,
-		envPool:     pool,
-		parallelism: parallelism,
-		workDir:     workDir,
+func New(conf Config) Worker {
+	return &worker{
+		fs:                    conf.FileStore,
+		envPool:               conf.EnvironmentPool,
+		parallelism:           conf.Parallelism,
+		workDir:               conf.WorkDir,
+		timeLimitTickInterval: conf.TimeLimitTickInterval,
 	}
 }
 
 // Start starts worker loops with given parallelism
-func (w *Worker) Start() {
+func (w *worker) Start() {
 	w.startOnce.Do(func() {
 		w.workCh = make(chan workRequest, maxWaiting)
 		w.done = make(chan struct{})
@@ -58,7 +77,7 @@ func (w *Worker) Start() {
 }
 
 // Submit submits a single request
-func (w *Worker) Submit(ctx context.Context, req *Request) <-chan Response {
+func (w *worker) Submit(ctx context.Context, req *Request) <-chan Response {
 	ch := make(chan Response, 1)
 	w.workCh <- workRequest{
 		Request:  req,
@@ -69,7 +88,7 @@ func (w *Worker) Submit(ctx context.Context, req *Request) <-chan Response {
 }
 
 // Execute will execute the request in new goroutine (bypass the parallelism limit)
-func (w *Worker) Execute(ctx context.Context, req *Request) <-chan Response {
+func (w *worker) Execute(ctx context.Context, req *Request) <-chan Response {
 	ch := make(chan Response, 1)
 	w.wg.Add(1)
 	go func() {
@@ -85,14 +104,14 @@ func (w *Worker) Execute(ctx context.Context, req *Request) <-chan Response {
 }
 
 // Shutdown waits all worker to finish
-func (w *Worker) Shutdown() {
+func (w *worker) Shutdown() {
 	w.stopOnce.Do(func() {
 		close(w.done)
 		w.wg.Wait()
 	})
 }
 
-func (w *Worker) loop() {
+func (w *worker) loop() {
 	defer w.wg.Done()
 	for {
 		select {
@@ -107,7 +126,7 @@ func (w *Worker) loop() {
 	}
 }
 
-func (w *Worker) workDoCmd(req workRequest) {
+func (w *worker) workDoCmd(req workRequest) {
 	var rt Response
 	if len(req.Cmd) == 1 {
 		rt = w.workDoSingle(req.Context, req.Cmd[0])
@@ -118,7 +137,7 @@ func (w *Worker) workDoCmd(req workRequest) {
 	req.resultCh <- rt
 }
 
-func (w *Worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
+func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 	c, copyOutSet, err := w.prepareCmd(rc)
 	if err != nil {
 		rt.Error = err
@@ -138,7 +157,7 @@ func (w *Worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 	return
 }
 
-func (w *Worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Response) {
+func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Response) {
 	var rts []Result
 	p := preparePipeMapping(pm)
 	cs := make([]*envexec.Cmd, 0, len(rc))
@@ -172,7 +191,7 @@ func (w *Worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Re
 	return
 }
 
-func (w *Worker) convertResult(result envexec.Result, copyOutSet map[string]bool) (res Result) {
+func (w *worker) convertResult(result envexec.Result, copyOutSet map[string]bool) (res Result) {
 	res.Status = result.Status
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
@@ -204,7 +223,7 @@ func (w *Worker) convertResult(result envexec.Result, copyOutSet map[string]bool
 	return res
 }
 
-func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
+func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	files, pipeFileName, err := w.prepareCmdFiles(rc.Files)
 	if err != nil {
 		return nil, nil, err
@@ -235,6 +254,7 @@ func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	}
 
 	wait := &waiter{
+		tickInterval:  w.timeLimitTickInterval,
 		timeLimit:     time.Duration(rc.CPULimit),
 		realTimeLimit: time.Duration(rc.RealCPULimit),
 	}
@@ -259,13 +279,13 @@ func (w *Worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		Files:       files,
 		TTY:         rc.TTY,
 		TimeLimit:   timeLimit,
-		MemoryLimit: runner.Size(rc.MemoryLimit),
-		StackLimit:  runner.Size(rc.StackLimit),
+		MemoryLimit: envexec.Size(rc.MemoryLimit),
+		StackLimit:  envexec.Size(rc.StackLimit),
 		ProcLimit:   rc.ProcLimit,
 		CopyIn:      copyIn,
 		CopyOut:     copyOut,
 		CopyOutDir:  copyOutDir,
-		CopyOutMax:  runner.Size(rc.CopyOutMax),
+		CopyOutMax:  envexec.Size(rc.CopyOutMax),
 		Waiter:      wait.Wait,
 	}, copyOutSet, nil
 }
@@ -281,7 +301,7 @@ func preparePipeMapping(pm []PipeMap) []*envexec.Pipe {
 	return rt
 }
 
-func (w *Worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, error) {
+func (w *worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, error) {
 	rt := make(map[string]file.File)
 	for name, f := range cf {
 		if f == nil {
@@ -300,7 +320,7 @@ func (w *Worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, err
 	return rt, nil
 }
 
-func (w *Worker) prepareCmdFiles(files []CmdFile) ([]interface{}, map[string]bool, error) {
+func (w *worker) prepareCmdFiles(files []CmdFile) ([]interface{}, map[string]bool, error) {
 	rt := make([]interface{}, 0, len(files))
 	pipeFileName := make(map[string]bool)
 	for _, f := range files {

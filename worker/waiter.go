@@ -7,9 +7,11 @@ import (
 	"github.com/criyle/go-judge/pkg/envexec"
 )
 
-const tickInterval = time.Second
+// default tick interval 100 ms
+const defaultTickInterval = 100 * time.Millisecond
 
 type waiter struct {
+	tickInterval  time.Duration
 	timeLimit     time.Duration
 	realTimeLimit time.Duration
 }
@@ -20,6 +22,11 @@ func (w *waiter) Wait(ctx context.Context, u envexec.Process) bool {
 	}
 
 	start := time.Now()
+
+	tickInterval := w.tickInterval
+	if tickInterval == 0 {
+		tickInterval = defaultTickInterval
+	}
 
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()

@@ -1,5 +1,5 @@
 package envexec
 
 const (
-	memoryLimitExtra uint64 = 16 << 10 // 16k more memory
+	defaultExtraMemoryLimit = Size(16 << 10) // 16k more memory
 )

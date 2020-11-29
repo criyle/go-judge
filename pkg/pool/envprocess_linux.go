@@ -43,7 +43,7 @@ func (p *process) Done() <-chan struct{} {
 	return p.done
 }
 
-func (p *process) Result() runner.Result {
+func (p *process) Result() envexec.RunnerResult {
 	<-p.done
 	return p.rt
 }
@@ -51,7 +51,7 @@ func (p *process) Result() runner.Result {
 func (p *process) Usage() envexec.Usage {
 	var (
 		t time.Duration
-		m runner.Size
+		m envexec.Size
 	)
 	if p.cg != nil {
 		t, _ = p.cg.CPUUsage()

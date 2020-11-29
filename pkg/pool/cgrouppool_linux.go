@@ -4,16 +4,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/criyle/go-sandbox/runner"
+	"github.com/criyle/go-judge/pkg/envexec"
 )
 
 // Cgroup defines interface to limit and monitor resources consumption of a process
 type Cgroup interface {
-	SetMemoryLimit(runner.Size) error
+	SetMemoryLimit(envexec.Size) error
 	SetProcLimit(uint64) error
 
 	CPUUsage() (time.Duration, error)
-	MemoryUsage() (runner.Size, error)
+	MemoryUsage() (envexec.Size, error)
 
 	AddProc(int) error
 	Reset() error

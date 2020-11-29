@@ -4,8 +4,6 @@ import (
 	"context"
 	"os"
 	"time"
-
-	"github.com/criyle/go-sandbox/runner"
 )
 
 // ExecveParam is parameters to run process inside environment
@@ -32,21 +30,21 @@ type ExecveParam struct {
 // Limit defines the process running resource limits
 type Limit struct {
 	Time   time.Duration // Time limit
-	Memory runner.Size   // Memory limit
+	Memory Size          // Memory limit
 	Proc   uint64        // Process count limit
-	Stack  runner.Size   // Stack limit
+	Stack  Size          // Stack limit
 }
 
 // Usage defines the peak process resource usage
 type Usage struct {
 	Time   time.Duration
-	Memory runner.Size
+	Memory Size
 }
 
 // Process reference to the running process group
 type Process interface {
 	Done() <-chan struct{} // Done returns a channel for wait process to exit
-	Result() runner.Result // Result is available after done is closed
+	Result() RunnerResult  // Result is available after done is closed
 	Usage() Usage          // Usage retrieves the process usage during the run time
 }
 

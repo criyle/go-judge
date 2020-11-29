@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
+	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -22,7 +23,12 @@ const (
 	pingPeriod = 50 * time.Second
 )
 
-func handleWS(c *gin.Context) {
+type wsHandle struct {
+	worker    worker.Worker
+	srcPrefix string
+}
+
+func (h *wsHandle) handleWS(c *gin.Context) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.Error(err)
@@ -45,16 +51,16 @@ func handleWS(c *gin.Context) {
 		for {
 			req := new(model.Request)
 			if err := conn.ReadJSON(req); err != nil {
-				printLog("ws read:", err)
+				logger.Sugar().Warn("ws read error:", err)
 				return
 			}
-			r, err := model.ConvertRequest(req, *srcPrefix)
+			r, err := model.ConvertRequest(req, h.srcPrefix)
 			if err != nil {
-				printLog("convert", err)
+				logger.Sugar().Warn("convert error: ", err)
 				return
 			}
 			go func() {
-				ret := <-work.Submit(ctx, r)
+				ret := <-h.worker.Submit(ctx, r)
 				execObserve(ret)
 				resultCh <- model.ConvertResponse(ret)
 			}()
@@ -71,7 +77,7 @@ func handleWS(c *gin.Context) {
 			case r := <-resultCh:
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
-					printLog("ws write:", err)
+					logger.Sugar().Warn("ws write error:", err)
 					return
 				}
 			case <-ticker.C:

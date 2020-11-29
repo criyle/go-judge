@@ -16,8 +16,8 @@ var defaultWrite = []string{
 }
 
 // NewBuilder build a environment builder
-func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog func(v ...interface{})) (pool.EnvBuilder, error) {
-	b := macsandbox.NewBuilder("", defaultRead, defaultWrite, netShare)
-	printLog("created mac sandbox at", "")
+func NewBuilder(c Config) (pool.EnvBuilder, error) {
+	b := macsandbox.NewBuilder("", defaultRead, defaultWrite, c.NetShare)
+	c.Info("created mac sandbox at", "")
 	return b, nil
 }

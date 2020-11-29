@@ -21,11 +21,16 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 		}
 	}
 
-	memoryLimit := c.MemoryLimit + runner.Size(memoryLimitExtra)
+	extraMemoryLimit := c.ExtraMemoryLimit
+	if extraMemoryLimit == 0 {
+		extraMemoryLimit = defaultExtraMemoryLimit
+	}
 
-	var stackLimit runner.Size
+	memoryLimit := c.MemoryLimit + extraMemoryLimit
+
+	var stackLimit Size
 	if c.StackLimit > 0 {
-		stackLimit = c.StackLimit + runner.Size(memoryLimitExtra)
+		stackLimit = c.StackLimit + extraMemoryLimit
 	}
 	if stackLimit > memoryLimit {
 		stackLimit = memoryLimit

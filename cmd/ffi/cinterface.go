@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"time"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/env"
@@ -17,18 +18,19 @@ import (
 )
 
 type initParameter struct {
-	CInitPath   string `json:"cinitPath`
-	Parallelism int    `json:"parallelism"`
-	TmpFsParam  string `json:"tmpfsParam"`
-	Dir         string `json:"dir"`
-	NetShare    bool   `json:"netShare"`
-	MountConf   string `json:"mountConf"`
-	SrcPrefix   string `json:"srcPrefix"`
+	CInitPath    string `json:"cinitPath"`
+	Parallelism  int    `json:"parallelism"`
+	TmpFsParam   string `json:"tmpfsParam"`
+	Dir          string `json:"dir"`
+	NetShare     bool   `json:"netShare"`
+	MountConf    string `json:"mountConf"`
+	SrcPrefix    string `json:"srcPrefix"`
+	CgroupPrefix string `json:"cgroupPrefix"`
 }
 
 var (
 	fs   filestore.FileStore
-	work *worker.Worker
+	work worker.Worker
 
 	srcPrefix string
 )
@@ -69,13 +71,25 @@ func Init(i *C.char) C.int {
 
 	fs = newFilsStore(ip.Dir)
 
-	printLog := func(v ...interface{}) {}
-	b, err := env.NewBuilder(ip.CInitPath, ip.MountConf, ip.TmpFsParam, ip.NetShare, printLog)
+	b, err := env.NewBuilder(env.Config{
+		ContainerInitPath: ip.CInitPath,
+		MountConf:         ip.MountConf,
+		TmpFsParam:        ip.TmpFsParam,
+		NetShare:          ip.NetShare,
+		CgroupPrefix:      ip.CgroupPrefix,
+		Logger:            nopLogger{},
+	})
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)
 	}
 	envPool := pool.NewPool(b)
-	work = worker.New(fs, envPool, ip.Parallelism, ip.Dir)
+	work = worker.New(worker.Config{
+		FileStore:             fs,
+		EnvironmentPool:       envPool,
+		Parallelism:           ip.Parallelism,
+		WorkDir:               ip.Dir,
+		TimeLimitTickInterval: 100 * time.Millisecond,
+	})
 	work.Start()
 
 	return 0
@@ -175,4 +189,19 @@ func FileDelete(e *C.char) *C.char {
 		return nil
 	}
 	return C.CString("")
+}
+
+type nopLogger struct {
+}
+
+func (nopLogger) Debug(args ...interface{}) {
+}
+
+func (nopLogger) Info(args ...interface{}) {
+}
+
+func (nopLogger) Warn(args ...interface{}) {
+}
+
+func (nopLogger) Error(args ...interface{}) {
 }

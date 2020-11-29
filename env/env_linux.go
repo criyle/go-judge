@@ -13,26 +13,26 @@ import (
 )
 
 // NewBuilder build a environment builder
-func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog func(v ...interface{})) (pool.EnvBuilder, error) {
+func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	root, err := ioutil.TempDir("", "executorserver")
 	if err != nil {
 		return nil, err
 	}
-	printLog("Created tmp dir for container root at:", root)
+	c.Info("Created tmp dir for container root at:", root)
 
-	mb, err := parseMountConfig(mountConf)
+	mb, err := parseMountConfig(c.MountConf)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		printLog("Use the default container mount")
-		mb = getDefaultMount(tmpFsConf)
+		c.Info("Use the default container mount")
+		mb = getDefaultMount(c.TmpFsParam)
 	}
 	m := mb.FilterNotExist().Mounts
-	printLog("Created container mount at:", mb)
+	c.Info("Created container mount at:", mb)
 
 	unshareFlags := uintptr(forkexec.UnshareFlags)
-	if netShare {
+	if c.NetShare {
 		unshareFlags ^= syscall.CLONE_NEWNET
 	}
 
@@ -48,16 +48,16 @@ func NewBuilder(cinitPath, mountConf, tmpFsConf string, netShare bool, printLog 
 		CredGenerator: credGen,
 		Stderr:        os.Stderr,
 		CloneFlags:    unshareFlags,
-		ExecFile:      cinitPath,
+		ExecFile:      c.ContainerInitPath,
 	}
-	cgb, err := cgroup.NewBuilder("executorserver").WithCPUAcct().WithMemory().WithPids().FilterByEnv()
+	cgb, err := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids().FilterByEnv()
 	if err != nil {
 		return nil, err
 	}
-	printLog("Created cgroup builder with:", cgb)
+	c.Info("Test created cgroup builder with:", cgb)
 	if cg, err := cgb.Build(); err != nil {
-		printLog("Tested created cgroup with error", err)
-		printLog("Failed back to rlimit / rusage mode")
+		c.Warn("Tested created cgroup with error", err)
+		c.Warn("Failed back to rlimit / rusage mode")
 		cgb = nil
 	} else {
 		cg.Destroy()

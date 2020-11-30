@@ -34,8 +34,6 @@ jobs:
           - macos-latest
         GOARCH:
           - amd64 
-          - arm
-          - arm64
     steps:
       - name: Set up Go 1.14
         uses: actions/setup-go@v2

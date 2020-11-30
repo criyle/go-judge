@@ -34,6 +34,8 @@ jobs:
           - macos-latest
         GOARCH:
           - amd64 
+          - arm
+          - arm64
     steps:
       - name: Set up Go 1.14
         uses: actions/setup-go@v2
@@ -110,7 +112,6 @@ jobs:
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver.exe ./cmd/executorserver
-          go build -o executorshell.exe ./cmd/executorshell
       - name: Build shared object on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         env:
@@ -123,12 +124,6 @@ jobs:
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.exe
           path: executorserver.exe
-      - name: Upload executorshell.exe on Windows
-        if: ${{ matrix.os == 'windows-latest' }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: ExecutorShell-${{ matrix.GOARCH }}.exe
-          path: executorshell.exe
       - name: Upload executorserver.dll on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v2

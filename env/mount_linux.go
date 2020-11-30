@@ -21,11 +21,14 @@ type Mount struct {
 
 // Mounts defines mount points for the container.
 type Mounts struct {
-	Mount []Mount `yaml:"mount"`
-	Proc  bool    `yaml:"proc"`
+	Mount      []Mount `yaml:"mount"`
+	WorkDir    string  `yaml:"workDir"`
+	HostName   string  `yaml:"hostName"`
+	DomainName string  `yaml:"domainName"`
+	Proc       bool    `yaml:"proc"`
 }
 
-func parseMountConfig(p string) (*mount.Builder, error) {
+func readMountConfig(p string) (*Mounts, error) {
 	var m Mounts
 	d, err := ioutil.ReadFile(p)
 	if err != nil {
@@ -34,6 +37,10 @@ func parseMountConfig(p string) (*mount.Builder, error) {
 	if err := yaml.Unmarshal(d, &m); err != nil {
 		return nil, err
 	}
+	return &m, nil
+}
+
+func parseMountConfig(m *Mounts) (*mount.Builder, error) {
 	b := mount.NewBuilder()
 	for _, mt := range m.Mount {
 		target := mt.Target

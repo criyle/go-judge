@@ -57,14 +57,15 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 - The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag. (Notice: need to set `ES_ENABLE_GRPC=1` environment variable to enable GRPC endpoint)
 - The default concurrency is `4`, Can be specified with `-parallelism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
-- The default log level is debug, use `-silent` to disable logs.
-- `-token` to add token-based authentication to REST / gRPC
+- The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
+- The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
+- `-auth-token` to add token-based authentication to REST / gRPC
 - `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
 
 #### Environment Variables
 
-Environment variable will override command line arguments if they both present.
+Environment variable will be override by command line arguments if they both present. All command line arguments have its correspond environment variable.
 
 - The http binding address specifies as `ES_HTTP_ADDR=addr`
 - The grpc binding address specifies as `ES_GRPC_ADDR=addr`
@@ -192,7 +193,7 @@ Transfer/sec:    124.38KB
 - [x] GRPC + protobuf support
 - [x] Token-based authentication
 - [x] Prometheus metrics support
-- [ ] Customize container work dir
+- [x] Customize container workDir, hostName & domainName
 
 ## API interface
 

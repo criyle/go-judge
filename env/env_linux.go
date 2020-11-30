@@ -10,6 +10,12 @@ import (
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
+	"github.com/criyle/go-sandbox/pkg/mount"
+)
+
+const (
+	containerName  = "executor_server"
+	defaultWorkDir = "/w"
 )
 
 // NewBuilder build a environment builder
@@ -20,13 +26,19 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	}
 	c.Info("Created tmp dir for container root at:", root)
 
-	mb, err := parseMountConfig(c.MountConf)
+	var mb *mount.Builder
+	mc, err := readMountConfig(c.MountConf)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
-		c.Info("Use the default container mount")
+		c.Info("Mount.yaml(", c.MountConf, ") does not exists, use the default container mount")
 		mb = getDefaultMount(c.TmpFsParam)
+	} else {
+		mb, err = parseMountConfig(mc)
+		if err != nil {
+			return nil, err
+		}
 	}
 	m := mb.FilterNotExist().Mounts
 	c.Info("Created container mount at:", mb)
@@ -42,6 +54,16 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		credGen = newCredGen()
 	}
 
+	hostName := containerName
+	domainName := containerName
+	workDir := defaultWorkDir
+	if mc != nil {
+		hostName = mc.HostName
+		domainName = mc.DomainName
+		workDir = mc.WorkDir
+	}
+	c.Info("Creating container builder: hostName=", hostName, ", domainName=", domainName, ", workDir=", workDir)
+
 	b := &container.Builder{
 		Root:          root,
 		Mounts:        m,
@@ -49,6 +71,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		Stderr:        os.Stderr,
 		CloneFlags:    unshareFlags,
 		ExecFile:      c.ContainerInitPath,
+		HostName:      hostName,
+		DomainName:    domainName,
+		WorkDir:       workDir,
 	}
 	cgb, err := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids().FilterByEnv()
 	if err != nil {
@@ -67,7 +92,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	if cgb != nil {
 		cgroupPool = pool.NewFakeCgroupPool(cgb)
 	}
-	return pool.NewEnvBuilder(b, cgroupPool), nil
+	return pool.NewEnvBuilder(b, cgroupPool, workDir), nil
 }
 
 type credGen struct {

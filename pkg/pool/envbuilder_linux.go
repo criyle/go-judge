@@ -10,13 +10,15 @@ import (
 type environmentBuilder struct {
 	builder EnvironmentBuilder
 	cgPool  CgroupPool
+	workDir string
 }
 
 // NewEnvBuilder creates builder for linux container pools
-func NewEnvBuilder(builder EnvironmentBuilder, cgPool CgroupPool) EnvBuilder {
+func NewEnvBuilder(builder EnvironmentBuilder, cgPool CgroupPool, workDir string) EnvBuilder {
 	return &environmentBuilder{
 		builder: builder,
 		cgPool:  cgPool,
+		workDir: workDir,
 	}
 }
 
@@ -27,7 +29,7 @@ func (b *environmentBuilder) Build() (Environment, error) {
 		return nil, err
 	}
 	wd, err := m.Open([]container.OpenCmd{{
-		Path: "/w",
+		Path: b.workDir,
 		Flag: syscall.O_CLOEXEC | syscall.O_DIRECTORY,
 		Perm: 0777,
 	}})

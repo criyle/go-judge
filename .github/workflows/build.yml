@@ -2,7 +2,7 @@ name: Build
 on:
   push:
     branches: [master]
-    tags: v*
+    tags: [v*]
 jobs:
   create-release:
     name: Create release
@@ -60,6 +60,7 @@ jobs:
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver ./cmd/executorserver
+          go build -o executorshell ./cmd/executorshell
       - name: Build shared objects on Linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
         env:
@@ -73,6 +74,12 @@ jobs:
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}
           path: executorserver
+      - name: Upload executorshell on linux
+        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        uses: actions/upload-artifact@v2
+        with:
+          name: ExecutorShell-${{ matrix.GOARCH }}
+          path: executorshell
       - name: Upload cinit on linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
         uses: actions/upload-artifact@v2
@@ -103,6 +110,12 @@ jobs:
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver.exe ./cmd/executorserver
+          go build -o executorshell.exe ./cmd/executorshell
+      - name: Build shared object on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        env:
+          GOARCH: ${{ matrix.GOARCH }}
+        run: |
           go build -buildmode=c-shared -o executorserver.dll ./cmd/ffi
       - name: Upload executorserver.exe on Windows
         if: ${{ matrix.os == 'windows-latest' }}
@@ -110,6 +123,12 @@ jobs:
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.exe
           path: executorserver.exe
+      - name: Upload executorshell.exe on Windows
+        if: ${{ matrix.os == 'windows-latest' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ExecutorShell-${{ matrix.GOARCH }}.exe
+          path: executorshell.exe
       - name: Upload executorserver.dll on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         uses: actions/upload-artifact@v2
@@ -134,6 +153,12 @@ jobs:
         run: |
           go generate ./cmd/executorserver
           go build -o executorserver ./cmd/executorserver
+          go build -o executorshell ./cmd/executorshell
+      - name: Build shared object on macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        env:
+          GOARCH: ${{ matrix.GOARCH }}
+        run: |
           go build -buildmode=c-shared -o executorserver.dylib ./cmd/ffi
       - name: Upload executorserver on macOS
         if: ${{ matrix.os == 'macos-latest' }}
@@ -141,6 +166,12 @@ jobs:
         with:
           name: ExecutorServer-MacOS-${{ matrix.GOARCH }}
           path: executorserver
+      - name: Upload executorshell on macOS
+        if: ${{ matrix.os == 'macos-latest' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ExecutorShell-MacOS-${{ matrix.GOARCH }}
+          path: executorshell
       - name: Upload executorserver.dylib on macOS
         if: ${{ matrix.os == 'macos-latest' }}
         uses: actions/upload-artifact@v2

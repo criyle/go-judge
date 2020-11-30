@@ -49,3 +49,9 @@ mount:
     data: size=16m,nr_inodes=4k
 # java & ghc wants /proc/self/exe
 proc: true
+# container work directory
+workDir: /w
+# container host name
+hostName: executor_server
+# container domain name
+domainName: executor_server

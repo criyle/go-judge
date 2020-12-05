@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/criyle/go-judge/filestore"
@@ -31,6 +32,10 @@ func (f *fileStreamIn) EnvFile(fs filestore.FileStore) (interface{}, error) {
 	return f.r, nil
 }
 
+func (f *fileStreamIn) String() string {
+	return fmt.Sprintf("fileStreamIn:%s", f.name)
+}
+
 func (f *fileStreamIn) Close() error {
 	f.r.Close()
 	return f.w.Close()
@@ -59,6 +64,10 @@ func (f *fileStreamOut) Read(b []byte) (int, error) {
 
 func (f *fileStreamOut) EnvFile(fs filestore.FileStore) (interface{}, error) {
 	return f.w, nil
+}
+
+func (f *fileStreamOut) String() string {
+	return fmt.Sprintf("fileStreamOut:%s", f.name)
 }
 
 func (f *fileStreamOut) Close() error {

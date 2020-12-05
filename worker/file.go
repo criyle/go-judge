@@ -12,6 +12,8 @@ import (
 type CmdFile interface {
 	// EnvFile prepares file for envexec file
 	EnvFile(fs filestore.FileStore) (interface{}, error)
+	// Stringer to print debug infomation
+	String() string
 }
 
 var (
@@ -31,6 +33,10 @@ func (f *LocalFile) EnvFile(fs filestore.FileStore) (interface{}, error) {
 	return file.NewLocalFile(f.Src, f.Src), nil
 }
 
+func (f *LocalFile) String() string {
+	return fmt.Sprintf("local:%s", f.Src)
+}
+
 // MemoryFile defines file stores in the memory
 type MemoryFile struct {
 	Content []byte
@@ -39,6 +45,10 @@ type MemoryFile struct {
 // EnvFile prepares file for envexec file
 func (f *MemoryFile) EnvFile(fs filestore.FileStore) (interface{}, error) {
 	return file.NewMemFile("", f.Content), nil
+}
+
+func (f *MemoryFile) String() string {
+	return fmt.Sprintf("memory:(len:%d)", len(f.Content))
 }
 
 // CachedFile defines file cached in the file store
@@ -55,6 +65,10 @@ func (f *CachedFile) EnvFile(fs filestore.FileStore) (interface{}, error) {
 	return fd, nil
 }
 
+func (f *CachedFile) String() string {
+	return fmt.Sprintf("cached:(fileId:%s)", f.FileID)
+}
+
 // PipeCollector defines on the output (stdout / stderr) to be collected over pipe
 type PipeCollector struct {
 	Name string // pseudo name generated into copyOut
@@ -64,4 +78,8 @@ type PipeCollector struct {
 // EnvFile prepares file for envexec file
 func (f *PipeCollector) EnvFile(fs filestore.FileStore) (interface{}, error) {
 	return envexec.PipeCollector{Name: f.Name, SizeLimit: f.Max}, nil
+}
+
+func (f *PipeCollector) String() string {
+	return fmt.Sprintf("pipeCollector:(name:%s,max:%d)", f.Name, f.Max)
 }

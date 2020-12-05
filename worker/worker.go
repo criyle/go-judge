@@ -21,6 +21,7 @@ type Config struct {
 	Parallelism           int
 	WorkDir               string
 	TimeLimitTickInterval time.Duration
+	ExtraMemoryLimit      envexec.Size
 }
 
 // Worker defines interface for executor
@@ -39,6 +40,7 @@ type worker struct {
 	workDir     string
 
 	timeLimitTickInterval time.Duration
+	extraMemoryLimit      envexec.Size
 
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -61,6 +63,7 @@ func New(conf Config) Worker {
 		parallelism:           conf.Parallelism,
 		workDir:               conf.WorkDir,
 		timeLimitTickInterval: conf.TimeLimitTickInterval,
+		extraMemoryLimit:      conf.ExtraMemoryLimit,
 	}
 }
 
@@ -274,19 +277,20 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	}
 
 	return &envexec.Cmd{
-		Args:        rc.Args,
-		Env:         rc.Env,
-		Files:       files,
-		TTY:         rc.TTY,
-		TimeLimit:   timeLimit,
-		MemoryLimit: envexec.Size(rc.MemoryLimit),
-		StackLimit:  envexec.Size(rc.StackLimit),
-		ProcLimit:   rc.ProcLimit,
-		CopyIn:      copyIn,
-		CopyOut:     copyOut,
-		CopyOutDir:  copyOutDir,
-		CopyOutMax:  envexec.Size(rc.CopyOutMax),
-		Waiter:      wait.Wait,
+		Args:             rc.Args,
+		Env:              rc.Env,
+		Files:            files,
+		TTY:              rc.TTY,
+		TimeLimit:        timeLimit,
+		MemoryLimit:      envexec.Size(rc.MemoryLimit),
+		StackLimit:       envexec.Size(rc.StackLimit),
+		ExtraMemoryLimit: w.extraMemoryLimit,
+		ProcLimit:        rc.ProcLimit,
+		CopyIn:           copyIn,
+		CopyOut:          copyOut,
+		CopyOutDir:       copyOutDir,
+		CopyOutMax:       envexec.Size(rc.CopyOutMax),
+		Waiter:           wait.Wait,
 	}, copyOutSet, nil
 }
 

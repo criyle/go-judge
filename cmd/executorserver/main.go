@@ -101,6 +101,7 @@ func main() {
 		Parallelism:           conf.Parallelism,
 		WorkDir:               conf.Dir,
 		TimeLimitTickInterval: conf.TimeLimitCheckerInterval,
+		ExtraMemoryLimit:      *conf.ExtraMemoryLimit,
 	})
 	work.Start()
 	logger.Sugar().Infof("Starting worker with parallelism=%d, workdir=%s, timeLimitCheckInterval=%v",

@@ -26,6 +26,8 @@ type Config struct {
 	// runner limit
 	TimeLimitCheckerInterval time.Duration `flagUsage:"specifies time limit checker interval" default:"100ms"`
 	ExtraMemoryLimit         *envexec.Size `flagUsage:"specifies extra memory buffer for check memory limit" default:"16k"`
+	OutputLimit              *envexec.Size `flagUsage:"specifies POSIX rlimit for output for each command" default:"256m"`
+	Cpuset                   string        `flagUsage:"control the usage of cpuset for all containerd process"`
 
 	// server config
 	HTTPAddr      string `flagUsage:"specifies the http binding address" default:":5050"`

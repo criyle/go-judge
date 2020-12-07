@@ -33,6 +33,7 @@ type Cmd struct {
 	MemoryLimit      Size
 	StackLimit       Size
 	ExtraMemoryLimit Size
+	OutputLimit      Size
 	ProcLimit        uint64
 
 	// file contents to copyin before exec

@@ -12,8 +12,6 @@ import (
 	"github.com/criyle/go-sandbox/pkg/rlimit"
 )
 
-const outputLimit = 256 << 20 // 256M
-
 var _ envexec.Environment = &environ{}
 
 // environ defines interface to access container resources
@@ -21,6 +19,7 @@ type environ struct {
 	container.Environment
 	cgPool CgroupPool
 	wd     *os.File // container work dir
+	cpuset string
 }
 
 // Destory destories the environment
@@ -45,6 +44,9 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		if err != nil {
 			return nil, fmt.Errorf("execve: failed to get cgroup %v", err)
 		}
+		if c.cpuset != "" {
+			cg.SetCpuset(c.cpuset)
+		}
 		cg.SetMemoryLimit(param.Limit.Memory)
 		cg.SetProcLimit(param.Limit.Proc)
 		syncFunc = cg.AddProc
@@ -53,7 +55,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	rLimits := rlimit.RLimits{
 		CPU:      uint64(param.Limit.Time.Truncate(time.Second)/time.Second) + 1,
 		Data:     param.Limit.Memory.Byte(),
-		FileSize: outputLimit,
+		FileSize: param.Limit.Output.Byte(),
 		Stack:    param.Limit.Stack.Byte(),
 	}
 

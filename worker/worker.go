@@ -22,6 +22,7 @@ type Config struct {
 	WorkDir               string
 	TimeLimitTickInterval time.Duration
 	ExtraMemoryLimit      envexec.Size
+	OutputLimit           envexec.Size
 }
 
 // Worker defines interface for executor
@@ -41,6 +42,7 @@ type worker struct {
 
 	timeLimitTickInterval time.Duration
 	extraMemoryLimit      envexec.Size
+	outputLimit           envexec.Size
 
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -64,6 +66,7 @@ func New(conf Config) Worker {
 		workDir:               conf.WorkDir,
 		timeLimitTickInterval: conf.TimeLimitTickInterval,
 		extraMemoryLimit:      conf.ExtraMemoryLimit,
+		outputLimit:           conf.OutputLimit,
 	}
 }
 
@@ -285,6 +288,7 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		MemoryLimit:      envexec.Size(rc.MemoryLimit),
 		StackLimit:       envexec.Size(rc.StackLimit),
 		ExtraMemoryLimit: w.extraMemoryLimit,
+		OutputLimit:      w.outputLimit,
 		ProcLimit:        rc.ProcLimit,
 		CopyIn:           copyIn,
 		CopyOut:          copyOut,

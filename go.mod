@@ -5,7 +5,7 @@ go 1.14
 require (
 	cloud.google.com/go v0.73.0 // indirect
 	github.com/creack/pty v1.1.11
-	github.com/criyle/go-sandbox v0.5.2
+	github.com/criyle/go-sandbox v0.5.4
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gin-contrib/pprof v1.3.0
@@ -30,7 +30,7 @@ require (
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20201204225414-ed752295db88
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
-	golang.org/x/tools v0.0.0-20201204222352-654352759326 // indirect
+	golang.org/x/tools v0.0.0-20201206230334-368bee879bfd // indirect
 	google.golang.org/genproto v0.0.0-20201204160425-06b3db808446 // indirect
 	google.golang.org/grpc v1.34.0
 	google.golang.org/grpc/examples v0.0.0-20201204235607-0d6a24f68a5f // indirect

@@ -9,6 +9,7 @@ import (
 
 // Cgroup defines interface to limit and monitor resources consumption of a process
 type Cgroup interface {
+	SetCpuset(string) error
 	SetMemoryLimit(envexec.Size) error
 	SetProcLimit(uint64) error
 

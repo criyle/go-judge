@@ -75,7 +75,11 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		DomainName:    domainName,
 		WorkDir:       workDir,
 	}
-	cgb, err := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids().FilterByEnv()
+	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids()
+	if c.Cpuset != "" {
+		cgb = cgb.WithCPUSet()
+	}
+	cgb, err = cgb.FilterByEnv()
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +96,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	if cgb != nil {
 		cgroupPool = pool.NewFakeCgroupPool(cgb)
 	}
-	return pool.NewEnvBuilder(b, cgroupPool, workDir), nil
+	return pool.NewEnvBuilder(b, cgroupPool, workDir, c.Cpuset), nil
 }
 
 type credGen struct {

@@ -15,5 +15,6 @@ type Config struct {
 	NetShare          bool
 	MountConf         string
 	CgroupPrefix      string
+	Cpuset            string
 	Logger
 }

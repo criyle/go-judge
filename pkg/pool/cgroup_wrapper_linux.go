@@ -13,6 +13,10 @@ var (
 
 type wCgroup cgroup.Cgroup
 
+func (c *wCgroup) SetCpuset(s string) error {
+	return (*cgroup.Cgroup)(c).SetCpusetCpus([]byte(s))
+}
+
 func (c *wCgroup) SetMemoryLimit(s envexec.Size) error {
 	return (*cgroup.Cgroup)(c).SetMemoryLimitInBytes(uint64(s))
 }

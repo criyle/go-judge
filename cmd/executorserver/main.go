@@ -75,6 +75,7 @@ func main() {
 		TmpFsParam:        conf.TmpFsParam,
 		NetShare:          conf.NetShare,
 		CgroupPrefix:      conf.CgroupPrefix,
+		Cpuset:            conf.Cpuset,
 		Logger:            logger.Sugar(),
 	})
 	if err != nil {
@@ -102,6 +103,7 @@ func main() {
 		WorkDir:               conf.Dir,
 		TimeLimitTickInterval: conf.TimeLimitCheckerInterval,
 		ExtraMemoryLimit:      *conf.ExtraMemoryLimit,
+		OutputLimit:           *conf.OutputLimit,
 	})
 	work.Start()
 	logger.Sugar().Infof("Starting worker with parallelism=%d, workdir=%s, timeLimitCheckInterval=%v",

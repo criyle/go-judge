@@ -62,6 +62,8 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 - `-auth-token` to add token-based authentication to REST / gRPC
 - `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
+- `-output-limit` specifies size limit of POSIX rlimit of output
+- `-cpuset` specifies `cpuset.cpus` cgroup for each container
 
 #### Environment Variables
 

@@ -26,6 +26,8 @@ type initParameter struct {
 	MountConf    string `json:"mountConf"`
 	SrcPrefix    string `json:"srcPrefix"`
 	CgroupPrefix string `json:"cgroupPrefix"`
+	CPUSet       string `json:"cpuset"`
+	CredStart    int    `json:"credStart"`
 }
 
 var (
@@ -72,12 +74,14 @@ func Init(i *C.char) C.int {
 	fs = newFilsStore(ip.Dir)
 
 	b, err := env.NewBuilder(env.Config{
-		ContainerInitPath: ip.CInitPath,
-		MountConf:         ip.MountConf,
-		TmpFsParam:        ip.TmpFsParam,
-		NetShare:          ip.NetShare,
-		CgroupPrefix:      ip.CgroupPrefix,
-		Logger:            nopLogger{},
+		ContainerInitPath:  ip.CInitPath,
+		MountConf:          ip.MountConf,
+		TmpFsParam:         ip.TmpFsParam,
+		NetShare:           ip.NetShare,
+		CgroupPrefix:       ip.CgroupPrefix,
+		Cpuset:             ip.CPUSet,
+		ContainerCredStart: ip.CredStart,
+		Logger:             nopLogger{},
 	})
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)

@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	containerName  = "executor_server"
-	defaultWorkDir = "/w"
+	containerName      = "executor_server"
+	defaultWorkDir     = "/w"
+	containerCredStart = 10000
 )
 
 // NewBuilder build a environment builder
@@ -51,7 +52,11 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	// use setuid container only if running in root privilege
 	var credGen container.CredGenerator
 	if os.Getuid() == 0 {
-		credGen = newCredGen()
+		cred := c.ContainerCredStart
+		if cred == 0 {
+			cred = containerCredStart
+		}
+		credGen = newCredGen(uint32(cred))
 	}
 
 	hostName := containerName
@@ -103,8 +108,8 @@ type credGen struct {
 	cur uint32
 }
 
-func newCredGen() *credGen {
-	return &credGen{cur: 10000}
+func newCredGen(start uint32) *credGen {
+	return &credGen{cur: start}
 }
 
 func (c *credGen) Get() syscall.Credential {

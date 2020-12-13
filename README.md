@@ -64,6 +64,8 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
 - `-output-limit` specifies size limit of POSIX rlimit of output
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container
+- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
+    - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
 
 #### Environment Variables
 

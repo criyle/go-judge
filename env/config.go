@@ -10,11 +10,12 @@ type Logger interface {
 
 // Config defines parameters to create environment builder
 type Config struct {
-	ContainerInitPath string
-	TmpFsParam        string
-	NetShare          bool
-	MountConf         string
-	CgroupPrefix      string
-	Cpuset            string
+	ContainerInitPath  string
+	TmpFsParam         string
+	NetShare           bool
+	MountConf          string
+	CgroupPrefix       string
+	Cpuset             string
+	ContainerCredStart int
 	Logger
 }

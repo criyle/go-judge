@@ -70,13 +70,14 @@ func main() {
 	// Init environment pool
 	fs := newFilsStore(conf.Dir)
 	b, err := env.NewBuilder(env.Config{
-		ContainerInitPath: conf.ContainerInitPath,
-		MountConf:         conf.MountConf,
-		TmpFsParam:        conf.TmpFsParam,
-		NetShare:          conf.NetShare,
-		CgroupPrefix:      conf.CgroupPrefix,
-		Cpuset:            conf.Cpuset,
-		Logger:            logger.Sugar(),
+		ContainerInitPath:  conf.ContainerInitPath,
+		MountConf:          conf.MountConf,
+		TmpFsParam:         conf.TmpFsParam,
+		NetShare:           conf.NetShare,
+		CgroupPrefix:       conf.CgroupPrefix,
+		Cpuset:             conf.Cpuset,
+		ContainerCredStart: conf.ContainerCredStart,
+		Logger:             logger.Sugar(),
 	})
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)

@@ -11,13 +11,14 @@ import (
 // Config defines executor server configuration
 type Config struct {
 	// container
-	ContainerInitPath string `flagUsage:"container init path"`
-	PreFork           int    `flagUsage:"control # of the prefork workers"`
-	TmpFsParam        string `flagUsage:"tmpfs mount data (only for default mount with no mount.yaml)" default:"size=16m,nr_inodes=4k"`
-	NetShare          bool   `flagUsage:"share net namespace with host"`
-	MountConf         string `flagUsage:"specifics mount configuration file" default:"mount.yaml"`
-	Parallelism       int    `flagUsage:"control the # of concurrency execution" default:"4"`
-	CgroupPrefix      string `flagUsage:"control cgroup prefix" default:"executor_server"`
+	ContainerInitPath  string `flagUsage:"container init path"`
+	PreFork            int    `flagUsage:"control # of the prefork workers"`
+	TmpFsParam         string `flagUsage:"tmpfs mount data (only for default mount with no mount.yaml)" default:"size=16m,nr_inodes=4k"`
+	NetShare           bool   `flagUsage:"share net namespace with host"`
+	MountConf          string `flagUsage:"specifics mount configuration file" default:"mount.yaml"`
+	Parallelism        int    `flagUsage:"control the # of concurrency execution" default:"4"`
+	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"executor_server"`
+	ContainerCredStart int    `flagUsage:"control the start uid&gid for container" default:"10000"`
 
 	// file store
 	SrcPrefix string `flagUsage:"specifies directory prefix for source type copyin"`

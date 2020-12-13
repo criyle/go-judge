@@ -34,6 +34,7 @@ type Limit struct {
 	Proc   uint64        // Process count limit
 	Stack  Size          // Stack limit
 	Output Size          // Output limit
+	Rate   float64       // CPU Rate limit
 }
 
 // Usage defines the peak process resource usage

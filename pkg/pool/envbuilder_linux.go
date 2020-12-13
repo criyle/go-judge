@@ -12,15 +12,17 @@ type environmentBuilder struct {
 	cgPool  CgroupPool
 	workDir string
 	cpuset  string
+	cpuRate bool
 }
 
 // NewEnvBuilder creates builder for linux container pools
-func NewEnvBuilder(builder EnvironmentBuilder, cgPool CgroupPool, workDir, cpuset string) EnvBuilder {
+func NewEnvBuilder(builder EnvironmentBuilder, cgPool CgroupPool, workDir, cpuset string, cpuRate bool) EnvBuilder {
 	return &environmentBuilder{
 		builder: builder,
 		cgPool:  cgPool,
 		workDir: workDir,
 		cpuset:  cpuset,
+		cpuRate: cpuRate,
 	}
 }
 
@@ -43,5 +45,6 @@ func (b *environmentBuilder) Build() (Environment, error) {
 		cgPool:      b.cgPool,
 		wd:          wd[0],
 		cpuset:      b.cpuset,
+		cpuRate:     b.cpuRate,
 	}, nil
 }

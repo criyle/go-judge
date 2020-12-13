@@ -14,6 +14,7 @@ type Cmd struct {
 	MemoryLimit  uint64
 	StackLimit   uint64
 	ProcLimit    uint64
+	CPURateLimit float64
 
 	CopyIn map[string]CmdFile
 

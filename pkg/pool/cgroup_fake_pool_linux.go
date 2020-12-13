@@ -1,15 +1,18 @@
 package pool
 
+import "time"
+
 var _ CgroupPool = &FakeCgroupPool{}
 
 // FakeCgroupPool implements cgroup pool but not actually do pool
 type FakeCgroupPool struct {
-	builder CgroupBuilder
+	builder   CgroupBuilder
+	cfsPeriod time.Duration
 }
 
 // NewFakeCgroupPool creates FakeCgroupPool
-func NewFakeCgroupPool(builder CgroupBuilder) CgroupPool {
-	return &FakeCgroupPool{builder: builder}
+func NewFakeCgroupPool(builder CgroupBuilder, cfsPeriod time.Duration) CgroupPool {
+	return &FakeCgroupPool{builder: builder, cfsPeriod: cfsPeriod}
 }
 
 // Get gets new cgroup
@@ -18,7 +21,7 @@ func (f *FakeCgroupPool) Get() (Cgroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	return (*wCgroup)(cg), nil
+	return &wCgroup{cg: cg, cfsPeriod: f.cfsPeriod}, nil
 }
 
 // Put destory the cgroup

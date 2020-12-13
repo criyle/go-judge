@@ -11,27 +11,38 @@ var (
 	_ Cgroup = &wCgroup{}
 )
 
-type wCgroup cgroup.Cgroup
+type wCgroup struct {
+	cg        *cgroup.Cgroup
+	cfsPeriod time.Duration
+}
+
+func (c *wCgroup) SetCPURate(s float64) error {
+	if err := c.cg.SetCPUCfsPeriod(uint64(c.cfsPeriod.Microseconds())); err != nil {
+		return err
+	}
+	quota := time.Duration(float64(c.cfsPeriod) * s)
+	return c.cg.SetCPUCfsQuota(uint64(quota.Microseconds()))
+}
 
 func (c *wCgroup) SetCpuset(s string) error {
-	return (*cgroup.Cgroup)(c).SetCpusetCpus([]byte(s))
+	return c.cg.SetCpusetCpus([]byte(s))
 }
 
 func (c *wCgroup) SetMemoryLimit(s envexec.Size) error {
-	return (*cgroup.Cgroup)(c).SetMemoryLimitInBytes(uint64(s))
+	return c.cg.SetMemoryLimitInBytes(uint64(s))
 }
 
 func (c *wCgroup) SetProcLimit(l uint64) error {
-	return (*cgroup.Cgroup)(c).SetPidsMax(l)
+	return c.cg.SetPidsMax(l)
 }
 
 func (c *wCgroup) CPUUsage() (time.Duration, error) {
-	t, err := (*cgroup.Cgroup)(c).CpuacctUsage()
+	t, err := c.cg.CpuacctUsage()
 	return time.Duration(t), err
 }
 
 func (c *wCgroup) MemoryUsage() (envexec.Size, error) {
-	s, err := (*cgroup.Cgroup)(c).MemoryMaxUsageInBytes()
+	s, err := c.cg.MemoryMaxUsageInBytes()
 	if err != nil {
 		return 0, err
 	}
@@ -45,19 +56,19 @@ func (c *wCgroup) MemoryUsage() (envexec.Size, error) {
 }
 
 func (c *wCgroup) AddProc(pid int) error {
-	return (*cgroup.Cgroup)(c).AddProc(pid)
+	return c.cg.AddProc(pid)
 }
 
 func (c *wCgroup) Reset() error {
-	if err := (*cgroup.Cgroup)(c).SetCpuacctUsage(0); err != nil {
+	if err := c.cg.SetCpuacctUsage(0); err != nil {
 		return err
 	}
-	if err := (*cgroup.Cgroup)(c).SetMemoryMaxUsageInBytes(0); err != nil {
+	if err := c.cg.SetMemoryMaxUsageInBytes(0); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (c *wCgroup) Destroy() error {
-	return (*cgroup.Cgroup)(c).Destroy()
+	return c.cg.Destroy()
 }

@@ -35,6 +35,7 @@ type Cmd struct {
 	ExtraMemoryLimit Size
 	OutputLimit      Size
 	ProcLimit        uint64
+	CPURateLimit     float64
 
 	// file contents to copyin before exec
 	CopyIn map[string]file.File

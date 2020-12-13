@@ -91,6 +91,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	if c.Cpuset != "" {
 		cgb = cgb.WithCPUSet()
 	}
+	if c.EnableCPURate {
+		cgb = cgb.WithCPU()
+	}
 	cgb, err = cgb.FilterByEnv()
 	if err != nil {
 		return nil, err
@@ -106,9 +109,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 
 	var cgroupPool pool.CgroupPool
 	if cgb != nil {
-		cgroupPool = pool.NewFakeCgroupPool(cgb)
+		cgroupPool = pool.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
 	}
-	return pool.NewEnvBuilder(b, cgroupPool, workDir, c.Cpuset), nil
+	return pool.NewEnvBuilder(b, cgroupPool, workDir, c.Cpuset, c.EnableCPURate), nil
 }
 
 type credGen struct {

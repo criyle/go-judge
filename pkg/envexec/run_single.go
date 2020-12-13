@@ -47,6 +47,7 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 			Memory: memoryLimit,
 			Proc:   c.ProcLimit,
 			Stack:  stackLimit,
+			Rate:   c.CPURateLimit,
 		},
 	}
 

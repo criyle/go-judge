@@ -1,5 +1,7 @@
 package env
 
+import "time"
+
 // Logger defines logger to print logs
 type Logger interface {
 	Debug(args ...interface{})
@@ -17,5 +19,7 @@ type Config struct {
 	CgroupPrefix       string
 	Cpuset             string
 	ContainerCredStart int
+	EnableCPURate      bool
+	CPUCfsPeriod       time.Duration
 	Logger
 }

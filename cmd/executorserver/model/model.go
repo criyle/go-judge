@@ -26,11 +26,12 @@ type Cmd struct {
 	Files []*CmdFile `json:"files,omitempty"`
 	TTY   bool       `json:"tty,omitempty"`
 
-	CPULimit     uint64 `json:"cpuLimit"`
-	RealCPULimit uint64 `json:"realCpuLimit"`
-	MemoryLimit  uint64 `json:"memoryLimit"`
-	StackLimit   uint64 `json:"stackLimit"`
-	ProcLimit    uint64 `json:"procLimit"`
+	CPULimit     uint64  `json:"cpuLimit"`
+	RealCPULimit uint64  `json:"realCpuLimit"`
+	MemoryLimit  uint64  `json:"memoryLimit"`
+	StackLimit   uint64  `json:"stackLimit"`
+	ProcLimit    uint64  `json:"procLimit"`
+	CPURateLimit float64 `json:"cpuRateLimit"`
 
 	CopyIn map[string]CmdFile `json:"copyIn"`
 
@@ -164,6 +165,7 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 		MemoryLimit:   c.MemoryLimit,
 		StackLimit:    c.StackLimit,
 		ProcLimit:     c.ProcLimit,
+		CPURateLimit:  c.CPURateLimit,
 		CopyOut:       c.CopyOut,
 		CopyOutCached: c.CopyOutCached,
 		CopyOutMax:    c.CopyOutMax,

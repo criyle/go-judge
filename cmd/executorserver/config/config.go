@@ -29,6 +29,8 @@ type Config struct {
 	ExtraMemoryLimit         *envexec.Size `flagUsage:"specifies extra memory buffer for check memory limit" default:"16k"`
 	OutputLimit              *envexec.Size `flagUsage:"specifies POSIX rlimit for output for each command" default:"256m"`
 	Cpuset                   string        `flagUsage:"control the usage of cpuset for all containerd process"`
+	EnableCPURate            bool          `flagUsage:"enable cpu cgroup rate control"`
+	CPUCfsPeriod             time.Duration `flagUsage:"set cpu.cfs_period" default:"100ms"`
 
 	// server config
 	HTTPAddr      string `flagUsage:"specifies the http binding address" default:":5050"`

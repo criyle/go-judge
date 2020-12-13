@@ -81,6 +81,7 @@ message Request {
     uint64 memoryLimit = 6;
     uint64 stackLimit = 12;
     uint64 procLimit = 7;
+    double CPURateLimit = 15;
 
     map<string, File> copyIn = 8;
 

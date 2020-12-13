@@ -12,6 +12,7 @@ type Cgroup interface {
 	SetCpuset(string) error
 	SetMemoryLimit(envexec.Size) error
 	SetProcLimit(uint64) error
+	SetCPURate(float64) error
 
 	CPUUsage() (time.Duration, error)
 	MemoryUsage() (envexec.Size, error)
@@ -29,15 +30,16 @@ type CgroupPool interface {
 
 // CgroupListPool implements cgroup pool
 type CgroupListPool struct {
-	builder CgroupBuilder
+	builder   CgroupBuilder
+	cfsPeriod time.Duration
 
 	cgs []Cgroup
 	mu  sync.Mutex
 }
 
 // NewCgroupListPool creates new cgroup pool
-func NewCgroupListPool(builder CgroupBuilder) CgroupPool {
-	return &CgroupListPool{builder: builder}
+func NewCgroupListPool(builder CgroupBuilder, cfsPeriod time.Duration) CgroupPool {
+	return &CgroupListPool{builder: builder, cfsPeriod: cfsPeriod}
 }
 
 // Get gets cgroup from pool, if pool is empty, creates new one
@@ -55,7 +57,7 @@ func (w *CgroupListPool) Get() (Cgroup, error) {
 	if err != nil {
 		return nil, err
 	}
-	return (*wCgroup)(cg), nil
+	return &wCgroup{cg: cg, cfsPeriod: w.cfsPeriod}, nil
 }
 
 // Put puts cgroup into the pool

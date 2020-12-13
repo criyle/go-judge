@@ -61,11 +61,13 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
 - The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
 - `-auth-token` to add token-based authentication to REST / gRPC
 - `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
-- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
+- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
 - `-output-limit` specifies size limit of POSIX rlimit of output
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container
 - `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
     - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
+- `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control
+- `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
 
 #### Environment Variables
 
@@ -589,6 +591,44 @@ Compile On Windows (cygwin):
         },
         "fileIds": {
             "a.exe": "HLQH2OF4MXUUJBCB"
+        }
+    }
+]
+```
+
+Infinite loop with cpu rate control:
+
+```json
+{
+	"cmd": [{
+		"args": ["/usr/bin/python3", "1.py"],
+		"env": ["PATH=/usr/bin:/bin"],
+		"files": [{"content": ""}, {"name": "stdout","max": 10240}, {"name": "stderr","max": 10240}],
+		"cpuLimit": 3000000000,
+        "realCpuLimit": 4000000000,
+		"memoryLimit": 104857600,
+		"procLimit": 50,
+        "cpuRate": 0.1,
+		"copyIn": {
+			"1.py": {
+				"content": "while True:\n    pass"
+			}
+		}
+	}]
+}
+```
+
+```json
+[
+    {
+        "status": "Time Limit Exceeded",
+        "exitStatus": 9,
+        "time": 414803599,
+        "memory": 3657728,
+        "runTime": 4046054900,
+        "files": {
+            "stderr": "",
+            "stdout": ""
         }
     }
 ]

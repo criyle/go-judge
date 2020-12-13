@@ -77,6 +77,8 @@ func main() {
 		CgroupPrefix:       conf.CgroupPrefix,
 		Cpuset:             conf.Cpuset,
 		ContainerCredStart: conf.ContainerCredStart,
+		EnableCPURate:      conf.EnableCPURate,
+		CPUCfsPeriod:       conf.CPUCfsPeriod,
 		Logger:             logger.Sugar(),
 	})
 	if err != nil {

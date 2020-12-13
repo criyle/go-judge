@@ -177,6 +177,7 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 		MemoryLimit:   c.GetMemoryLimit(),
 		StackLimit:    c.GetStackLimit(),
 		ProcLimit:     c.GetProcLimit(),
+		CPURateLimit:  c.GetCPURateLimit(),
 		CopyOut:       c.GetCopyOut(),
 		CopyOutCached: c.GetCopyOutCached(),
 		CopyOutMax:    c.GetCopyOutMax(),

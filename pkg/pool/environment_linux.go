@@ -17,9 +17,10 @@ var _ envexec.Environment = &environ{}
 // environ defines interface to access container resources
 type environ struct {
 	container.Environment
-	cgPool CgroupPool
-	wd     *os.File // container work dir
-	cpuset string
+	cgPool  CgroupPool
+	wd      *os.File // container work dir
+	cpuset  string
+	cpuRate bool
 }
 
 // Destory destories the environment
@@ -46,6 +47,9 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		}
 		if c.cpuset != "" {
 			cg.SetCpuset(c.cpuset)
+		}
+		if c.cpuRate && param.Limit.Rate > 0 {
+			cg.SetCPURate(param.Limit.Rate)
 		}
 		cg.SetMemoryLimit(param.Limit.Memory)
 		cg.SetProcLimit(param.Limit.Proc)

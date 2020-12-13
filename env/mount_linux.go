@@ -25,6 +25,8 @@ type Mounts struct {
 	WorkDir    string  `yaml:"workDir"`
 	HostName   string  `yaml:"hostName"`
 	DomainName string  `yaml:"domainName"`
+	UID        int     `yaml:"uid"`
+	GID        int     `yaml:"gid"`
 	Proc       bool    `yaml:"proc"`
 }
 

@@ -17,6 +17,7 @@ const (
 	containerName      = "executor_server"
 	defaultWorkDir     = "/w"
 	containerCredStart = 10000
+	containerCred      = 1000
 )
 
 // NewBuilder build a environment builder
@@ -62,10 +63,14 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	hostName := containerName
 	domainName := containerName
 	workDir := defaultWorkDir
+	cUID := containerCred
+	cGID := containerCred
 	if mc != nil {
 		hostName = mc.HostName
 		domainName = mc.DomainName
 		workDir = mc.WorkDir
+		cUID = mc.UID
+		cGID = mc.GID
 	}
 	c.Info("Creating container builder: hostName=", hostName, ", domainName=", domainName, ", workDir=", workDir)
 
@@ -79,6 +84,8 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		HostName:      hostName,
 		DomainName:    domainName,
 		WorkDir:       workDir,
+		ContainerUID:  cUID,
+		ContainerGID:  cGID,
 	}
 	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids()
 	if c.Cpuset != "" {

@@ -47,6 +47,10 @@ mount:
   - type: tmpfs
     target: /tmp
     data: size=16m,nr_inodes=4k
+  # bind a /etc/passed to show customized user name
+  # - type: bind
+  #   source: /home/criyle/go-judge/containerPasswd.txt
+  #   target: /etc/passwd
 # java & ghc wants /proc/self/exe
 proc: true
 # container work directory
@@ -55,3 +59,7 @@ workDir: /w
 hostName: executor_server
 # container domain name
 domainName: executor_server
+# container user uid
+uid: 1536
+# container user gid
+gid: 1536

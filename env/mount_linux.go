@@ -3,6 +3,7 @@ package env
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path"
 
 	"github.com/criyle/go-sandbox/pkg/mount"
@@ -44,14 +45,22 @@ func readMountConfig(p string) (*Mounts, error) {
 
 func parseMountConfig(m *Mounts) (*mount.Builder, error) {
 	b := mount.NewBuilder()
+	wd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
 	for _, mt := range m.Mount {
 		target := mt.Target
 		if path.IsAbs(target) {
 			target = path.Clean(target[1:])
 		}
+		source := mt.Source
+		if !path.IsAbs(source) {
+			source = path.Join(wd, source)
+		}
 		switch mt.Type {
 		case "bind":
-			b.WithBind(mt.Source, target, mt.Readonly)
+			b.WithBind(source, target, mt.Readonly)
 		case "tmpfs":
 			b.WithTmpfs(target, mt.Data)
 		default:

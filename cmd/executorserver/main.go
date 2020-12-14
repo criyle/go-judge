@@ -79,6 +79,7 @@ func main() {
 		ContainerCredStart: conf.ContainerCredStart,
 		EnableCPURate:      conf.EnableCPURate,
 		CPUCfsPeriod:       conf.CPUCfsPeriod,
+		SeccompConf:        conf.SeccompConf,
 		Logger:             logger.Sugar(),
 	})
 	if err != nil {

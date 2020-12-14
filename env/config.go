@@ -16,6 +16,7 @@ type Config struct {
 	TmpFsParam         string
 	NetShare           bool
 	MountConf          string
+	SeccompConf        string
 	CgroupPrefix       string
 	Cpuset             string
 	ContainerCredStart int

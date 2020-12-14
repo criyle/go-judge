@@ -20,6 +20,7 @@ type environ struct {
 	cgPool  CgroupPool
 	wd      *os.File // container work dir
 	cpuset  string
+	seccomp []syscall.SockFilter
 	cpuRate bool
 }
 
@@ -70,6 +71,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		CTTY:     param.TTY,
 		ExecFile: param.ExecFile,
 		RLimits:  rLimits.PrepareRLimit(),
+		Seccomp:  c.seccomp,
 		SyncFunc: syncFunc,
 	}
 	rt := c.Environment.Execve(ctx, p)

@@ -68,6 +68,10 @@ The `executorserver` need root privilege to create `cgroup`. Either creates sub-
     - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
 - `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control
 - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
+- `-seccomp-conf` specifies `seecomp` filter setting to load when running program
+    - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
+    - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
+    - the program killed by seccomp filter will have status `Dangerous Syscall`
 
 #### Environment Variables
 

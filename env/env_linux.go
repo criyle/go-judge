@@ -1,6 +1,7 @@
 package env
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"sync/atomic"
@@ -44,6 +45,14 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	}
 	m := mb.FilterNotExist().Mounts
 	c.Info("Created container mount at:", mb)
+
+	seccomp, err := readSeccompConf(c.SeccompConf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load seccomp config: %v", err)
+	}
+	if seccomp != nil {
+		c.Info("Load seccomp filter: ", c.SeccompConf)
+	}
 
 	unshareFlags := uintptr(forkexec.UnshareFlags)
 	if c.NetShare {
@@ -111,7 +120,14 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	if cgb != nil {
 		cgroupPool = pool.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
 	}
-	return pool.NewEnvBuilder(b, cgroupPool, workDir, c.Cpuset, c.EnableCPURate), nil
+	return pool.NewEnvBuilder(pool.Config{
+		Builder:    b,
+		CgroupPool: cgroupPool,
+		WorkDir:    workDir,
+		Cpuset:     c.Cpuset,
+		CPURate:    c.EnableCPURate,
+		Seccomp:    seccomp,
+	}), nil
 }
 
 type credGen struct {

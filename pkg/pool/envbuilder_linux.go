@@ -7,22 +7,34 @@ import (
 	"github.com/criyle/go-sandbox/container"
 )
 
+// Config specifies configuration to build environment builder
+type Config struct {
+	Builder    EnvironmentBuilder
+	CgroupPool CgroupPool
+	WorkDir    string
+	Seccomp    []syscall.SockFilter
+	Cpuset     string
+	CPURate    bool
+}
+
 type environmentBuilder struct {
 	builder EnvironmentBuilder
 	cgPool  CgroupPool
 	workDir string
+	seccomp []syscall.SockFilter
 	cpuset  string
 	cpuRate bool
 }
 
 // NewEnvBuilder creates builder for linux container pools
-func NewEnvBuilder(builder EnvironmentBuilder, cgPool CgroupPool, workDir, cpuset string, cpuRate bool) EnvBuilder {
+func NewEnvBuilder(c Config) EnvBuilder {
 	return &environmentBuilder{
-		builder: builder,
-		cgPool:  cgPool,
-		workDir: workDir,
-		cpuset:  cpuset,
-		cpuRate: cpuRate,
+		builder: c.Builder,
+		cgPool:  c.CgroupPool,
+		workDir: c.WorkDir,
+		seccomp: c.Seccomp,
+		cpuset:  c.Cpuset,
+		cpuRate: c.CPURate,
 	}
 }
 
@@ -46,5 +58,6 @@ func (b *environmentBuilder) Build() (Environment, error) {
 		wd:          wd[0],
 		cpuset:      b.cpuset,
 		cpuRate:     b.cpuRate,
+		seccomp:     b.seccomp,
 	}, nil
 }

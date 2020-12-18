@@ -5,7 +5,7 @@ go 1.14
 require (
 	cloud.google.com/go v0.74.0 // indirect
 	github.com/creack/pty v1.1.11
-	github.com/criyle/go-sandbox v0.5.8
+	github.com/criyle/go-sandbox v0.5.9
 	github.com/elastic/go-seccomp-bpf v1.1.0
 	github.com/elastic/go-ucfg v0.7.0
 	github.com/fatih/camelcase v1.0.0 // indirect

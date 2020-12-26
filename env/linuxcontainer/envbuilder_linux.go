@@ -1,9 +1,10 @@
-package pool
+package linuxcontainer
 
 import (
 	"fmt"
 	"syscall"
 
+	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-sandbox/container"
 )
 
@@ -27,7 +28,7 @@ type environmentBuilder struct {
 }
 
 // NewEnvBuilder creates builder for linux container pools
-func NewEnvBuilder(c Config) EnvBuilder {
+func NewEnvBuilder(c Config) pool.EnvBuilder {
 	return &environmentBuilder{
 		builder: c.Builder,
 		cgPool:  c.CgroupPool,
@@ -39,7 +40,7 @@ func NewEnvBuilder(c Config) EnvBuilder {
 }
 
 // Build creates linux container
-func (b *environmentBuilder) Build() (Environment, error) {
+func (b *environmentBuilder) Build() (pool.Environment, error) {
 	m, err := b.builder.Build()
 	if err != nil {
 		return nil, err

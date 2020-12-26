@@ -1,9 +1,9 @@
-package pool
+package linuxcontainer
 
 import (
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/runner"
 )
 

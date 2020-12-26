@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 )
 
 // default tick interval 100 ms

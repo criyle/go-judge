@@ -7,7 +7,8 @@ import (
 	"sync/atomic"
 	"syscall"
 
-	"github.com/criyle/go-judge/pkg/pool"
+	"github.com/criyle/go-judge/env/linuxcontainer"
+	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
@@ -116,11 +117,11 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		cg.Destroy()
 	}
 
-	var cgroupPool pool.CgroupPool
+	var cgroupPool linuxcontainer.CgroupPool
 	if cgb != nil {
-		cgroupPool = pool.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
+		cgroupPool = linuxcontainer.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
 	}
-	return pool.NewEnvBuilder(pool.Config{
+	return linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
 		Builder:    b,
 		CgroupPool: cgroupPool,
 		WorkDir:    workDir,

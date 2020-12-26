@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-sandbox/runner"
@@ -12,8 +13,16 @@ import (
 
 // copyOutAndCollect reads file and pipes in parallel from container
 func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]file.File, error) {
-	var g errgroup.Group
-	fc := make(chan file.File, len(ptc)+len(c.CopyOut))
+	var (
+		g errgroup.Group
+		l sync.Mutex
+	)
+	rt := make(map[string]file.File)
+	put := func(f file.File) {
+		l.Lock()
+		defer l.Unlock()
+		rt[f.Name()] = f
+	}
 
 	// copy out
 	for _, n := range c.CopyOut {
@@ -40,7 +49,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 			if err != nil {
 				return err
 			}
-			fc <- file.NewMemFile(n, c)
+			put(file.NewMemFile(n, c))
 			return nil
 		})
 	}
@@ -53,7 +62,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 			if int64(p.buff.Buffer.Len()) > p.buff.Max {
 				return runner.StatusOutputLimitExceeded
 			}
-			fc <- file.NewMemFile(p.name, p.buff.Buffer.Bytes())
+			put(file.NewMemFile(p.name, p.buff.Buffer.Bytes()))
 			return nil
 		})
 	}
@@ -65,15 +74,6 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 		})
 	}
 
-	var err error
-	go func() {
-		err = g.Wait()
-		close(fc)
-	}()
-
-	rt := make(map[string]file.File)
-	for f := range fc {
-		rt[f.Name()] = f
-	}
+	err := g.Wait()
 	return rt, err
 }

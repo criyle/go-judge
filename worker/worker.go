@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/filestore"
-	"github.com/criyle/go-judge/pkg/envexec"
 )
 
 const maxWaiting = 512
@@ -201,9 +201,9 @@ func (w *worker) convertResult(result envexec.Result, copyOutSet map[string]bool
 	res.Status = result.Status
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
-	res.Time = uint64(result.Time)
-	res.RunTime = uint64(result.RunTime)
-	res.Memory = uint64(result.Memory)
+	res.Time = result.Time
+	res.RunTime = result.RunTime
+	res.Memory = result.Memory
 	res.Files = make(map[string][]byte)
 	res.FileIDs = make(map[string]string)
 

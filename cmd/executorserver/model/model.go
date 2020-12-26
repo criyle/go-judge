@@ -5,8 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/worker"
 )
 
@@ -127,9 +128,9 @@ func convertResult(r worker.Result) Result {
 		Status:     Status(r.Status),
 		ExitStatus: r.ExitStatus,
 		Error:      r.Error,
-		Time:       r.Time,
-		RunTime:    r.RunTime,
-		Memory:     r.Memory,
+		Time:       uint64(r.Time),
+		RunTime:    uint64(r.RunTime),
+		Memory:     uint64(r.Memory),
 		FileIDs:    r.FileIDs,
 	}
 	if r.Files != nil {
@@ -160,10 +161,10 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 		Env:           c.Env,
 		Files:         make([]worker.CmdFile, 0, len(c.Files)),
 		TTY:           c.TTY,
-		CPULimit:      c.CPULimit,
-		RealCPULimit:  c.RealCPULimit,
-		MemoryLimit:   c.MemoryLimit,
-		StackLimit:    c.StackLimit,
+		CPULimit:      time.Duration(c.CPULimit),
+		RealCPULimit:  time.Duration(c.RealCPULimit),
+		MemoryLimit:   envexec.Size(c.MemoryLimit),
+		StackLimit:    envexec.Size(c.StackLimit),
 		ProcLimit:     c.ProcLimit,
 		CPURateLimit:  c.CPURateLimit,
 		CopyOut:       c.CopyOut,

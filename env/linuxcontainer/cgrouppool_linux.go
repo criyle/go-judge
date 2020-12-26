@@ -1,10 +1,10 @@
-package pool
+package linuxcontainer
 
 import (
 	"sync"
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 )
 
 // Cgroup defines interface to limit and monitor resources consumption of a process

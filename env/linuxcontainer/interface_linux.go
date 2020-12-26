@@ -1,4 +1,4 @@
-package pool
+package linuxcontainer
 
 import (
 	"github.com/criyle/go-sandbox/container"

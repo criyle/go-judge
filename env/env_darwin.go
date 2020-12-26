@@ -1,8 +1,8 @@
 package env
 
 import (
-	"github.com/criyle/go-judge/pkg/macsandbox"
-	"github.com/criyle/go-judge/pkg/pool"
+	"github.com/criyle/go-judge/env/macsandbox"
+	"github.com/criyle/go-judge/env/pool"
 )
 
 var defaultRead = []string{

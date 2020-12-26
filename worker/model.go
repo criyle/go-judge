@@ -1,6 +1,11 @@
 package worker
 
-import "github.com/criyle/go-judge/pkg/envexec"
+import (
+	"fmt"
+	"time"
+
+	"github.com/criyle/go-judge/envexec"
+)
 
 // Cmd defines command and limits to start a program using in envexec
 type Cmd struct {
@@ -9,10 +14,10 @@ type Cmd struct {
 	Files []CmdFile
 	TTY   bool
 
-	CPULimit     uint64
-	RealCPULimit uint64
-	MemoryLimit  uint64
-	StackLimit   uint64
+	CPULimit     time.Duration
+	RealCPULimit time.Duration
+	MemoryLimit  envexec.Size
+	StackLimit   envexec.Size
 	ProcLimit    uint64
 	CPURateLimit float64
 
@@ -48,9 +53,9 @@ type Result struct {
 	Status     envexec.Status
 	ExitStatus int
 	Error      string
-	Time       uint64
-	RunTime    uint64
-	Memory     uint64
+	Time       time.Duration
+	RunTime    time.Duration
+	Memory     envexec.Size
 	Files      map[string][]byte
 	FileIDs    map[string]string
 }
@@ -60,4 +65,31 @@ type Response struct {
 	RequestID string
 	Results   []Result
 	Error     error
+}
+
+func (r Result) String() string {
+	type Result struct {
+		Status     envexec.Status
+		ExitStatus int
+		Error      string
+		Time       time.Duration
+		RunTime    time.Duration
+		Memory     envexec.Size
+		Files      map[string]string
+		FileIDs    map[string]string
+	}
+	d := Result{
+		Status:     r.Status,
+		ExitStatus: r.ExitStatus,
+		Error:      r.Error,
+		Time:       r.Time,
+		RunTime:    r.RunTime,
+		Memory:     r.Memory,
+		Files:      make(map[string]string),
+		FileIDs:    r.FileIDs,
+	}
+	for k, v := range r.Files {
+		d.Files[k] = fmt.Sprintf("(len:%d)", len(v))
+	}
+	return fmt.Sprintf("%+v", d)
 }

@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
-	"github.com/criyle/go-judge/pkg/pool"
+	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
 	"github.com/criyle/go-sandbox/pkg/rlimit"
 	"github.com/criyle/go-sandbox/runner"

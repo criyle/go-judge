@@ -1,8 +1,8 @@
 package env
 
 import (
-	"github.com/criyle/go-judge/pkg/pool"
-	"github.com/criyle/go-judge/pkg/winc"
+	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/env/winc"
 )
 
 // NewBuilder build a environment builder

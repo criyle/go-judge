@@ -15,10 +15,10 @@ import (
 
 	"github.com/criyle/go-judge/cmd/executorserver/config"
 	"github.com/criyle/go-judge/env"
+	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
-	"github.com/criyle/go-judge/pkg/envexec"
-	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 	ginpprof "github.com/gin-contrib/pprof"
 	ginzap "github.com/gin-contrib/zap"

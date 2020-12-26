@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/koding/multiconfig"
 )
 

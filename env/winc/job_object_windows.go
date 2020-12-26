@@ -4,7 +4,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 	"golang.org/x/sys/windows"
 )
 

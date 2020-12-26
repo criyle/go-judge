@@ -1,7 +1,12 @@
 package main
 
-import "github.com/criyle/go-sandbox/container"
+import (
+	"os"
+
+	"github.com/criyle/go-sandbox/container"
+)
 
 func main() {
 	container.Init()
+	os.Exit(2)
 }

@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/creack/pty"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/worker"
@@ -100,9 +102,9 @@ func convertPBResult(r worker.Result) *pb.Response_Result {
 		Status:     pb.Response_Result_StatusType(r.Status),
 		ExitStatus: int32(r.ExitStatus),
 		Error:      r.Error,
-		Time:       r.Time,
-		RunTime:    r.RunTime,
-		Memory:     r.Memory,
+		Time:       uint64(r.Time),
+		RunTime:    uint64(r.RunTime),
+		Memory:     uint64(r.Memory),
 		Files:      r.Files,
 		FileIDs:    r.FileIDs,
 	}
@@ -172,10 +174,10 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 		Args:          c.GetArgs(),
 		Env:           c.GetEnv(),
 		TTY:           c.GetTty(),
-		CPULimit:      c.GetCPULimit(),
-		RealCPULimit:  c.GetRealCPULimit(),
-		MemoryLimit:   c.GetMemoryLimit(),
-		StackLimit:    c.GetStackLimit(),
+		CPULimit:      time.Duration(c.GetCPULimit()),
+		RealCPULimit:  time.Duration(c.GetRealCPULimit()),
+		MemoryLimit:   envexec.Size(c.GetMemoryLimit()),
+		StackLimit:    envexec.Size(c.GetStackLimit()),
 		ProcLimit:     c.GetProcLimit(),
 		CPURateLimit:  c.GetCPURateLimit(),
 		CopyOut:       c.GetCopyOut(),

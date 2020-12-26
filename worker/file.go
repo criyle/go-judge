@@ -3,9 +3,9 @@ package worker
 import (
 	"fmt"
 
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/filestore"
-	"github.com/criyle/go-judge/pkg/envexec"
 )
 
 // CmdFile defines file used in the cmd

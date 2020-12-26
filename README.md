@@ -1,38 +1,67 @@
 # go-judge
 
-[![GoDoc](https://godoc.org/github.com/criyle/go-judge?status.svg)](https://godoc.org/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest) ![Build](https://github.com/criyle/go-judge/workflows/Build/badge.svg)
+[![Go Reference](https://pkg.go.dev/badge/github.com/criyle/go-judge.svg)](https://pkg.go.dev/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest) ![Build](https://github.com/criyle/go-judge/workflows/Build/badge.svg)
 
 ## Executor Service
 
 ### Architecture
 
-#### Overall Architecture
-
 ```text
-+----------------------------------------------------------------------------------+
-| Transport Layer (HTTP / WebSocket / FFI / ...)                                   |
-+----------------------------------------------------------------------------------+
-| Executor Worker                                                                  |
-+-----------------------------------------------------------+----------------------+
-| EnvExec + Environment Pool + Environment Builder          | File Store           |
-+--------------------+----------------+---------------------+--------+-------+-----+
-| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Local | ... |
-+--------------------+----------------+---------------------+--------+-------+-----+
++---------------------------------------------------------------------------+
+| Transport Layer (HTTP / WebSocket / FFI / ...)                            |
++---------------------------------------------------------------------------+
+| Executor Worker                                                           |
++-----------------------------------------------------------+---------------+
+| Environment Pool + EnvExec + Environment Builder          | File Store    |
++--------------------+----------------+---------------------+--------+------+
+| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Disk |
++--------------------+----------------+---------------------+--------+------+
 ```
 
-A rest service to run program in restricted environment and it is basically a wrapper for `pkg/envexec` to run single / multiple programs.
+### REST API
 
-- /run POST execute program in the restricted environment
+A REST service to run program in restricted environment and it is basically a wrapper for `envexec` to run single / multiple programs.
+
+- /run POST execute program in the restricted environment (examples below)
 - /file GET list all cached file
 - /file POST prepare a file in the executor service (in memory), returns fileId (can be referenced in /run parameter)
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
-- /metrics prometheus metrics (specifies `METRICS=1` environment variable to enable metrics)
-- /debug (specifies `DEBUG=1` environment variable to enable go runtime debug endpoint)
-- /version gets build git version (e.g. `v0.6.4-1-g20d2815`) together with runtime information (go version, os, platform)
+- /metrics prometheus metrics (specifies `ES_ENABLE_METRICS=1` environment variable to enable metrics)
+- /debug (specifies `ES_ENABLE_DEBUG=1` environment variable to enable go runtime debug endpoint)
+- /version gets build git version (e.g. `v0.9.4`) together with runtime information (go version, os, platform)
 
-### Install & Run Developing Server
+### Command Line Arguments
+
+- The default binding address for the executor server is `:5050`. Can be specified with `-http-addr` flag.
+- By default gRPC endpoint is disabled, to enable gRPC endpoint, add `-enable-grpc` flag.
+- The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag.
+- The default concurrency is `4`, Can be specified with `-parallelism` flag.
+- The default file store is in memory, local cache can be specified with `-dir` flag.
+- The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
+- The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
+- `-auth-token` to add token-based authentication to REST / gRPC
+- `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
+- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
+- `-output-limit` specifies size limit of POSIX rlimit of output
+- `-cpuset` specifies `cpuset.cpus` cgroup for each container
+- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
+    - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
+- `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control
+- `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
+- `-seccomp-conf` specifies `seecomp` filter setting to load when running program
+    - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
+    - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
+    - the program killed by seccomp filter will have status `Dangerous Syscall`
+- By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`
+- By default, the prometheus metrics endpoints are disabled, to enable, specifies `-enable-metrics`
+
+### Environment Variables
+
+Environment variable will be override by command line arguments if they both present and all command line arguments have its correspond environment variable (e.g. `ES_HTTP_ADDR`). Run `executorserver --help` to see all the environment variable configurations.
+
+### Install & Run
 
 Install GO 1.13+ from [download](https://golang.org/dl/)
 
@@ -51,41 +80,7 @@ Build by your own `docker build -t executorserver -f Dockerfile.exec .`
 
 The `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/executor_server`, `/sys/fs/cgroup/memory/executor_server`, `/sys/fs/cgroup/pids/executor_server` and make execution user readable or use `sudo` to run it.
 
-#### Command Line Arguments
-
-- The default binding address for the executor server is `:5050`. Can be specified with `-http-addr` flag.
-- The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag. (Notice: need to set `ES_ENABLE_GRPC=1` environment variable to enable GRPC endpoint)
-- The default concurrency is `4`, Can be specified with `-parallelism` flag.
-- The default file store is in memory, local cache can be specified with `-dir` flag.
-- The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
-- The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
-- `-auth-token` to add token-based authentication to REST / gRPC
-- `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
-- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
-- `-output-limit` specifies size limit of POSIX rlimit of output
-- `-cpuset` specifies `cpuset.cpus` cgroup for each container
-- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
-    - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
-- `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control
-- `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
-- `-seccomp-conf` specifies `seecomp` filter setting to load when running program
-    - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
-    - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
-    - the program killed by seccomp filter will have status `Dangerous Syscall`
-
-#### Environment Variables
-
-Environment variable will be override by command line arguments if they both present. All command line arguments have its correspond environment variable.
-
-- The http binding address specifies as `ES_HTTP_ADDR=addr`
-- The grpc binding address specifies as `ES_GRPC_ADDR=addr`
-- The parallelism specifies as `ES_PARALLELISM=4`
-- The token specifies as `ES_AUTH_TOKEN=token`
-- `ES_ENABLE_GRPC=1` enables gRPC
-- `ES_ENABLE_METRICS=1` enables metrics
-- `ES_ENABLE_DEBUG=1` enables debug
-
-### Build Shared object
+#### Build Shared object
 
 Build container init `cinit`:
 
@@ -101,7 +96,7 @@ For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported 
 
 Build `go build ./cmd/executorproxy`
 
-Run `./executorproxy`, connect to gRPC endpoint and offers REST endpoint.
+Run `./executorproxy`, connect to gRPC endpoint expose as a REST endpoint.
 
 ### Build Executor Shell
 
@@ -111,30 +106,20 @@ Run `./executorshell`, connect to gRPC endpoint with interactive shell.
 
 ### Container Root Filesystem
 
-- [x] necessary lib / exec / compiler / header readonly bind mounted from current file system: /lib /lib64 /bin /usr
-- [x] work directory tmpfs mount: /w (work dir), /tmp (compiler temp files)
+For linux platform, the default mounts points are bind mounting host's `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom` and mounts tmpfs at `/w`, `/tmp` and creates `/proc`.
 
-The following mounts point are examples that can be configured through config file later
+To customize mount points, please look at example `mount.yaml` file.
 
-- additional compiler scripts / exec readonly bind mounted: /c
-- additional header readonly bind mounted: /i
+### Packages
 
-### Utilities
-
-- pkg/envexec: run single / group of programs in parallel within restricted environment and resource constraints
-- pkg/pool: reference implementation for Cgroup & Environment Pool
+- envexec: run single / group of programs in parallel within restricted environment and resource constraints
+- env: reference implementation environments to inject into envexec
 
 ### Windows Support
 
-Build `executorserver` by:
-
-`go build ./cmd/executorserver/`
-
-Build `executor_server.dll`: (need to install `gcc` as well)
-
-`go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
-
-Run: `./executorserver`
+- Build `executorserver` by: `go build ./cmd/executorserver/`
+- Build `executor_server.dll`: (need to install `gcc` as well) `go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
+- Run: `./executorserver`
 
 #### Windows Security
 
@@ -144,26 +129,19 @@ Run: `./executorserver`
 
 ### MacOS Support
 
-Build `executorserver` by:
-
-`go build ./cmd/executorserver/`
-
-Build `executor_server.dylib`: (need to install `XCode`)
-
-`go build -buildmode=c-shared -o executor_server.dylib ./cmd/ffi/`
-
-Run: `./executorserver`
+- Build `executorserver` by: `go build ./cmd/executorserver/`
+- Build `executor_server.dylib`: (need to install `XCode`) `go build -buildmode=c-shared -o executor_server.dylib ./cmd/ffi/`
+- Run: `./executorserver`
 
 #### MacOS Security
 
-- `sandbox-init` profile deny network access and file read / write
+- `sandbox-init` profile deny network access and file read / write and read / write to `/Users` directory
 
 ### Benchmark
 
-By `wrk` with `t.lua`: 
+By `wrk` with `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.
 
-- Tested single thread ~140-160 op/s macOS Docker Desktop & ~400-460 op/s Windows 10 WSL2.
-- Tested multi thread ~1100-1200 op/s Windows 10 WSL2
+However, these results are not the real use cases since the running time depends on the actual program specifies in the request. Normally, the executor server consumes ~1ms more compare to running without sandbox.
 
 ```lua
 wrk.method = "POST"
@@ -171,41 +149,32 @@ wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"
 wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
 ```
 
-`wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`
+- Single thread ~400-460 op/s Windows 10 WSL2
+- Multi thread ~1100-1200 op/s Windows 10 WSL2
 
-e.g.:
+Single thread:
 
 ```text
 Running 30s test @ http://localhost:5050/run
   1 threads and 1 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     2.17ms  446.05us  22.37ms   93.88%
-    Req/Sec   463.26     26.15   500.00     78.67%
+    Latency     2.23ms  287.79us  14.29ms   86.51%
+    Req/Sec   451.05     17.60   494.00     76.00%
   Latency Distribution
-     50%    2.08ms
-     75%    2.27ms
+     50%    2.19ms
+     75%    2.33ms
      90%    2.50ms
-     99%    3.13ms
-  13846 requests in 30.01s, 3.65MB read
-Requests/sec:    461.30
-Transfer/sec:    124.38KB
+     99%    2.93ms
+  13482 requests in 30.02s, 3.58MB read
+Requests/sec:    449.15
+Transfer/sec:    121.98KB
 ```
 
-## TODO
+### TODO
 
-- [x] Github actions to auto build
-- [x] Configure mounts using YAML config file
-- [x] Investigate root-free running mechanism (no cgroup && not set uid / gid)
-- [x] Investigate RLimit settings (cpu, data, fsize, stack, noFile)
-- [x] Add WebSocket for job submission
-- [x] Windows support
-- [x] MacOS support
-- [x] GRPC + protobuf support
-- [x] Token-based authentication
-- [x] Prometheus metrics support
-- [x] Customize container workDir, hostName & domainName
+- [ ] Github actions to auto build docker image
 
-## API interface
+### REST API Interface
 
 ```typescript
 interface LocalFile {

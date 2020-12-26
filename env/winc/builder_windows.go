@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/criyle/go-judge/pkg/pool"
+	"github.com/criyle/go-judge/env/pool"
 	"golang.org/x/sys/windows"
 )
 

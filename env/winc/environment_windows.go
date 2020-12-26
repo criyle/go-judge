@@ -12,8 +12,8 @@ import (
 	"unicode/utf16"
 	"unsafe"
 
-	"github.com/criyle/go-judge/pkg/envexec"
-	"github.com/criyle/go-judge/pkg/pool"
+	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/runner"
 	"golang.org/x/sys/windows"
 )

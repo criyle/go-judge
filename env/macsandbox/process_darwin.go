@@ -1,7 +1,7 @@
 package macsandbox
 
 import (
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/runner"
 )
 

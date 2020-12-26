@@ -1,4 +1,4 @@
-package pool
+package linuxcontainer
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/rlimit"
 )

@@ -3,7 +3,7 @@ package pool
 import (
 	"sync"
 
-	"github.com/criyle/go-judge/pkg/envexec"
+	"github.com/criyle/go-judge/envexec"
 )
 
 // Environment defines envexec.Environment with destroy

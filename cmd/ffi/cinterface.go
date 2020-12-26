@@ -12,8 +12,8 @@ import (
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/env"
+	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-judge/filestore"
-	"github.com/criyle/go-judge/pkg/pool"
 	"github.com/criyle/go-judge/worker"
 )
 

@@ -14,6 +14,7 @@ import (
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/worker"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const buffLen = 4096
@@ -47,7 +48,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	return convertPBResponse(rt), nil
 }
 
-func (e *execServer) FileList(c context.Context, n *pb.Empty) (*pb.FileListType, error) {
+func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileListType, error) {
 	return &pb.FileListType{
 		FileIDs: e.fs.List(),
 	}, nil
@@ -75,12 +76,12 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 	}, nil
 }
 
-func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*pb.Empty, error) {
+func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty, error) {
 	ok := e.fs.Remove(f.GetFileID())
 	if !ok {
 		return nil, fmt.Errorf("file id does not exists for %v", f.GetFileID())
 	}
-	return &pb.Empty{}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func convertPBResponse(r worker.Response) *pb.Response {

@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package pb;
 
 option go_package = "github.com/criyle/go-judge/pb";
@@ -16,7 +18,7 @@ service Executor {
   rpc ExecStream(stream StreamRequest) returns (stream StreamResponse);
 
   // FileList lists all files available in the file store
-  rpc FileList(Empty) returns (FileListType);
+  rpc FileList(google.protobuf.Empty) returns (FileListType);
 
   // FileGet download the file from the file store
   rpc FileGet(FileID) returns (FileContent);
@@ -25,10 +27,8 @@ service Executor {
   rpc FileAdd(FileContent) returns (FileID);
 
   // FileDelete deletes a file from the file store
-  rpc FileDelete(FileID) returns (Empty);
+  rpc FileDelete(FileID) returns (google.protobuf.Empty);
 };
-
-message Empty {}
 
 message FileID { string fileID = 1; }
 

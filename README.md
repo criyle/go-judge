@@ -34,17 +34,25 @@ A REST service to run program in restricted environment and it is basically a wr
 
 ### Command Line Arguments
 
+Server:
+
 - The default binding address for the executor server is `:5050`. Can be specified with `-http-addr` flag.
 - By default gRPC endpoint is disabled, to enable gRPC endpoint, add `-enable-grpc` flag.
 - The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag.
+- The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
+- `-auth-token` to add token-based authentication to REST / gRPC
+- By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`
+- By default, the prometheus metrics endpoints are disabled, to enable, specifies `-enable-metrics`
+
+Sandbox:
+
 - The default concurrency is `4`, Can be specified with `-parallelism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
-- The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
 - The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
-- `-auth-token` to add token-based authentication to REST / gRPC
 - `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
-- `-output-limit` specifies size limit of POSIX rlimit of output
+- `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
+- `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container
 - `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
     - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
@@ -54,8 +62,8 @@ A REST service to run program in restricted environment and it is basically a wr
     - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
     - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
     - the program killed by seccomp filter will have status `Dangerous Syscall`
-- By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`
-- By default, the prometheus metrics endpoints are disabled, to enable, specifies `-enable-metrics`
+- `-pre-fork` specifies number of container to create when server starts
+- `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting
 
 ### Environment Variables
 
@@ -63,18 +71,15 @@ Environment variable will be override by command line arguments if they both pre
 
 ### Install & Run
 
-Install GO 1.13+ from [download](https://golang.org/dl/)
-
-```bash
-go get github.com/criyle/go-judge/cmd/executorserver
-~/go/bin/executorserver # or executorserver if $(GOPATH)/bin is in your $PATH
-```
+Download compiled executable from [Release](https://github.com/criyle/go-judge/releases) and run. 
 
 Or, by docker
 
 ```bash
 docker run -it --rm --privileged -p 5050:5050 criyle/executorserver:demo
 ```
+
+#### Build Executor Server
 
 Build by your own `docker build -t executorserver -f Dockerfile.exec .`
 

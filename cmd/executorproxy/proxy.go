@@ -14,6 +14,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var (
@@ -41,7 +42,7 @@ func (p *execProxy) Exec(c *gin.Context) {
 }
 
 func (p *execProxy) FileList(c *gin.Context) {
-	rep, err := p.client.FileList(c, &pb.Empty{})
+	rep, err := p.client.FileList(c, &emptypb.Empty{})
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

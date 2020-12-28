@@ -1,7 +1,0 @@
-root = "."
-
-[build]
-cmd = "go build -o ./tmp/executorserver ./cmd/executorserver"
-bin = "tmp/executorserver"
-
-include_ext = ["go"]

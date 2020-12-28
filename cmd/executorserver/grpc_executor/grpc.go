@@ -1,4 +1,4 @@
-package main
+package grpcexecutor
 
 import (
 	"context"
@@ -14,6 +14,9 @@ import (
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/worker"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -25,11 +28,22 @@ var buffPool = sync.Pool{
 	},
 }
 
+// New creates grpc executor server
+func New(worker worker.Worker, fs filestore.FileStore, srcPrefix string, logger *zap.Logger) pb.ExecutorServer {
+	return &execServer{
+		worker:    worker,
+		fs:        fs,
+		srcPrefix: srcPrefix,
+		logger:    logger,
+	}
+}
+
 type execServer struct {
 	pb.UnimplementedExecutorServer
 	worker    worker.Worker
 	fs        filestore.FileStore
 	srcPrefix string
+	logger    *zap.Logger
 }
 
 func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, error) {
@@ -40,8 +54,9 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	if len(si) > 0 || len(so) > 0 {
 		return nil, fmt.Errorf("Stream in / out are not avaliable for exec request")
 	}
+	e.logger.Sugar().Debugf("request: %+v", r)
 	rt := <-e.worker.Submit(ctx, r)
-	execObserve(rt)
+	e.logger.Sugar().Debugf("response: %+v", rt)
 	if rt.Error != nil {
 		return nil, err
 	}
@@ -69,7 +84,7 @@ func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, 
 func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID, error) {
 	fid, err := e.fs.Add(fc.GetName(), fc.GetContent())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	return &pb.FileID{
 		FileID: fid,
@@ -79,7 +94,7 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty, error) {
 	ok := e.fs.Remove(f.GetFileID())
 	if !ok {
-		return nil, fmt.Errorf("file id does not exists for %v", f.GetFileID())
+		return nil, status.Errorf(codes.InvalidArgument, "file id does not exists for %v", f.GetFileID())
 	}
 	return &emptypb.Empty{}, nil
 }

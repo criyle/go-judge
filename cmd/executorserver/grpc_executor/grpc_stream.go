@@ -1,26 +1,32 @@
-package main
+package grpcexecutor
 
 import (
+	"context"
 	"fmt"
 	"io"
+	"sync"
 
-	"github.com/creack/pty"
 	"github.com/criyle/go-judge/pb"
+	"github.com/criyle/go-judge/worker"
+	"go.uber.org/zap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 	msg, err := es.Recv()
 	if err != nil {
-		return err
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
 	req := msg.GetExecRequest()
 	if req == nil {
-		return fmt.Errorf("The first stream request must be exec request")
+		return status.Error(codes.InvalidArgument, "the first stream request must be exec request")
 	}
 	rq, streamIn, streamOut, err := convertPBRequest(req, e.srcPrefix)
 	if err != nil {
-		return err
+		return status.Errorf(codes.InvalidArgument, "convert exec request: %v", err)
 	}
+	e.logger.Sugar().Debugf("request: %+v", rq)
 	defer func() {
 		for _, fi := range streamIn {
 			fi.Close()
@@ -30,13 +36,17 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(es.Context())
+	defer cancel()
 	errCh := make(chan error, 1)
+	var wg sync.WaitGroup
 
 	// stream in
 	if len(streamIn) > 0 {
+		wg.Add(1)
 		go func() {
-			err := streamInput(es, streamIn)
-			if err != nil {
+			defer wg.Done()
+			if err := streamInput(ctx, es, streamIn); err != nil {
 				writeErrCh(errCh, err)
 			}
 		}()
@@ -45,11 +55,12 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 	// stream out
 	outCh := make(chan *pb.StreamResponse_ExecOutput, len(streamOut))
 	if len(streamOut) > 0 {
+		wg.Add(len(streamOut))
 		for _, so := range streamOut {
 			so := so
 			go func() {
-				err := streamOutput(es.Context().Done(), outCh, so)
-				if err != nil {
+				defer wg.Done()
+				if err := streamOutput(ctx, outCh, so); err != nil {
 					writeErrCh(errCh, err)
 				}
 			}()
@@ -57,25 +68,37 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 	}
 
 	rtCh := e.worker.Execute(es.Context(), rq)
+	err = execStreamLoop(es, errCh, outCh, rtCh, e.logger)
+
+	// Ensure all goroutine are exited
+	cancel()
+	wg.Wait()
+	return err
+}
+
+func execStreamLoop(es pb.Executor_ExecStreamServer, errCh chan error, outCh chan *pb.StreamResponse_ExecOutput, rtCh <-chan worker.Response, logger *zap.Logger) error {
 	for {
 		select {
+		case <-es.Context().Done():
+			if err := es.Context().Err(); err != nil {
+				return status.Errorf(codes.Canceled, "context finished: %v", err)
+			}
+			return nil
+
 		case err := <-errCh:
-			return err
+			return status.Errorf(codes.Aborted, "stream in/out: %v", err)
 
 		case o := <-outCh:
-			err = es.Send(&pb.StreamResponse{
+			err := es.Send(&pb.StreamResponse{
 				Response: o,
 			})
 			if err != nil {
-				return err
+				return status.Errorf(codes.Aborted, "output: %v", err)
 			}
 			buffPool.Put(o.ExecOutput.Content[:cap(o.ExecOutput.Content)])
 
 		case rt := <-rtCh:
-			execObserve(rt)
-			if rt.Error != nil {
-				return err
-			}
+			logger.Sugar().Debugf("response: %+v", rt)
 			return es.Send(&pb.StreamResponse{
 				Response: &pb.StreamResponse_ExecResponse{
 					ExecResponse: convertPBResponse(rt),
@@ -85,10 +108,10 @@ func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
 	}
 }
 
-func streamOutput(done <-chan struct{}, outCh chan<- *pb.StreamResponse_ExecOutput, so *fileStreamOut) error {
+func streamOutput(ctx context.Context, outCh chan<- *pb.StreamResponse_ExecOutput, so *fileStreamOut) error {
 	for {
 		select {
-		case <-done:
+		case <-ctx.Done():
 			return nil
 		default:
 		}
@@ -107,14 +130,14 @@ func streamOutput(done <-chan struct{}, outCh chan<- *pb.StreamResponse_ExecOutp
 	}
 }
 
-func streamInput(es pb.Executor_ExecStreamServer, streamIn []*fileStreamIn) error {
+func streamInput(ctx context.Context, es pb.Executor_ExecStreamServer, streamIn []*fileStreamIn) error {
 	inf := make(map[string]*fileStreamIn)
 	for _, f := range streamIn {
 		inf[f.Name()] = f
 	}
 	for {
 		select {
-		case <-es.Context().Done():
+		case <-ctx.Done():
 			return nil
 		default:
 		}
@@ -133,6 +156,9 @@ func streamInput(es pb.Executor_ExecStreamServer, streamIn []*fileStreamIn) erro
 				return fmt.Errorf("input %s not exists", i.ExecInput.GetName())
 			}
 			_, err = f.Write(i.ExecInput.Content)
+			if err == io.EOF {
+				return nil
+			}
 			if err != nil {
 				return fmt.Errorf("write to input %s with err %w", i.ExecInput.GetName(), err)
 			}
@@ -142,14 +168,7 @@ func streamInput(es pb.Executor_ExecStreamServer, streamIn []*fileStreamIn) erro
 			if !ok {
 				return fmt.Errorf("input %s not exists", i.ExecResize.GetName())
 			}
-			winSize := &pty.Winsize{
-				Rows: uint16(i.ExecResize.Rows),
-				Cols: uint16(i.ExecResize.Cols),
-				X:    uint16(i.ExecResize.X),
-				Y:    uint16(i.ExecResize.Y),
-			}
-			err = pty.Setsize(f.w, winSize)
-			if err != nil {
+			if err = setWinsize(f.w, i); err != nil {
 				return fmt.Errorf("resize to input %s with err %w", i.ExecResize.GetName(), err)
 			}
 

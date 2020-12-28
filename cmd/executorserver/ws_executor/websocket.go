@@ -1,4 +1,4 @@
-package main
+package wsexecutor
 
 import (
 	"context"
@@ -9,7 +9,22 @@ import (
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"go.uber.org/zap"
 )
+
+// Register registers web socket handle /ws
+type Register interface {
+	Register(*gin.Engine)
+}
+
+// New creates new websocket handle
+func New(worker worker.Worker, srcPrefix string, logger *zap.Logger) Register {
+	return &wsHandle{
+		worker:    worker,
+		srcPrefix: srcPrefix,
+		logger:    logger,
+	}
+}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
@@ -26,6 +41,11 @@ const (
 type wsHandle struct {
 	worker    worker.Worker
 	srcPrefix string
+	logger    *zap.Logger
+}
+
+func (h *wsHandle) Register(r *gin.Engine) {
+	r.GET("/ws", h.handleWS)
 }
 
 func (h *wsHandle) handleWS(c *gin.Context) {
@@ -51,17 +71,16 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 		for {
 			req := new(model.Request)
 			if err := conn.ReadJSON(req); err != nil {
-				logger.Sugar().Warn("ws read error:", err)
+				h.logger.Sugar().Warn("ws read error:", err)
 				return
 			}
 			r, err := model.ConvertRequest(req, h.srcPrefix)
 			if err != nil {
-				logger.Sugar().Warn("convert error: ", err)
+				h.logger.Sugar().Warn("convert error: ", err)
 				return
 			}
 			go func() {
 				ret := <-h.worker.Submit(ctx, r)
-				execObserve(ret)
 				resultCh <- model.ConvertResponse(ret)
 			}()
 		}
@@ -77,7 +96,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			case r := <-resultCh:
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
-					logger.Sugar().Warn("ws write error:", err)
+					h.logger.Sugar().Warn("ws write error:", err)
 					return
 				}
 			case <-ticker.C:

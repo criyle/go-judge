@@ -6,7 +6,7 @@ import (
 	"errors"
 	"runtime"
 
-	"github.com/criyle/go-judge/pkg/pool"
+	"github.com/criyle/go-judge/env/pool"
 )
 
 func NewBuilder(c Config) (pool.EnvBuilder, error) {

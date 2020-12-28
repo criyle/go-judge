@@ -23,6 +23,7 @@ type Config struct {
 	TimeLimitTickInterval time.Duration
 	ExtraMemoryLimit      envexec.Size
 	OutputLimit           envexec.Size
+	ExecObserver          func(Response)
 }
 
 // Worker defines interface for executor
@@ -43,6 +44,8 @@ type worker struct {
 	timeLimitTickInterval time.Duration
 	extraMemoryLimit      envexec.Size
 	outputLimit           envexec.Size
+
+	execObserver func(Response)
 
 	startOnce sync.Once
 	stopOnce  sync.Once
@@ -67,6 +70,7 @@ func New(conf Config) Worker {
 		timeLimitTickInterval: conf.TimeLimitTickInterval,
 		extraMemoryLimit:      conf.ExtraMemoryLimit,
 		outputLimit:           conf.OutputLimit,
+		execObserver:          conf.ExecObserver,
 	}
 }
 
@@ -140,6 +144,9 @@ func (w *worker) workDoCmd(req workRequest) {
 		rt = w.workDoGroup(req.Context, req.Cmd, req.PipeMapping)
 	}
 	rt.RequestID = req.RequestID
+	if w.execObserver != nil {
+		w.execObserver(rt)
+	}
 	req.resultCh <- rt
 }
 

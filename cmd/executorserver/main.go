@@ -245,11 +245,7 @@ func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server
 func initGinMetrics(r *gin.Engine) {
 	p := ginprometheus.NewPrometheus("gin")
 	p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
-		url := c.Request.URL.Path
-		for _, p := range c.Params {
-			url = strings.Replace(url, p.Value, ":"+p.Key, 1)
-		}
-		return url
+		return c.FullPath()
 	}
 	p.Use(r)
 }

@@ -58,7 +58,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	rt := <-e.worker.Submit(ctx, r)
 	e.logger.Sugar().Debugf("response: %+v", rt)
 	if rt.Error != nil {
-		return nil, err
+		return nil, rt.Error
 	}
 	return convertPBResponse(rt), nil
 }

@@ -197,10 +197,6 @@ Requests/sec:    449.15
 Transfer/sec:    121.98KB
 ```
 
-### TODO
-
-- [ ] Github actions to auto build docker image
-
 ### REST API Interface
 
 ```typescript

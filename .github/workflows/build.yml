@@ -182,6 +182,7 @@ jobs:
           asset_name: executorserver-macOS-${{ matrix.GOARCH }}
           asset_content_type: application/octet-stream
   docker:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     steps:
       -

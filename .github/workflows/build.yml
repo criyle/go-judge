@@ -184,6 +184,28 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Docker meta
+        id: docker_meta
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          images: criyle/executorserver # list of Docker images to use as base name for tags
+          tag-sha: true # add git short SHA as Docker tag
+          tag-semver: |
+            v{{version}}
+      -
+        name: Docker meta alpine
+        id: docker_meta_alpine
+        uses: crazy-max/ghaction-docker-meta@v1
+        with:
+          images: criyle/executorserver # list of Docker images to use as base name for tags
+          tag-sha: true # add git short SHA as Docker tag
+          tag-latest: false
+          tag-semver: |
+            v{{version}}-alpine
       - 
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -217,7 +239,8 @@ jobs:
           cache-to: type=local,dest=/tmp/.buildx-cache
           tags: |
             criyle/executorserver:latest
-            criyle/executorserver:${{ github.ref }}
+            ${{ steps.docker_meta.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
       -
         name: Build and push alpine
         id: docker_build_alpine
@@ -229,8 +252,8 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
-          tags: |
-            criyle/executorserver:${{ github.ref }}-alpine
+          tags: ${{ steps.docker_meta_alpine.outputs.tags }}
+          labels: ${{ steps.docker_meta_alpine.outputs.labels }}
       -
         name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}

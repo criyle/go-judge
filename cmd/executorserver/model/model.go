@@ -29,6 +29,7 @@ type Cmd struct {
 
 	CPULimit     uint64  `json:"cpuLimit"`
 	RealCPULimit uint64  `json:"realCpuLimit"`
+	ClockLimit   uint64  `json:"clockLimit"`
 	MemoryLimit  uint64  `json:"memoryLimit"`
 	StackLimit   uint64  `json:"stackLimit"`
 	ProcLimit    uint64  `json:"procLimit"`
@@ -156,13 +157,17 @@ func convertPipe(p PipeMap) worker.PipeMap {
 }
 
 func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
+	clockLimit := c.ClockLimit
+	if c.RealCPULimit > 0 {
+		clockLimit = c.RealCPULimit
+	}
 	w := worker.Cmd{
 		Args:          c.Args,
 		Env:           c.Env,
 		Files:         make([]worker.CmdFile, 0, len(c.Files)),
 		TTY:           c.TTY,
 		CPULimit:      time.Duration(c.CPULimit),
-		RealCPULimit:  time.Duration(c.RealCPULimit),
+		ClockLimit:    time.Duration(clockLimit),
 		MemoryLimit:   envexec.Size(c.MemoryLimit),
 		StackLimit:    envexec.Size(c.StackLimit),
 		ProcLimit:     c.ProcLimit,

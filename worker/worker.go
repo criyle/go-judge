@@ -269,7 +269,7 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	wait := &waiter{
 		tickInterval:  w.timeLimitTickInterval,
 		timeLimit:     time.Duration(rc.CPULimit),
-		realTimeLimit: time.Duration(rc.RealCPULimit),
+		realTimeLimit: time.Duration(rc.ClockLimit),
 	}
 
 	var copyOutDir string
@@ -282,8 +282,8 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	}
 
 	timeLimit := time.Duration(rc.CPULimit)
-	if rc.RealCPULimit > rc.CPULimit {
-		timeLimit = time.Duration(rc.RealCPULimit)
+	if rc.ClockLimit > rc.CPULimit {
+		timeLimit = time.Duration(rc.ClockLimit)
 	}
 
 	return &envexec.Cmd{

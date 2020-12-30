@@ -109,6 +109,28 @@ Build `go build ./cmd/executorshell`
 
 Run `./executorshell`, connect to gRPC endpoint with interactive shell.
 
+### Return Status
+
+- Accepted: Program exited with status code 0 within time & memory limits
+- Memory Limit Exceeded: Program uses more memory than memory limits
+- Time Limit Exceeded: 
+  - Program uses more CPU time than cpuLimit
+  - Or, program uses more clock time than clockLimit
+- Output Limit Exceeded: 
+  - Program output more than pipeCollector limits
+  - Or, program output more than output-limit
+- File Error:
+  - CopyIn file is not existed
+  - Or, CopyIn file too large for container file system
+  - Or, CopyOut file is not existed after program exited
+- Non Zero Exit Status: Program exited with non 0 status code within time & memory limits
+- Signalled: Program exited with signal (e.g. SIGSEGV)
+- Dangerous Syscall: Program killed by seccomp filter
+- Internal Error:
+  - Program is not exist
+  - Or, container create not successful (e.g. not privileged docker)
+  - Or, other errors
+
 ### Container Root Filesystem
 
 For linux platform, the default mounts points are bind mounting host's `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom` and mounts tmpfs at `/w`, `/tmp` and creates `/proc`.
@@ -210,7 +232,8 @@ interface Cmd {
 
     // limitations
     cpuLimit?: number;     // ns
-    realCpuLimit?: number; // ns
+    realCpuLimit?: number; // deprecated: use clock limit instead (still working)
+    clockLimit?: number;   // ns
     memoryLimit?: number;  // byte
     stackLimit?: number;   // byte (N/A on windows, macOS cannot set over 32M)
     procLimit?: number;
@@ -583,7 +606,7 @@ Infinite loop with cpu rate control:
 		"env": ["PATH=/usr/bin:/bin"],
 		"files": [{"content": ""}, {"name": "stdout","max": 10240}, {"name": "stderr","max": 10240}],
 		"cpuLimit": 3000000000,
-        "realCpuLimit": 4000000000,
+        "clockLimit": 4000000000,
 		"memoryLimit": 104857600,
 		"procLimit": 50,
         "cpuRate": 0.1,

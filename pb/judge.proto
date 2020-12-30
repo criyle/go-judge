@@ -76,8 +76,8 @@ message Request {
     repeated File files = 3;
     bool tty = 13;
 
-    uint64 CPULimit = 4;
-    uint64 realCPULimit = 5;
+    uint64 cpuTimeLimit = 4;
+    uint64 clockTimeLimit = 5;
     uint64 memoryLimit = 6;
     uint64 stackLimit = 12;
     uint64 procLimit = 7;
@@ -120,7 +120,7 @@ message Response {
       NonZeroExitStatus = 8;
       Signalled = 9;
       DangerousSyscall = 10;
-      JudgementFailed = 11;
+      JudgementFailed = 11;    // Not used
       InvalidInteraction = 12; // Not used
       InternalError = 13;
     }

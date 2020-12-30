@@ -15,7 +15,7 @@ type Cmd struct {
 	TTY   bool
 
 	CPULimit     time.Duration
-	RealCPULimit time.Duration
+	ClockLimit   time.Duration
 	MemoryLimit  envexec.Size
 	StackLimit   envexec.Size
 	ProcLimit    uint64

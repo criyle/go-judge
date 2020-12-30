@@ -90,11 +90,11 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 					},
 				},
 			},
-			CPULimit:     uint64(cpuLimit),
-			RealCPULimit: uint64(sessionLimit),
-			MemoryLimit:  memoryLimit,
-			ProcLimit:    procLimit,
-			Tty:          true,
+			CpuTimeLimit:   uint64(cpuLimit),
+			ClockTimeLimit: uint64(sessionLimit),
+			MemoryLimit:    memoryLimit,
+			ProcLimit:      procLimit,
+			Tty:            true,
 		}},
 	}
 	err := sc.Send(&pb.StreamRequest{

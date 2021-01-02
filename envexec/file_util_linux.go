@@ -1,6 +1,7 @@
 package envexec
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 )
@@ -38,6 +39,9 @@ func copyFileDir(srcDirFd, dstDirFd int, name string) error {
 	var st syscall.Stat_t
 	if err := syscall.Fstat(fd, &st); err != nil {
 		return err
+	}
+	if st.Mode&syscall.S_IFREG == 0 {
+		return fmt.Errorf("%s is not a regular file", name)
 	}
 
 	// open the dst file

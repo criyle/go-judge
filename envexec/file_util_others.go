@@ -3,6 +3,7 @@
 package envexec
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -47,6 +48,15 @@ func copyDirFile(src, dst, name string) error {
 		return err
 	}
 	defer t.Close()
+
+	stat, err := t.Stat()
+	if err != nil {
+		return err
+	}
+	// check regular file
+	if stat.Mode()|os.ModeType != 0 {
+		return fmt.Errorf("File(%s) is not a regular file", name)
+	}
 
 	_, err = io.Copy(t, s)
 	if err != nil {

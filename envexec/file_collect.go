@@ -34,14 +34,18 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 			}
 			defer cf.Close()
 
+			stat, err := cf.Stat()
+			if err != nil {
+				return err
+			}
+			// check regular file
+			if stat.Mode()|os.ModeType != 0 {
+				return fmt.Errorf("File(%s) is not a regular file", n)
+			}
 			// check size limit
 			if c.CopyOutMax != 0 {
-				stat, err := cf.Stat()
-				if err != nil {
-					return err
-				}
 				if s := stat.Size(); s > int64(c.CopyOutMax) {
-					return fmt.Errorf("File %s have size %d exceeded the limit %d", n, s, c.CopyOutMax)
+					return fmt.Errorf("File(%s) have size (%d) exceeded the limit (%d)", n, s, c.CopyOutMax)
 				}
 			}
 

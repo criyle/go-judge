@@ -35,10 +35,10 @@ jobs:
         GOARCH:
           - amd64 
     steps:
-      - name: Set up Go 1.14
+      - name: Set up Go 1.15
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14
+          go-version: 1.15
       - name: Check out
         uses: actions/checkout@v2
       - name: Get git tag ref
@@ -59,7 +59,7 @@ jobs:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
           go generate ./cmd/executorserver
-          go build -o executorserver ./cmd/executorserver
+          go build -tags nomsgpack -o executorserver ./cmd/executorserver
           go build -o executorshell ./cmd/executorshell
       - name: Build shared objects on Linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
@@ -109,7 +109,7 @@ jobs:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
           go generate ./cmd/executorserver
-          go build -o executorserver.exe ./cmd/executorserver
+          go build -tags nomsgpack -o executorserver.exe ./cmd/executorserver
       - name: Build shared object on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         env:
@@ -145,7 +145,7 @@ jobs:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
           go generate ./cmd/executorserver
-          go build -o executorserver ./cmd/executorserver
+          go build -tags nomsgpack -o executorserver ./cmd/executorserver
           go build -o executorshell ./cmd/executorshell
       - name: Build shared object on macOS
         if: ${{ matrix.os == 'macos-latest' }}

@@ -1,7 +1,6 @@
 package envexec
 
 import (
-	"io"
 	"os"
 
 	"github.com/criyle/go-judge/file"
@@ -26,7 +25,7 @@ func copyIn(m Environment, copyIn map[string]file.File) error {
 			}
 			defer hf.Close()
 
-			_, err = io.Copy(cf, hf)
+			_, err = cf.ReadFrom(hf)
 			if err != nil {
 				return err
 			}

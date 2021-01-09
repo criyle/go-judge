@@ -53,6 +53,7 @@ Sandbox:
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
 - `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)
+- `-copy-out-limit` specifies the default file copy out max (default 64MiB)
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container
 - `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
     - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...

@@ -315,6 +315,7 @@ func newWorker(conf *config.Config, envPool envexec.EnvironmentPool, fs filestor
 		TimeLimitTickInterval: conf.TimeLimitCheckerInterval,
 		ExtraMemoryLimit:      *conf.ExtraMemoryLimit,
 		OutputLimit:           *conf.OutputLimit,
+		CopyOutLimit:          *conf.CopyOutLimit,
 		ExecObserver:          execObserve,
 	})
 }

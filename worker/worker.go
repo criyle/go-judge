@@ -23,6 +23,7 @@ type Config struct {
 	TimeLimitTickInterval time.Duration
 	ExtraMemoryLimit      envexec.Size
 	OutputLimit           envexec.Size
+	CopyOutLimit          envexec.Size
 	ExecObserver          func(Response)
 }
 
@@ -44,6 +45,7 @@ type worker struct {
 	timeLimitTickInterval time.Duration
 	extraMemoryLimit      envexec.Size
 	outputLimit           envexec.Size
+	copyOutLimit          envexec.Size
 
 	execObserver func(Response)
 
@@ -70,6 +72,7 @@ func New(conf Config) Worker {
 		timeLimitTickInterval: conf.TimeLimitTickInterval,
 		extraMemoryLimit:      conf.ExtraMemoryLimit,
 		outputLimit:           conf.OutputLimit,
+		copyOutLimit:          conf.CopyOutLimit,
 		execObserver:          conf.ExecObserver,
 	}
 }
@@ -282,8 +285,9 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	}
 
 	timeLimit := time.Duration(rc.CPULimit)
-	if rc.ClockLimit > rc.CPULimit {
-		timeLimit = time.Duration(rc.ClockLimit)
+	copyOutMax := w.copyOutLimit
+	if rc.CopyOutMax > 0 {
+		copyOutMax = envexec.Size(rc.CopyOutMax)
 	}
 
 	return &envexec.Cmd{
@@ -301,7 +305,7 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		CopyIn:           copyIn,
 		CopyOut:          copyOut,
 		CopyOutDir:       copyOutDir,
-		CopyOutMax:       envexec.Size(rc.CopyOutMax),
+		CopyOutMax:       copyOutMax,
 		Waiter:           wait.Wait,
 	}, copyOutSet, nil
 }

@@ -4,7 +4,6 @@ package envexec
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 )
@@ -58,7 +57,7 @@ func copyDirFile(src, dst, name string) error {
 		return fmt.Errorf("File(%s) is not a regular file", name)
 	}
 
-	_, err = io.Copy(t, s)
+	_, err = t.ReadFrom(s)
 	if err != nil {
 		return err
 	}

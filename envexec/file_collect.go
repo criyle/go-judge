@@ -1,8 +1,9 @@
 package envexec
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"sync"
 
@@ -39,21 +40,23 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 				return err
 			}
 			// check regular file
-			if stat.Mode()|os.ModeType != 0 {
-				return fmt.Errorf("File(%s) is not a regular file", n)
+			if stat.Mode()&os.ModeType != 0 {
+				return fmt.Errorf("File(%s) is not a regular file %d", n, stat.Mode()&os.ModeType)
 			}
 			// check size limit
-			if c.CopyOutMax != 0 {
-				if s := stat.Size(); s > int64(c.CopyOutMax) {
-					return fmt.Errorf("File(%s) have size (%d) exceeded the limit (%d)", n, s, c.CopyOutMax)
-				}
+			s := stat.Size()
+			if c.CopyOutMax > 0 && s > int64(c.CopyOutMax) {
+				return fmt.Errorf("File(%s) have size (%d) exceeded the limit (%d)", n, s, c.CopyOutMax)
 			}
+			var buf bytes.Buffer
+			buf.Grow(int(s))
 
-			c, err := ioutil.ReadAll(cf)
+			// Ensure not copy over file size
+			_, err = buf.ReadFrom(io.LimitReader(cf, s))
 			if err != nil {
 				return err
 			}
-			put(file.NewMemFile(n, c))
+			put(file.NewMemFile(n, buf.Bytes()))
 			return nil
 		})
 	}

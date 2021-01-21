@@ -13,6 +13,7 @@ import (
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
 	"github.com/criyle/go-sandbox/pkg/mount"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -58,6 +59,11 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	unshareFlags := uintptr(forkexec.UnshareFlags)
 	if c.NetShare {
 		unshareFlags ^= syscall.CLONE_NEWNET
+	}
+	major, minor := kernelVersion()
+	if major < 4 || minor < 6 {
+		unshareFlags ^= unix.CLONE_NEWCGROUP
+		c.Info("Kernel version < 4.6, don't unshare cgroup")
 	}
 
 	// use setuid container only if running in root privilege
@@ -145,4 +151,39 @@ func (c *credGen) Get() syscall.Credential {
 		Uid: n,
 		Gid: n,
 	}
+}
+
+func kernelVersion() (major int, minor int) {
+	var uname syscall.Utsname
+	if err := syscall.Uname(&uname); err != nil {
+		return
+	}
+
+	rl := uname.Release
+	var values [2]int
+	vi := 0
+	value := 0
+	for _, c := range rl {
+		if '0' <= c && c <= '9' {
+			value = (value * 10) + int(c-'0')
+		} else {
+			// Note that we're assuming N.N.N here.  If we see anything else we are likely to
+			// mis-parse it.
+			values[vi] = value
+			vi++
+			if vi >= len(values) {
+				break
+			}
+			value = 0
+		}
+	}
+	switch vi {
+	case 0:
+		return 0, 0
+	case 1:
+		return values[0], 0
+	case 2:
+		return values[0], values[1]
+	}
+	return
 }

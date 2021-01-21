@@ -165,6 +165,16 @@ To customize mount points, please look at example `mount.yaml` file.
 
 - `sandbox-init` profile deny network access and file read / write and read / write to `/Users` directory
 
+### Notice
+
+#### CentOS 7
+
+By default, user namespace is disabled and it can be enabled following [stack overflow](https://superuser.com/questions/1294215/is-it-safe-to-enable-user-namespaces-in-centos-7-4-and-how-to-do-it/1294246#1294246)
+```bash
+echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
+sysctl -p
+```
+
 ### Benchmark
 
 By `wrk` with `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.

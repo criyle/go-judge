@@ -187,19 +187,20 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 		}
 	}()
 	cm = worker.Cmd{
-		Args:          c.GetArgs(),
-		Env:           c.GetEnv(),
-		TTY:           c.GetTty(),
-		CPULimit:      time.Duration(c.GetCpuTimeLimit()),
-		ClockLimit:    time.Duration(c.GetClockTimeLimit()),
-		MemoryLimit:   envexec.Size(c.GetMemoryLimit()),
-		StackLimit:    envexec.Size(c.GetStackLimit()),
-		ProcLimit:     c.GetProcLimit(),
-		CPURateLimit:  c.GetCPURateLimit(),
-		CopyOut:       c.GetCopyOut(),
-		CopyOutCached: c.GetCopyOutCached(),
-		CopyOutMax:    c.GetCopyOutMax(),
-		CopyOutDir:    c.GetCopyOutDir(),
+		Args:              c.GetArgs(),
+		Env:               c.GetEnv(),
+		TTY:               c.GetTty(),
+		CPULimit:          time.Duration(c.GetCpuTimeLimit()),
+		ClockLimit:        time.Duration(c.GetClockTimeLimit()),
+		MemoryLimit:       envexec.Size(c.GetMemoryLimit()),
+		StackLimit:        envexec.Size(c.GetStackLimit()),
+		ProcLimit:         c.GetProcLimit(),
+		CPURateLimit:      c.GetCPURateLimit(),
+		StrictMemoryLimit: c.GetStrictMemoryLimit(),
+		CopyOut:           c.GetCopyOut(),
+		CopyOutCached:     c.GetCopyOutCached(),
+		CopyOutMax:        c.GetCopyOutMax(),
+		CopyOutDir:        c.GetCopyOutDir(),
 	}
 	var (
 		fPty, fTty *os.File

@@ -89,6 +89,7 @@ message Request {
     repeated string copyOutCached = 10;
     string copyOutDir = 11;
     uint64 copyOutMax = 14;
+    bool strictMemoryLimit = 16;
   }
 
   message PipeMap {

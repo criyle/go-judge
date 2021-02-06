@@ -56,13 +56,13 @@ Sandbox:
 - `-copy-out-limit` specifies the default file copy out max (default 64MiB)
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container
 - `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
-    - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
+  - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
 - `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control
 - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
 - `-seccomp-conf` specifies `seecomp` filter setting to load when running program (need build tag `seccomp`)
-    - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
-    - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
-    - the program killed by seccomp filter will have status `Dangerous Syscall`
+  - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
+  - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
+  - the program killed by seccomp filter will have status `Dangerous Syscall`
 - `-pre-fork` specifies number of container to create when server starts
 - `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting
 
@@ -72,7 +72,7 @@ Environment variable will be override by command line arguments if they both pre
 
 ### Install & Run
 
-Download compiled executable from [Release](https://github.com/criyle/go-judge/releases) and run. 
+Download compiled executable from [Release](https://github.com/criyle/go-judge/releases) and run.
 
 Or, by docker
 
@@ -114,10 +114,10 @@ Run `./executorshell`, connect to gRPC endpoint with interactive shell.
 
 - Accepted: Program exited with status code 0 within time & memory limits
 - Memory Limit Exceeded: Program uses more memory than memory limits
-- Time Limit Exceeded: 
+- Time Limit Exceeded:
   - Program uses more CPU time than cpuLimit
   - Or, program uses more clock time than clockLimit
-- Output Limit Exceeded: 
+- Output Limit Exceeded:
   - Program output more than pipeCollector limits
   - Or, program output more than output-limit
 - File Error:
@@ -170,6 +170,7 @@ To customize mount points, please look at example `mount.yaml` file.
 #### CentOS 7
 
 By default, user namespace is disabled and it can be enabled following [stack overflow](https://superuser.com/questions/1294215/is-it-safe-to-enable-user-namespaces-in-centos-7-4-and-how-to-do-it/1294246#1294246)
+
 ```bash
 echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
 sysctl -p
@@ -244,6 +245,7 @@ interface Cmd {
     memoryLimit?: number;  // byte
     stackLimit?: number;   // byte (N/A on windows, macOS cannot set over 32M)
     procLimit?: number;
+    strictMemoryLimit?: boolean; // Linux only: use stricter memory limit (+ rlimit_data when cgroup enabled)
 
     // copy the correspond file to the container dst path
     copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
@@ -608,21 +610,20 @@ Infinite loop with cpu rate control:
 
 ```json
 {
-	"cmd": [{
-		"args": ["/usr/bin/python3", "1.py"],
-		"env": ["PATH=/usr/bin:/bin"],
-		"files": [{"content": ""}, {"name": "stdout","max": 10240}, {"name": "stderr","max": 10240}],
-		"cpuLimit": 3000000000,
-        "clockLimit": 4000000000,
-		"memoryLimit": 104857600,
-		"procLimit": 50,
-        "cpuRate": 0.1,
-		"copyIn": {
-			"1.py": {
-				"content": "while True:\n    pass"
-			}
-		}
-	}]
+ "cmd": [{
+  "args": ["/usr/bin/python3", "1.py"],
+  "env": ["PATH=/usr/bin:/bin"],
+  "files": [{"content": ""}, {"name": "stdout","max": 10240}, {"name": "stderr","max": 10240}],
+  "cpuLimit": 3000000000,
+  "clockLimit": 4000000000,
+  "memoryLimit": 104857600,
+  "procLimit": 50,
+  "cpuRate": 0.1,
+  "copyIn": {
+    "1.py": {
+      "content": "while True:\n    pass"
+    }
+  }}]
 }
 ```
 

@@ -14,12 +14,13 @@ type Cmd struct {
 	Files []CmdFile
 	TTY   bool
 
-	CPULimit     time.Duration
-	ClockLimit   time.Duration
-	MemoryLimit  envexec.Size
-	StackLimit   envexec.Size
-	ProcLimit    uint64
-	CPURateLimit float64
+	CPULimit          time.Duration
+	ClockLimit        time.Duration
+	MemoryLimit       envexec.Size
+	StackLimit        envexec.Size
+	ProcLimit         uint64
+	CPURateLimit      float64
+	StrictMemoryLimit bool
 
 	CopyIn map[string]CmdFile
 

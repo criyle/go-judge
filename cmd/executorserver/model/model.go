@@ -27,13 +27,14 @@ type Cmd struct {
 	Files []*CmdFile `json:"files,omitempty"`
 	TTY   bool       `json:"tty,omitempty"`
 
-	CPULimit     uint64  `json:"cpuLimit"`
-	RealCPULimit uint64  `json:"realCpuLimit"`
-	ClockLimit   uint64  `json:"clockLimit"`
-	MemoryLimit  uint64  `json:"memoryLimit"`
-	StackLimit   uint64  `json:"stackLimit"`
-	ProcLimit    uint64  `json:"procLimit"`
-	CPURateLimit float64 `json:"cpuRateLimit"`
+	CPULimit          uint64  `json:"cpuLimit"`
+	RealCPULimit      uint64  `json:"realCpuLimit"`
+	ClockLimit        uint64  `json:"clockLimit"`
+	MemoryLimit       uint64  `json:"memoryLimit"`
+	StackLimit        uint64  `json:"stackLimit"`
+	ProcLimit         uint64  `json:"procLimit"`
+	CPURateLimit      float64 `json:"cpuRateLimit"`
+	StrictMemoryLimit bool    `json:"strictMemoryLimit"`
 
 	CopyIn map[string]CmdFile `json:"copyIn"`
 
@@ -162,20 +163,21 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 		clockLimit = c.RealCPULimit
 	}
 	w := worker.Cmd{
-		Args:          c.Args,
-		Env:           c.Env,
-		Files:         make([]worker.CmdFile, 0, len(c.Files)),
-		TTY:           c.TTY,
-		CPULimit:      time.Duration(c.CPULimit),
-		ClockLimit:    time.Duration(clockLimit),
-		MemoryLimit:   envexec.Size(c.MemoryLimit),
-		StackLimit:    envexec.Size(c.StackLimit),
-		ProcLimit:     c.ProcLimit,
-		CPURateLimit:  c.CPURateLimit,
-		CopyOut:       c.CopyOut,
-		CopyOutCached: c.CopyOutCached,
-		CopyOutMax:    c.CopyOutMax,
-		CopyOutDir:    c.CopyOutDir,
+		Args:              c.Args,
+		Env:               c.Env,
+		Files:             make([]worker.CmdFile, 0, len(c.Files)),
+		TTY:               c.TTY,
+		CPULimit:          time.Duration(c.CPULimit),
+		ClockLimit:        time.Duration(clockLimit),
+		MemoryLimit:       envexec.Size(c.MemoryLimit),
+		StackLimit:        envexec.Size(c.StackLimit),
+		ProcLimit:         c.ProcLimit,
+		CPURateLimit:      c.CPURateLimit,
+		StrictMemoryLimit: c.StrictMemoryLimit,
+		CopyOut:           c.CopyOut,
+		CopyOutCached:     c.CopyOutCached,
+		CopyOutMax:        c.CopyOutMax,
+		CopyOutDir:        c.CopyOutDir,
 	}
 	for _, f := range c.Files {
 		cf, err := convertCmdFile(f, srcPrefix)

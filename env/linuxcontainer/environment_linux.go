@@ -41,6 +41,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		err      error
 	)
 
+	limit := param.Limit
 	if c.cgPool != nil {
 		cg, err = c.cgPool.Get()
 		if err != nil {
@@ -49,19 +50,23 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		if c.cpuset != "" {
 			cg.SetCpuset(c.cpuset)
 		}
-		if c.cpuRate && param.Limit.Rate > 0 {
-			cg.SetCPURate(param.Limit.Rate)
+		if c.cpuRate && limit.Rate > 0 {
+			cg.SetCPURate(limit.Rate)
 		}
-		cg.SetMemoryLimit(param.Limit.Memory)
-		cg.SetProcLimit(param.Limit.Proc)
+		cg.SetMemoryLimit(limit.Memory)
+		cg.SetProcLimit(limit.Proc)
 		syncFunc = cg.AddProc
 	}
 
 	rLimits := rlimit.RLimits{
-		CPU:      uint64(param.Limit.Time.Truncate(time.Second)/time.Second) + 1,
-		Data:     param.Limit.Memory.Byte(),
-		FileSize: param.Limit.Output.Byte(),
-		Stack:    param.Limit.Stack.Byte(),
+		CPU:         uint64(limit.Time.Truncate(time.Second)/time.Second) + 1,
+		FileSize:    limit.Output.Byte(),
+		Stack:       limit.Stack.Byte(),
+		DisableCore: true,
+	}
+
+	if limit.StrictMemory || c.cgPool == nil {
+		rLimits.Data = limit.Memory.Byte()
 	}
 
 	p := container.ExecveParam{

@@ -3,9 +3,9 @@ module github.com/criyle/go-judge
 go 1.15
 
 require (
-	cloud.google.com/go v0.75.0 // indirect
+	cloud.google.com/go v0.76.0 // indirect
 	github.com/creack/pty v1.1.11
-	github.com/criyle/go-sandbox v0.6.4
+	github.com/criyle/go-sandbox v0.6.5
 	github.com/elastic/go-seccomp-bpf v1.1.0
 	github.com/elastic/go-ucfg v0.8.3
 	github.com/fatih/camelcase v1.0.0 // indirect
@@ -22,24 +22,21 @@ require (
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/prometheus/client_golang v1.9.0
-	github.com/prometheus/procfs v0.3.0 // indirect
+	github.com/prometheus/procfs v0.4.0 // indirect
 	github.com/sirupsen/logrus v1.7.0 // indirect
-	github.com/stretchr/testify v1.7.0 // indirect
-	github.com/ugorji/go v1.2.3 // indirect
+	github.com/ugorji/go v1.2.4 // indirect
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
-	golang.org/x/mod v0.4.1 // indirect
 	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
-	golang.org/x/oauth2 v0.0.0-20210113205817-d3ed898aa8a3 // indirect
+	golang.org/x/oauth2 v0.0.0-20210201163806-010130855d6c // indirect
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
+	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf // indirect
-	golang.org/x/text v0.3.5 // indirect
-	google.golang.org/genproto v0.0.0-20210120162456-f5e8c5e2aaf2 // indirect
+	google.golang.org/genproto v0.0.0-20210204154452-deb828366460 // indirect
 	google.golang.org/grpc v1.35.0
-	google.golang.org/grpc/examples v0.0.0-20210121012422-7f2581f910fc // indirect
+	google.golang.org/grpc/examples v0.0.0-20210205041354-b753f4903c1b // indirect
 	google.golang.org/protobuf v1.25.0
 	gopkg.in/yaml.v2 v2.4.0
 	honnef.co/go/tools v0.1.1 // indirect

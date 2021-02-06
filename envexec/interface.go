@@ -29,12 +29,13 @@ type ExecveParam struct {
 
 // Limit defines the process running resource limits
 type Limit struct {
-	Time   time.Duration // Time limit
-	Memory Size          // Memory limit
-	Proc   uint64        // Process count limit
-	Stack  Size          // Stack limit
-	Output Size          // Output limit
-	Rate   float64       // CPU Rate limit
+	Time         time.Duration // Time limit
+	Memory       Size          // Memory limit
+	Proc         uint64        // Process count limit
+	Stack        Size          // Stack limit
+	Output       Size          // Output limit
+	Rate         float64       // CPU Rate limit
+	StrictMemory bool          // Use stricter memory limit (e.g. rlimit)
 }
 
 // Usage defines the peak process resource usage

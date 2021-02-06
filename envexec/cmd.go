@@ -29,13 +29,14 @@ type Cmd struct {
 	TTY   bool // use pty as input / output
 
 	// resource limits
-	TimeLimit        time.Duration
-	MemoryLimit      Size
-	StackLimit       Size
-	ExtraMemoryLimit Size
-	OutputLimit      Size
-	ProcLimit        uint64
-	CPURateLimit     float64
+	TimeLimit         time.Duration
+	MemoryLimit       Size
+	StackLimit        Size
+	ExtraMemoryLimit  Size
+	OutputLimit       Size
+	ProcLimit         uint64
+	CPURateLimit      float64
+	StrictMemoryLimit bool
 
 	// file contents to copyin before exec
 	CopyIn map[string]file.File

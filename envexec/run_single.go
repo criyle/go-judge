@@ -43,11 +43,12 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 		Files: getFdArray(fds),
 		TTY:   c.TTY,
 		Limit: Limit{
-			Time:   c.TimeLimit,
-			Memory: memoryLimit,
-			Proc:   c.ProcLimit,
-			Stack:  stackLimit,
-			Rate:   c.CPURateLimit,
+			Time:         c.TimeLimit,
+			Memory:       memoryLimit,
+			Proc:         c.ProcLimit,
+			Stack:        stackLimit,
+			Rate:         c.CPURateLimit,
+			StrictMemory: c.StrictMemoryLimit,
 		},
 	}
 

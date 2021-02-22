@@ -4,13 +4,11 @@ WORKDIR /go/judge
 
 COPY go.mod go.sum /go/judge/
 
-RUN go mod download
+RUN go mod download -x
 
 COPY ./ /go/judge
 
-RUN go build -tags nomsgpack -o executorserver ./cmd/executorserver \
-    && go build -o cinit ./cmd/cinit \
-    && go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/
+RUN CGO_ENABLE=0 go build -v -tags nomsgpack -o executorserver ./cmd/executorserver 
 
 FROM debian:latest
 

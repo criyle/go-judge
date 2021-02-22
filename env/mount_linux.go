@@ -89,6 +89,8 @@ func getDefaultMount(tmpFsConf string) *mount.Builder {
 		WithBind("/etc/alternatives", "etc/alternatives", true).
 		// fpc wants /etc/fpc.cfg
 		WithBind("/etc/fpc.cfg", "etc/fpc.cfg", true).
+		// mono wants /etc/mono
+		WithBind("/etc/mono", "etc/mono", true).
 		// go wants /dev/null
 		WithBind("/dev/null", "dev/null", false).
 		// ghc wants /var/lib/ghc

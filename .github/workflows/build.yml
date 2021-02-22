@@ -35,10 +35,10 @@ jobs:
         GOARCH:
           - amd64 
     steps:
-      - name: Set up Go 1.15
+      - name: Set up Go 1.16
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15
+          go-version: 1.16
       - name: Check out
         uses: actions/checkout@v2
       - name: Get git tag ref
@@ -57,10 +57,11 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }} 
         env:
           GOARCH: ${{ matrix.GOARCH }}
+          CGO_ENABLE: 0
         run: |
           go generate ./cmd/executorserver
-          go build -tags nomsgpack -o executorserver ./cmd/executorserver
-          go build -o executorshell ./cmd/executorshell
+          go build -v -tags nomsgpack -o executorserver ./cmd/executorserver
+          go build -v -o executorshell ./cmd/executorshell
       - name: Build shared objects on Linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
         env:

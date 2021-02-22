@@ -26,6 +26,11 @@ mount:
     source: /etc/fpc.cfg
     target: /etc/fpc.cfg
     readonly: true
+  # mono wants /etc/mono
+  - type: bind
+    source: /etc/mono
+    target: /etc/mono
+    readonly: true
   # ghc wants /var/lib/ghc
   - type: bind
     source: /var/lib/ghc

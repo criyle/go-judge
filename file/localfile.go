@@ -3,7 +3,6 @@ package file
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 )
 
@@ -27,7 +26,7 @@ func (f *localFile) Name() string {
 }
 
 func (f *localFile) Content() ([]byte, error) {
-	return ioutil.ReadFile(f.path)
+	return os.ReadFile(f.path)
 }
 
 func (f *localFile) Open() (*os.File, error) {

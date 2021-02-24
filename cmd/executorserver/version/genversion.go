@@ -5,7 +5,6 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os/exec"
 	"strings"
@@ -27,7 +26,7 @@ func main() {
 	fmt.Fprintln(&buf)
 	fmt.Fprintf(&buf, "const Version = `%s`", strings.TrimSpace(ret.String()))
 
-	if err := ioutil.WriteFile("version.go", buf.Bytes(), 0644); err != nil {
+	if err := os.WriteFile("version.go", buf.Bytes(), 0644); err != nil {
 		log.Fatalln("write file", err)
 	}
 }

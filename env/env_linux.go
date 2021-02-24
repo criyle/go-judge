@@ -2,7 +2,6 @@ package env
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sync/atomic"
 	"syscall"
@@ -25,7 +24,7 @@ const (
 
 // NewBuilder build a environment builder
 func NewBuilder(c Config) (pool.EnvBuilder, error) {
-	root, err := ioutil.TempDir("", "executorserver")
+	root, err := os.MkdirTemp("", "executorserver")
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +60,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		unshareFlags ^= syscall.CLONE_NEWNET
 	}
 	major, minor := kernelVersion()
-	if major < 4 || minor < 6 {
+	if major < 4 || (major == 4 && minor < 6) {
 		unshareFlags ^= unix.CLONE_NEWCGROUP
-		c.Info("Kernel version < 4.6, don't unshare cgroup")
+		c.Info("Kernel version (", major, ".", minor, ") < 4.6, don't unshare cgroup")
 	}
 
 	// use setuid container only if running in root privilege
@@ -114,9 +113,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	if err != nil {
 		return nil, err
 	}
-	c.Info("Test created cgroup builder with:", cgb)
+	c.Info("Test created cgroup builder with: ", cgb)
 	if cg, err := cgb.Build(); err != nil {
-		c.Warn("Tested created cgroup with error", err)
+		c.Warn("Tested created cgroup with error: ", err)
 		c.Warn("Failed back to rlimit / rusage mode")
 		cgb = nil
 	} else {

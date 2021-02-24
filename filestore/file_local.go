@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"sync"
@@ -44,7 +43,7 @@ func (s *fileLocalStore) Add(name string, content []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	err = ioutil.WriteFile(path.Join(s.dir, id), content, 0644)
+	err = os.WriteFile(path.Join(s.dir, id), content, 0644)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +81,7 @@ func (s *fileLocalStore) Remove(id string) bool {
 
 func (s *fileLocalStore) List() []string {
 	var names []string
-	fi, err := ioutil.ReadDir(s.dir)
+	fi, err := os.ReadDir(s.dir)
 	if err != nil {
 		return nil
 	}

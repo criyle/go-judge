@@ -4,7 +4,7 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -83,7 +83,7 @@ func (p *execProxy) FilePost(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	b, err := ioutil.ReadAll(fi)
+	b, err := io.ReadAll(fi)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

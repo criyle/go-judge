@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 )
 
 var _ File = &memFile{}
@@ -36,5 +35,5 @@ func (m *memFile) String() string {
 }
 
 func (m *memFile) Reader() (io.ReadCloser, error) {
-	return ioutil.NopCloser(bytes.NewReader(m.content)), nil
+	return io.NopCloser(bytes.NewReader(m.content)), nil
 }

@@ -2,7 +2,7 @@ package restexecutor
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"path"
@@ -32,7 +32,7 @@ func (f *fileHandle) filePost(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	b, err := ioutil.ReadAll(fi)
+	b, err := io.ReadAll(fi)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

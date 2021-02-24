@@ -12,7 +12,7 @@ import (
 type Config struct {
 	// container
 	ContainerInitPath  string `flagUsage:"container init path"`
-	PreFork            int    `flagUsage:"control # of the prefork workers"`
+	PreFork            int    `flagUsage:"control # of the prefork workers" default:"1"`
 	TmpFsParam         string `flagUsage:"tmpfs mount data (only for default mount with no mount.yaml)" default:"size=16m,nr_inodes=4k"`
 	NetShare           bool   `flagUsage:"share net namespace with host"`
 	MountConf          string `flagUsage:"specifies mount configuration file" default:"mount.yaml"`

@@ -1,7 +1,6 @@
 package winc
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/criyle/go-judge/env/pool"
@@ -43,7 +42,7 @@ func (b *builder) Build() (pool.Environment, error) {
 	if err != nil {
 		return nil, err
 	}
-	workDir, err := ioutil.TempDir(b.root, wdPrefix)
+	workDir, err := os.MkdirTemp(b.root, wdPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +50,7 @@ func (b *builder) Build() (pool.Environment, error) {
 		windows.LABEL_SECURITY_INFORMATION, nil, nil, nil, sacl); err != nil {
 		return nil, err
 	}
-	tmpDir, err := ioutil.TempDir(b.root, tmpPrefix)
+	tmpDir, err := os.MkdirTemp(b.root, tmpPrefix)
 	if err != nil {
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package env
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 
@@ -33,7 +32,7 @@ type Mounts struct {
 
 func readMountConfig(p string) (*Mounts, error) {
 	var m Mounts
-	d, err := ioutil.ReadFile(p)
+	d, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}

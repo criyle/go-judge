@@ -1,7 +1,6 @@
 package macsandbox
 
 import (
-	"io/ioutil"
 	"os"
 
 	"github.com/criyle/go-judge/env/pool"
@@ -28,7 +27,7 @@ func NewBuilder(wd string, readablePath, writablePath []string, network bool) po
 
 // Build create a sandbox environment
 func (b *Builder) Build() (pool.Environment, error) {
-	wd, err := ioutil.TempDir(b.wd, "es")
+	wd, err := os.MkdirTemp(b.wd, "es")
 	if err != nil {
 		return nil, err
 	}

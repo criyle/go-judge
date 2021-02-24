@@ -35,7 +35,7 @@ require (
 	golang.org/x/net v0.0.0-20210222171744-9060382bd457
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210223212115-eede4237b368
+	golang.org/x/sys v0.0.0-20210225014209-683adc9d29d7
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
 	google.golang.org/genproto v0.0.0-20210223151946-22b48be4551b // indirect
 	google.golang.org/grpc v1.35.0

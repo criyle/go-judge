@@ -197,7 +197,8 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 		defer close(done)
 
 		var (
-			qty, key   uint32
+			qty        uint32
+			key        uintptr
 			overlapped *windows.Overlapped
 		)
 		result := runner.Result{

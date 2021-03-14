@@ -7,22 +7,21 @@ import (
 	"os"
 	"sync"
 
-	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-sandbox/runner"
 	"golang.org/x/sync/errgroup"
 )
 
 // copyOutAndCollect reads file and pipes in parallel from container
-func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]file.File, error) {
+func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][]byte, error) {
 	var (
 		g errgroup.Group
 		l sync.Mutex
 	)
-	rt := make(map[string]file.File)
-	put := func(f file.File) {
+	rt := make(map[string][]byte)
+	put := func(f []byte, n string) {
 		l.Lock()
 		defer l.Unlock()
-		rt[f.Name()] = f
+		rt[n] = f
 	}
 
 	// copy out
@@ -56,7 +55,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 			if err != nil {
 				return err
 			}
-			put(file.NewMemFile(n, buf.Bytes()))
+			put(buf.Bytes(), n)
 			return nil
 		})
 	}
@@ -65,11 +64,11 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string]f
 	for _, p := range ptc {
 		p := p
 		g.Go(func() error {
-			<-p.buff.Done
-			if int64(p.buff.Buffer.Len()) > p.buff.Max {
+			<-p.done
+			if int64(p.buffer.Len()) > int64(p.limit) {
 				return runner.StatusOutputLimitExceeded
 			}
-			put(file.NewMemFile(p.name, p.buff.Buffer.Bytes()))
+			put(p.buffer.Bytes(), p.name)
 			return nil
 		})
 	}

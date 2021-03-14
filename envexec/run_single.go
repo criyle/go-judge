@@ -8,18 +8,82 @@ import (
 )
 
 // runSingle runs Cmd inside the given environment and cgroup
-func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
-	fdToClose := fds
-	defer func() { closeFiles(fdToClose) }()
-
+func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
+	m := c.Environment
 	// copyin
-	if len(c.CopyIn) > 0 {
-		if err := copyIn(m, c.CopyIn); err != nil {
+	if err := runSingleCopyIn(m, c.CopyIn); err != nil {
+		result.Status = StatusFileError
+		result.Error = err.Error()
+		closeFiles(fds...)
+		return result, nil
+	}
+
+	// run cmd and wait for result
+	rt := runSingleWait(pc, m, c, fds)
+
+	// collect result
+	files, err := copyOutAndCollect(m, c, ptc)
+	result = Result{
+		Status:     convertStatus(rt.Status),
+		ExitStatus: rt.ExitStatus,
+		Error:      rt.Error,
+		Time:       rt.Time,
+		RunTime:    rt.RunningTime,
+		Memory:     rt.Memory,
+		Files:      files,
+	}
+	// collect error (only if the process exits normally)
+	if rt.Status == runner.StatusNormal && err != nil && result.Error == "" {
+		switch err := err.(type) {
+		case runner.Status:
+			result.Status = convertStatus(err)
+		default:
 			result.Status = StatusFileError
-			result.Error = err.Error()
-			return result, nil
+		}
+		result.Error = err.Error()
+	}
+	if result.Time > c.TimeLimit {
+		result.Status = StatusTimeLimitExceeded
+	}
+	if result.Memory > c.MemoryLimit {
+		result.Status = StatusMemoryLimitExceeded
+	}
+	return result, nil
+}
+
+func runSingleCopyIn(m Environment, copyInFiles map[string]File) error {
+	if len(copyInFiles) == 0 {
+		return nil
+	}
+	return copyIn(m, copyInFiles)
+}
+
+func runSingleWait(pc context.Context, m Environment, c *Cmd, fds []*os.File) RunnerResult {
+	// start the cmd (they will be canceled in other goroutines)
+	ctx, cancel := context.WithCancel(pc)
+	defer cancel()
+
+	process, err := runSingleExecve(ctx, m, c, fds)
+	if err != nil {
+		return runner.Result{
+			Status: runner.StatusRunnerError,
+			Error:  err.Error(),
 		}
 	}
+
+	// starts waiter to periodically check cpu usage
+	go func() {
+		defer cancel()
+		c.Waiter(ctx, process)
+	}()
+
+	// ensure waiter exit
+	<-ctx.Done()
+	return process.Result()
+}
+
+func runSingleExecve(ctx context.Context, m Environment, c *Cmd, fds []*os.File) (Process, error) {
+	defer closeFiles(fds...)
 
 	extraMemoryLimit := c.ExtraMemoryLimit
 	if extraMemoryLimit == 0 {
@@ -51,64 +115,5 @@ func runSingle(pc context.Context, m Environment, c *Cmd, fds []*os.File, ptc []
 			StrictMemory: c.StrictMemoryLimit,
 		},
 	}
-
-	// start the cmd (they will be canceled in other goroutines)
-	ctx, cancel := context.WithCancel(pc)
-	waiterCtx, waiterCancel := context.WithCancel(ctx)
-
-	process, err := m.Execve(ctx, execParam)
-
-	// close files
-	closeFiles(fds)
-	fdToClose = nil
-
-	// starts waiter to periodically check cpu usage
-	go func() {
-		c.Waiter(waiterCtx, process)
-		cancel()
-	}()
-
-	var rt runner.Result
-	if err == nil {
-		<-process.Done()
-		rt = process.Result()
-	} else {
-		rt = runner.Result{
-			Status: runner.StatusRunnerError,
-			Error:  err.Error(),
-		}
-	}
-
-	waiterCancel()
-
-	// collect result
-	files, err := copyOutAndCollect(m, c, ptc)
-	result = Result{
-		Status:     convertStatus(rt.Status),
-		ExitStatus: rt.ExitStatus,
-		Error:      rt.Error,
-		Time:       rt.Time,
-		RunTime:    rt.RunningTime,
-		Memory:     rt.Memory,
-		Files:      files,
-	}
-	// collect error (only if the process exits normally)
-	if rt.Status == runner.StatusNormal && err != nil && result.Error == "" {
-		switch err := err.(type) {
-		case runner.Status:
-			result.Status = convertStatus(err)
-		default:
-			result.Status = StatusFileError
-		}
-		result.Error = err.Error()
-	}
-	if result.Time > c.TimeLimit {
-		result.Status = StatusTimeLimitExceeded
-	}
-	if result.Memory > c.MemoryLimit {
-		result.Status = StatusMemoryLimitExceeded
-	}
-	// make sure waiter exit
-	<-ctx.Done()
-	return result, nil
+	return m.Execve(ctx, execParam)
 }

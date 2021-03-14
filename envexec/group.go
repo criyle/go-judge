@@ -2,7 +2,6 @@ package envexec
 
 import (
 	"context"
-	"fmt"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -10,9 +9,6 @@ import (
 // Group defines the running instruction to run multiple
 // exec in parallel restricted within cgroup
 type Group struct {
-	// EnvironmentPool defines pool used for runner environment
-	EnvironmentPool EnvironmentPool
-
 	// Cmd defines Cmd running in parallel in multiple environments
 	Cmd []*Cmd
 
@@ -35,22 +31,9 @@ type Pipe struct {
 // Run starts the cmd and returns exec results
 func (r *Group) Run(ctx context.Context) ([]Result, error) {
 	// prepare files
-	fds, pipeToCollect, fileToClose, err := prepareFds(r)
-	defer func() { closeFiles(fileToClose) }()
-
+	fds, pipeToCollect, err := prepareFds(r)
 	if err != nil {
 		return nil, err
-	}
-
-	// prepare environments
-	ms := make([]Environment, 0, len(r.Cmd))
-	for range r.Cmd {
-		m, err := r.EnvironmentPool.Get()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get environment %v", err)
-		}
-		defer r.EnvironmentPool.Put(m)
-		ms = append(ms, m)
 	}
 
 	// wait all cmd to finish
@@ -59,7 +42,7 @@ func (r *Group) Run(ctx context.Context) ([]Result, error) {
 	for i, c := range r.Cmd {
 		i, c := i, c
 		g.Go(func() error {
-			r, err := runSingle(ctx, ms[i], c, fds[i], pipeToCollect[i])
+			r, err := runSingle(ctx, c, fds[i], pipeToCollect[i])
 			result[i] = r
 			if err != nil {
 				result[i].Status = StatusInternalError

@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/worker"
 )
@@ -165,11 +167,17 @@ func FileGet(e *C.char) *C.char {
 	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&f); err != nil {
 		return nil
 	}
-	file := fs.Get(f.ID)
+	_, file := fs.Get(f.ID)
 	if file == nil {
 		return nil
 	}
-	c, err := file.Content()
+	r, err := envexec.FileToReader(file)
+	if err != nil {
+		return nil
+	}
+	defer r.Close()
+
+	c, err := io.ReadAll(r)
 	if err != nil {
 		return nil
 	}

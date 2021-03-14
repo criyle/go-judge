@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/criyle/go-judge/envexec"
+	"github.com/criyle/go-judge/worker"
 )
 
 // Environment defines envexec.Environment with destroy
@@ -26,7 +27,7 @@ type pool struct {
 }
 
 // NewPool returns a pool for EnvBuilder
-func NewPool(builder EnvBuilder) envexec.EnvironmentPool {
+func NewPool(builder EnvBuilder) worker.EnvironmentPool {
 	return &pool{
 		builder: builder,
 	}
@@ -45,7 +46,10 @@ func (p *pool) Get() (envexec.Environment, error) {
 }
 
 func (p *pool) Put(env envexec.Environment) {
-	e, _ := env.(Environment)
+	e, ok := env.(Environment)
+	if !ok {
+		panic("invalid environment put")
+	}
 	e.Reset()
 
 	p.mu.Lock()

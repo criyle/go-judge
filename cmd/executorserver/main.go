@@ -154,7 +154,7 @@ func initLogger(conf *config.Config) {
 	}
 }
 
-func prefork(envPool envexec.EnvironmentPool, prefork int) {
+func prefork(envPool worker.EnvironmentPool, prefork int) {
 	if prefork <= 0 {
 		return
 	}
@@ -306,7 +306,7 @@ func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
 	return b
 }
 
-func newWorker(conf *config.Config, envPool envexec.EnvironmentPool, fs filestore.FileStore) worker.Worker {
+func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore.FileStore) worker.Worker {
 	return worker.New(worker.Config{
 		FileStore:             fs,
 		EnvironmentPool:       envPool,

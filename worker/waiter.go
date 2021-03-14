@@ -36,6 +36,9 @@ func (w *waiter) Wait(ctx context.Context, u envexec.Process) bool {
 		case <-ctx.Done():
 			return false
 
+		case <-u.Done():
+			return false
+
 		case <-ticker.C:
 			if time.Since(start) > w.realTimeLimit {
 				return true

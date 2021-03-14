@@ -5,7 +5,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/criyle/go-judge/file"
+	"github.com/criyle/go-judge/envexec"
 )
 
 type fileLocalStore struct {
@@ -51,19 +51,19 @@ func (s *fileLocalStore) Add(name string, content []byte) (string, error) {
 	return id, err
 }
 
-func (s *fileLocalStore) Get(id string) file.File {
+func (s *fileLocalStore) Get(id string) (string, envexec.File) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	p := path.Join(s.dir, id)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
-		return nil
+		return "", nil
 	}
 	name, ok := s.name[id]
 	if !ok {
 		name = id
 	}
-	return file.NewLocalFile(name, p)
+	return name, envexec.NewFileInput(p)
 }
 
 func (s *fileLocalStore) Remove(id string) bool {

@@ -37,8 +37,11 @@ func getFdArray(fd []*os.File) []uintptr {
 	return r
 }
 
-func closeFiles(files []*os.File) {
+func closeFiles(files ...*os.File) {
 	for _, f := range files {
+		if f == nil {
+			continue
+		}
 		f.Close()
 	}
 }

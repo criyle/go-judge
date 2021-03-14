@@ -8,16 +8,20 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
-	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/filestore"
 )
 
 const maxWaiting = 512
 
+type EnvironmentPool interface {
+	Get() (envexec.Environment, error)
+	Put(envexec.Environment)
+}
+
 // Config defines worker configuration
 type Config struct {
 	FileStore             filestore.FileStore
-	EnvironmentPool       envexec.EnvironmentPool
+	EnvironmentPool       EnvironmentPool
 	Parallelism           int
 	WorkDir               string
 	TimeLimitTickInterval time.Duration
@@ -38,7 +42,7 @@ type Worker interface {
 // worker defines executor worker
 type worker struct {
 	fs          filestore.FileStore
-	envPool     envexec.EnvironmentPool
+	envPool     EnvironmentPool
 	parallelism int
 	workDir     string
 
@@ -159,9 +163,19 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 		rt.Error = err
 		return
 	}
+	// prepare environment
+	env, err := w.envPool.Get()
+	if err != nil {
+		return Response{Results: []Result{{
+			Status: envexec.StatusInternalError,
+			Error:  fmt.Sprintf("failed to get environment %v", err),
+		}}}
+	}
+	defer w.envPool.Put(env)
+	c.Environment = env
+
 	s := &envexec.Single{
-		EnvironmentPool: w.envPool,
-		Cmd:             c,
+		Cmd: c,
 	}
 	result, err := s.Run(ctx)
 	if err != nil {
@@ -187,9 +201,22 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Re
 		cs = append(cs, c)
 		copyOutSets = append(copyOutSets, os)
 	}
+	for i := range cs {
+		env, err := w.envPool.Get()
+		if err != nil {
+			res := make([]Result, 0, len(cs))
+			for range cs {
+				res = append(res, Result{
+					Status: envexec.StatusInternalError,
+					Error:  fmt.Sprintf("failed to get environment %v", err),
+				})
+			}
+			return Response{Results: res}
+		}
+		defer w.envPool.Put(env)
+		cs[i].Environment = env
+	}
 	g := envexec.Group{
-		EnvironmentPool: w.envPool,
-
 		Cmd:   cs,
 		Pipes: p,
 	}
@@ -217,13 +244,7 @@ func (w *worker) convertResult(result envexec.Result, copyOutSet map[string]bool
 	res.Files = make(map[string][]byte)
 	res.FileIDs = make(map[string]string)
 
-	for name, fi := range result.Files {
-		b, err := fi.Content()
-		if err != nil {
-			res.Status = envexec.StatusFileError
-			res.Error = err.Error()
-			return
-		}
+	for name, b := range result.Files {
 		if copyOutSet[name] {
 			res.Files[name] = b
 		} else {
@@ -322,8 +343,8 @@ func preparePipeMapping(pm []PipeMap) []*envexec.Pipe {
 	return rt
 }
 
-func (w *worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, error) {
-	rt := make(map[string]file.File)
+func (w *worker) prepareCopyIn(cf map[string]CmdFile) (map[string]envexec.File, error) {
+	rt := make(map[string]envexec.File)
 	for name, f := range cf {
 		if f == nil {
 			return nil, fmt.Errorf("nil type cannot be used for copyIn %s", name)
@@ -332,17 +353,13 @@ func (w *worker) prepareCopyIn(cf map[string]CmdFile) (map[string]file.File, err
 		if err != nil {
 			return nil, err
 		}
-		fi, ok := pcf.(file.File)
-		if !ok {
-			return nil, fmt.Errorf("pipe type cannot be used for copyIn %s", name)
-		}
-		rt[name] = fi
+		rt[name] = pcf
 	}
 	return rt, nil
 }
 
-func (w *worker) prepareCmdFiles(files []CmdFile) ([]interface{}, map[string]bool, error) {
-	rt := make([]interface{}, 0, len(files))
+func (w *worker) prepareCmdFiles(files []CmdFile) ([]envexec.File, map[string]bool, error) {
+	rt := make([]envexec.File, 0, len(files))
 	pipeFileName := make(map[string]bool)
 	for _, f := range files {
 		if f == nil {
@@ -354,7 +371,7 @@ func (w *worker) prepareCmdFiles(files []CmdFile) ([]interface{}, map[string]boo
 			return nil, nil, err
 		}
 		rt = append(rt, cf)
-		if t, ok := cf.(envexec.PipeCollector); ok {
+		if t, ok := cf.(*envexec.FilePipeCollector); ok {
 			pipeFileName[t.Name] = true
 		}
 	}

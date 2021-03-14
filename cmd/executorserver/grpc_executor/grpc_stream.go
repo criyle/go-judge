@@ -168,7 +168,11 @@ func streamInput(ctx context.Context, es pb.Executor_ExecStreamServer, streamIn 
 			if !ok {
 				return fmt.Errorf("input %s not exists", i.ExecResize.GetName())
 			}
-			if err = setWinsize(f.w, i); err != nil {
+			tty := f.GetTTY()
+			if tty == nil {
+				return fmt.Errorf("input %s does not have TTY", i.ExecResize.GetName())
+			}
+			if err = setWinsize(tty, i); err != nil {
 				return fmt.Errorf("resize to input %s with err %w", i.ExecResize.GetName(), err)
 			}
 

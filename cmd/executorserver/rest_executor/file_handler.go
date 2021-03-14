@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path"
 
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/gin-gonic/gin"
 )
@@ -56,19 +57,26 @@ func (f *fileHandle) fileIDGet(c *gin.Context) {
 		return
 	}
 
-	file := f.fs.Get(uri.FileID)
+	name, file := f.fs.Get(uri.FileID)
 	if file == nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	content, err := file.Content()
+	r, err := envexec.FileToReader(file)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	defer r.Close()
+
+	content, err := io.ReadAll(r)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 
-	typ := mime.TypeByExtension(path.Ext(file.Name()))
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", file.Name()))
+	typ := mime.TypeByExtension(path.Ext(name))
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", name))
 	c.Data(http.StatusOK, typ, content)
 }
 

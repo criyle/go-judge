@@ -3,13 +3,13 @@ package grpcexecutor
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/creack/pty"
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
@@ -70,13 +70,19 @@ func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileList
 }
 
 func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, error) {
-	file := e.fs.Get(f.GetFileID())
-	content, err := file.Content()
+	name, file := e.fs.Get(f.GetFileID())
+	r, err := envexec.FileToReader(file)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	content, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 	return &pb.FileContent{
-		Name:    file.Name(),
+		Name:    name,
 		Content: content,
 	}, nil
 }
@@ -202,52 +208,17 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 		CopyOutMax:        c.GetCopyOutMax(),
 		CopyOutDir:        c.GetCopyOutDir(),
 	}
-	var (
-		fPty, fTty *os.File
-		ttyOut     *fileStreamOut
-	)
 	for _, f := range c.GetFiles() {
 		var cf worker.CmdFile
 		switch fi := f.File.(type) {
 		case *pb.Request_File_StreamIn:
-			var si *fileStreamIn
-			if c.Tty {
-				fPty, fTty, err = pty.Open()
-				if err != nil {
-					return cm, streamIn, streamOut, err
-				}
-				si = &fileStreamIn{
-					name: fi.StreamIn.GetName(),
-					w:    fPty,
-					r:    fTty,
-				}
-				streamIn = append(streamIn, si)
-			} else {
-				si, err = newFileStreamIn(fi.StreamIn.GetName())
-				if err == nil {
-					streamIn = append(streamIn, si)
-				}
-			}
+			si := newFileStreamIn(fi.StreamIn.GetName(), c.GetTty())
+			streamIn = append(streamIn, si)
 			cf = si
 
 		case *pb.Request_File_StreamOut:
-			var so *fileStreamOut
-			if fPty != nil {
-				if ttyOut == nil {
-					ttyOut = &fileStreamOut{
-						name: fi.StreamOut.GetName(),
-						w:    fTty,
-						r:    fPty,
-					}
-					streamOut = append(streamOut, ttyOut)
-				}
-				so = ttyOut
-			} else {
-				so, err = newFileStreamOut(fi.StreamOut.GetName())
-				if err == nil {
-					streamOut = append(streamOut, so)
-				}
-			}
+			so := newFileStreamOut(fi.StreamOut.GetName())
+			streamOut = append(streamOut, so)
 			cf = so
 
 		default:
@@ -291,7 +262,7 @@ func convertPBFile(c *pb.Request_File, srcPrefix string) (worker.CmdFile, error)
 	case *pb.Request_File_Cached:
 		return &worker.CachedFile{FileID: c.Cached.GetFileID()}, nil
 	case *pb.Request_File_Pipe:
-		return &worker.PipeCollector{Name: c.Pipe.GetName(), Max: c.Pipe.GetMax()}, nil
+		return &worker.PipeCollector{Name: c.Pipe.GetName(), Max: envexec.Size(c.Pipe.GetMax())}, nil
 	}
 	return nil, fmt.Errorf("request file type not supported yet %v", c)
 }

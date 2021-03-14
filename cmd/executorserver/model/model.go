@@ -219,7 +219,7 @@ func convertCmdFile(f *CmdFile, srcPrefix string) (worker.CmdFile, error) {
 	case f.FileID != nil:
 		return &worker.CachedFile{FileID: *f.FileID}, nil
 	case f.Max != nil && f.Name != nil:
-		return &worker.PipeCollector{Name: *f.Name, Max: *f.Max}, nil
+		return &worker.PipeCollector{Name: *f.Name, Max: envexec.Size(*f.Max)}, nil
 	default:
 		return nil, fmt.Errorf("file is not valid for cmd")
 	}

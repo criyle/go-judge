@@ -47,7 +47,7 @@ type Usage struct {
 // Process reference to the running process group
 type Process interface {
 	Done() <-chan struct{} // Done returns a channel for wait process to exit
-	Result() RunnerResult  // Result is available after done is closed
+	Result() RunnerResult  // Result wait until done and returns RunnerResult
 	Usage() Usage          // Usage retrieves the process usage during the run time
 }
 
@@ -57,10 +57,4 @@ type Environment interface {
 	WorkDir() *os.File // WorkDir returns opened work directory, should not close after
 	// Open open file at work dir with given relative path and flags
 	Open(path string, flags int, perm os.FileMode) (*os.File, error)
-}
-
-// EnvironmentPool implements pool of environments
-type EnvironmentPool interface {
-	Get() (Environment, error)
-	Put(Environment)
 }

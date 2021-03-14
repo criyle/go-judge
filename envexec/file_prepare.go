@@ -8,85 +8,97 @@ import (
 	"sync"
 
 	"github.com/creack/pty"
-	"github.com/criyle/go-judge/file"
-	"github.com/criyle/go-sandbox/pkg/pipe"
 )
 
-type pipeCollector struct {
-	buff *pipe.Buffer
-	name string
-}
-
 // prepare Files for tty input / output
-func prepareCmdFdTTY(c *Cmd, count int) (fd, ftc []*os.File, ptc []pipeCollector, err error) {
-	var fPty, fTty *os.File
-	if c.TTY {
-		fPty, fTty, err = pty.Open()
-		if err != nil {
-			err = fmt.Errorf("failed to open tty %v", err)
-			return nil, nil, nil, err
-		}
-	}
-	ftc = append(ftc, fTty)
-
-	fd = make([]*os.File, count)
-	hasInput := false
-	var output *pipe.Buffer
+func prepareCmdFdTTY(c *Cmd, count int) (f []*os.File, p []pipeCollector, err error) {
 	var wg sync.WaitGroup
+	var hasInput, hasOutput bool
+
+	fPty, fTty, err := pty.Open()
+	if err != nil {
+		err = fmt.Errorf("failed to open tty %v", err)
+		return nil, nil, err
+	}
+
+	files := make([]*os.File, count)
+	pipeToCollect := make([]pipeCollector, 0)
+
+	defer func() {
+		if err != nil {
+			closeFiles(files...)
+			closeFiles(fTty, fPty)
+			wg.Wait()
+		}
+	}()
 
 	for j, t := range c.Files {
 		switch t := t.(type) {
 		case nil: // ignore
-		case *os.File:
-			fd[j] = t
-			ftc = append(ftc, t)
+		case *FileOpened:
+			files[j] = t.File
 
-		case file.ReaderOpener:
+		case *FileReader:
 			if hasInput {
-				err = fmt.Errorf("cannot have multiple input when tty enabled")
-				goto openError
+				return nil, nil, fmt.Errorf("cannot have multiple input when tty enabled")
 			}
 			hasInput = true
 
-			r, err := t.Reader()
-			if err != nil {
-				err = fmt.Errorf("failed to open file %v", t)
-				goto openError
-			}
-			fd[j] = fTty
+			files[j] = fTty
 
 			// copy input
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				io.Copy(fPty, r)
+				io.Copy(fPty, t.Reader)
 			}()
 
-		case PipeCollector:
-			fd[j] = fTty
-			if output != nil {
-				break
+			// provide TTY
+			if tty, ok := t.Reader.(ReaderTTY); ok {
+				tty.TTY(fPty)
 			}
 
-			done := make(chan struct{})
-			output = &pipe.Buffer{
-				W:      fTty,
-				Max:    t.SizeLimit,
-				Buffer: new(bytes.Buffer),
-				Done:   done,
+		case *FileInput:
+			var f *os.File
+			f, err = os.Open(t.Path)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to open file %v", t.Path)
 			}
-			ptc = append(ptc, pipeCollector{output, t.Name})
+			files[j] = f
+
+		case *FilePipeCollector:
+			files[j] = fTty
+			if hasOutput {
+				break
+			}
+			hasOutput = true
+
+			done := make(chan struct{})
+			buf := new(bytes.Buffer)
+			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name})
 
 			wg.Add(1)
 			go func() {
 				defer close(done)
 				defer wg.Done()
-				io.CopyN(output.Buffer, fPty, output.Max+1)
+				io.CopyN(buf, fPty, int64(t.Limit)+1)
+			}()
+
+		case *FileWriter:
+			files[j] = fTty
+			if hasOutput {
+				break
+			}
+			hasOutput = true
+
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				io.Copy(t.Writer, fPty)
 			}()
 
 		default:
-			err = fmt.Errorf("unknown file type %v %t", t, t)
-			goto openError
+			return nil, nil, fmt.Errorf("unknown file type %v %t", t, t)
 		}
 	}
 
@@ -95,101 +107,121 @@ func prepareCmdFdTTY(c *Cmd, count int) (fd, ftc []*os.File, ptc []pipeCollector
 		wg.Wait()
 		fPty.Close()
 	}()
-
-	return
-
-openError:
-	closeFiles(ftc)
-	return nil, nil, nil, err
+	return files, pipeToCollect, nil
 }
 
-func prepareCmdFd(c *Cmd, count int) (fd, ftc []*os.File, ptc []pipeCollector, err error) {
+func prepareCmdFd(c *Cmd, count int) (f []*os.File, p []pipeCollector, err error) {
 	if c.TTY {
 		return prepareCmdFdTTY(c, count)
 	}
-	fd = make([]*os.File, count)
+	files := make([]*os.File, count)
+	pipeToCollect := make([]pipeCollector, 0)
+	defer func() {
+		if err != nil {
+			closeFiles(files...)
+		}
+	}()
 	// record same name buffer for one command to avoid multiple pipe creation
-	pb := make(map[string]*pipe.Buffer)
+	pb := make(map[string]*pipeBuffer)
 
 	for j, t := range c.Files {
 		switch t := t.(type) {
 		case nil: // ignore
-		case *os.File:
-			fd[j] = t
-			ftc = append(ftc, t)
+		case *FileOpened:
+			files[j] = t.File
 
-		case file.Opener:
-			f, err := t.Open()
-			if err != nil {
-				err = fmt.Errorf("failed to open file %v", t)
-				goto openError
+		case *FileReader:
+			if t.Stream {
+				r, w, err := os.Pipe()
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to create pipe %v", err)
+				}
+				go w.ReadFrom(t.Reader)
+
+				files[j] = r
+			} else {
+				f, err := readerToFile(t.Reader)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to open reader %v", err)
+				}
+				files[j] = f
 			}
-			fd[j] = f
-			ftc = append(ftc, f)
 
-		case PipeCollector:
+		case *FileInput:
+			f, err := os.Open(t.Path)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to open file %v", t.Path)
+			}
+			files[j] = f
+
+		case *FilePipeCollector:
 			if b, ok := pb[t.Name]; ok {
-				fd[j] = b.W
+				files[j] = b.W
 				break
 			}
 
-			b, err := pipe.NewBuffer(t.SizeLimit)
+			b, err := newPipeBuffer(t.Limit)
 			if err != nil {
-				err = fmt.Errorf("failed to create pipe %v", err)
-				goto openError
+				return nil, nil, fmt.Errorf("failed to create pipe %v", err)
 			}
-			fd[j] = b.W
 			pb[t.Name] = b
-			ptc = append(ptc, pipeCollector{b, t.Name})
-			ftc = append(ftc, b.W)
+
+			files[j] = b.W
+			pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name})
+
+		case *FileWriter:
+			_, w, err := newPipe(t.Writer, t.Limit)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to create pipe %v", err)
+			}
+			files[j] = w
 
 		default:
-			err = fmt.Errorf("unknown file type %v %t", t, t)
-			goto openError
+			return nil, nil, fmt.Errorf("unknown file type %v %t", t, t)
 		}
 	}
-	return
-
-openError:
-	closeFiles(ftc)
-	return nil, nil, nil, err
+	return files, pipeToCollect, nil
 }
 
 // prepareFd returns fds, pipeToCollect fileToClose, error
-func prepareFds(r *Group) ([][]*os.File, [][]pipeCollector, []*os.File, error) {
+func prepareFds(r *Group) (f [][]*os.File, p [][]pipeCollector, err error) {
 	// prepare fd count
 	fdCount, err := countFd(r)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	// newly opened files need to be closed
-	var fileToClose []*os.File
-
 	// prepare files
-	fds := make([][]*os.File, len(fdCount))
+	files := make([][]*os.File, len(fdCount))
 	pipeToCollect := make([][]pipeCollector, len(fdCount))
+
+	// newly opened files need to be closed
+	defer func() {
+		if err != nil {
+			for _, fs := range files {
+				closeFiles(fs...)
+			}
+		}
+	}()
+
 	// prepare cmd fd
 	for i, c := range r.Cmd {
-		var ftc []*os.File
-		fds[i], ftc, pipeToCollect[i], err = prepareCmdFd(c, fdCount[i])
+		files[i], pipeToCollect[i], err = prepareCmdFd(c, fdCount[i])
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
-		fileToClose = append(fileToClose, ftc...)
 	}
 
 	// prepare pipes
 	for _, p := range r.Pipes {
 		out, in, err := os.Pipe()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, err
 		}
-		fileToClose = append(fileToClose, out, in)
-		fds[p.Out.Index][p.Out.Fd] = out
-		fds[p.In.Index][p.In.Fd] = in
+		files[p.Out.Index][p.Out.Fd] = out
+		files[p.In.Index][p.In.Fd] = in
 	}
-	return fds, pipeToCollect, fileToClose, nil
+	return files, pipeToCollect, nil
 }
 
 func countFd(r *Group) ([]int, error) {

@@ -1,17 +1,17 @@
 package worker
 
 import (
+	"bytes"
 	"fmt"
 
 	"github.com/criyle/go-judge/envexec"
-	"github.com/criyle/go-judge/file"
 	"github.com/criyle/go-judge/filestore"
 )
 
 // CmdFile defines file used in the cmd
 type CmdFile interface {
 	// EnvFile prepares file for envexec file
-	EnvFile(fs filestore.FileStore) (interface{}, error)
+	EnvFile(fs filestore.FileStore) (envexec.File, error)
 	// Stringer to print debug infomation
 	String() string
 }
@@ -29,8 +29,8 @@ type LocalFile struct {
 }
 
 // EnvFile prepares file for envexec file
-func (f *LocalFile) EnvFile(fs filestore.FileStore) (interface{}, error) {
-	return file.NewLocalFile(f.Src, f.Src), nil
+func (f *LocalFile) EnvFile(fs filestore.FileStore) (envexec.File, error) {
+	return envexec.NewFileInput(f.Src), nil
 }
 
 func (f *LocalFile) String() string {
@@ -43,8 +43,8 @@ type MemoryFile struct {
 }
 
 // EnvFile prepares file for envexec file
-func (f *MemoryFile) EnvFile(fs filestore.FileStore) (interface{}, error) {
-	return file.NewMemFile("", f.Content), nil
+func (f *MemoryFile) EnvFile(fs filestore.FileStore) (envexec.File, error) {
+	return envexec.NewFileReader(bytes.NewReader(f.Content), false), nil
 }
 
 func (f *MemoryFile) String() string {
@@ -57,8 +57,8 @@ type CachedFile struct {
 }
 
 // EnvFile prepares file for envexec file
-func (f *CachedFile) EnvFile(fs filestore.FileStore) (interface{}, error) {
-	fd := fs.Get(f.FileID)
+func (f *CachedFile) EnvFile(fs filestore.FileStore) (envexec.File, error) {
+	_, fd := fs.Get(f.FileID)
 	if fd == nil {
 		return nil, fmt.Errorf("file not exists with id %v", f.FileID)
 	}
@@ -71,13 +71,14 @@ func (f *CachedFile) String() string {
 
 // PipeCollector defines on the output (stdout / stderr) to be collected over pipe
 type PipeCollector struct {
-	Name string // pseudo name generated into copyOut
-	Max  int64  // max size to be collected
+	Name string       // pseudo name generated into copyOut
+	Max  envexec.Size // max size to be collected
 }
 
 // EnvFile prepares file for envexec file
-func (f *PipeCollector) EnvFile(fs filestore.FileStore) (interface{}, error) {
-	return envexec.PipeCollector{Name: f.Name, SizeLimit: f.Max}, nil
+func (f *PipeCollector) EnvFile(fs filestore.FileStore) (envexec.File, error) {
+	return envexec.NewFilePipeCollector(f.Name, f.Max), nil
+
 }
 
 func (f *PipeCollector) String() string {

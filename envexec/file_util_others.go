@@ -4,6 +4,7 @@ package envexec
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 )

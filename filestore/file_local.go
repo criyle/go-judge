@@ -1,6 +1,7 @@
 package filestore
 
 import (
+	"errors"
 	"os"
 	"path"
 	"sync"
@@ -26,20 +27,17 @@ func (s *fileLocalStore) Add(name string, content []byte) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var (
-		id  string
-		err error
-	)
-	// generate until unique id (try maximun 50 times)
-	for i := 0; i < 50; i++ {
-		id, err = generateID()
-		if err != nil {
-			return "", err
+	id, err := generateUniqueID(func(id string) (bool, error) {
+		_, err := os.Stat(path.Join(s.dir, id))
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			return false, nil
+		case err == nil:
+			return true, nil
+		default:
+			return false, err
 		}
-		if _, err := os.Stat(path.Join(s.dir, id)); err == nil {
-			break
-		}
-	}
+	})
 	if err != nil {
 		return "", err
 	}
@@ -80,6 +78,9 @@ func (s *fileLocalStore) Remove(id string) bool {
 }
 
 func (s *fileLocalStore) List() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	var names []string
 	fi, err := os.ReadDir(s.dir)
 	if err != nil {

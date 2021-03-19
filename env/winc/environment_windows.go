@@ -275,7 +275,7 @@ func (e *Environment) Open(p string, flags int, perm os.FileMode) (*os.File, err
 	return os.OpenFile(path.Join(e.root, p), flags, perm)
 }
 
-// Destroy destorys the environment
+// Destroy destroys the environment
 func (e *Environment) Destroy() error {
 	return e.wd.Close()
 }

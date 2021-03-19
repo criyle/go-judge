@@ -10,9 +10,9 @@
 +---------------------------------------------------------------------------+
 | Transport Layer (HTTP / WebSocket / FFI / ...)                            |
 +---------------------------------------------------------------------------+
-| Executor Worker                                                           |
+| Executor Worker (Environment Pool w/ Environment Builder )                |
 +-----------------------------------------------------------+---------------+
-| Environment Pool + EnvExec + Environment Builder          | File Store    |
+| EnvExec                                                   | File Store    |
 +--------------------+----------------+---------------------+--------+------+
 | Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Disk |
 +--------------------+----------------+---------------------+--------+------+

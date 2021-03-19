@@ -24,7 +24,7 @@ func (f *FakeCgroupPool) Get() (Cgroup, error) {
 	return &wCgroup{cg: cg, cfsPeriod: f.cfsPeriod}, nil
 }
 
-// Put destory the cgroup
+// Put destroy the cgroup
 func (f *FakeCgroupPool) Put(c Cgroup) {
 	c.Destroy()
 }

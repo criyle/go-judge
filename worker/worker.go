@@ -13,6 +13,7 @@ import (
 
 const maxWaiting = 512
 
+// EnvironmentPool defines pools for environment to be used to execute commands
 type EnvironmentPool interface {
 	Get() (envexec.Environment, error)
 	Put(envexec.Environment)

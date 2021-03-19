@@ -28,20 +28,10 @@ func (s *fileMemoryStore) Add(name string, content []byte) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	var (
-		id  string
-		err error
-	)
-	// generate until unique id (try maximun 50 times)
-	for i := 0; i < 50; i++ {
-		id, err = generateID()
-		if err != nil {
-			return "", err
-		}
-		if _, ok := s.store[id]; !ok {
-			break
-		}
-	}
+	id, err := generateUniqueID(func(id string) (bool, error) {
+		_, ok := s.store[id]
+		return ok, nil
+	})
 	if err != nil {
 		return "", err
 	}

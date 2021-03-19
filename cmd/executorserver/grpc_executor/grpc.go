@@ -52,7 +52,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 		return nil, err
 	}
 	if len(si) > 0 || len(so) > 0 {
-		return nil, fmt.Errorf("Stream in / out are not avaliable for exec request")
+		return nil, fmt.Errorf("Stream in / out are not available for exec request")
 	}
 	e.logger.Sugar().Debugf("request: %+v", r)
 	rt := <-e.worker.Submit(ctx, r)

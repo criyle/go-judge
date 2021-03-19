@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"crypto/rand"
 	"encoding/base32"
+	"errors"
 
 	"github.com/criyle/go-judge/envexec"
 )
 
 const randIDLength = 12
+
+var errUniqueIDNotGenerated = errors.New("Unique id does not exists after tried 50 times")
 
 // FileStore defines interface to store file
 type FileStore interface {
@@ -29,4 +32,21 @@ func generateID() (string, error) {
 		return "", err
 	}
 	return string(buf.Bytes()), nil
+}
+
+func generateUniqueID(isExists func(string) (bool, error)) (string, error) {
+	for range [50]struct{}{} {
+		id, err := generateID()
+		if err != nil {
+			return "", err
+		}
+		exists, err := isExists(id)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return id, nil
+		}
+	}
+	return "", errUniqueIDNotGenerated
 }

@@ -24,8 +24,8 @@ type environ struct {
 	cpuRate bool
 }
 
-// Destory destories the environment
-func (c *environ) Destory() error {
+// Destroy destories the environment
+func (c *environ) Destroy() error {
 	return c.Environment.Destroy()
 }
 

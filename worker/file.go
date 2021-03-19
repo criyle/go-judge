@@ -12,7 +12,7 @@ import (
 type CmdFile interface {
 	// EnvFile prepares file for envexec file
 	EnvFile(fs filestore.FileStore) (envexec.File, error)
-	// Stringer to print debug infomation
+	// Stringer to print debug information
 	String() string
 }
 

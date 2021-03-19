@@ -234,7 +234,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: ${{ contains(github.ref, 'v') }}
+          push: true
           file: Dockerfile.exec
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           cache-from: type=local,src=/tmp/.buildx-cache
@@ -249,7 +249,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: ${{ contains(github.ref, 'v') }}
+          push: true
           file: Dockerfile.alpine
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           cache-from: type=local,src=/tmp/.buildx-cache

@@ -23,7 +23,7 @@ jobs:
           draft: false
           prerelease: false
   build:
-    name: Build-${{ matrix.os }}
+    name: Build-${{ matrix.os }}-${{ matrix.GOARCH }}
     needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
@@ -69,12 +69,12 @@ jobs:
           go generate ./cmd/executorserver
           go build -v -tags nomsgpack -o executorserver ./cmd/executorserver
           go build -v -o executorshell ./cmd/executorshell
+          go build -o cinit ./cmd/cinit
       - name: Build shared objects on Linux
-        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.GOARCH == 'amd64' }} 
         env:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
-          go build -o cinit ./cmd/cinit
           go build -buildmode=c-shared -o executorserver.so ./cmd/ffi
       - name: Upload executorserver on linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
@@ -95,7 +95,7 @@ jobs:
           name: cinit-${{ matrix.GOARCH }}
           path: cinit
       - name: Upload executorserver.so on linux
-        if: ${{ matrix.os == 'ubuntu-latest' }} 
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.GOARCH == 'amd64' }} 
         uses: actions/upload-artifact@v2
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.so

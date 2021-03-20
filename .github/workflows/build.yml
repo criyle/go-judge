@@ -190,14 +190,20 @@ jobs:
           asset_name: executorserver-macOS-${{ matrix.GOARCH }}
           asset_content_type: application/octet-stream
   docker:
-    name: Build Docker Image
+    name: Build Docker Image - ${{ matrix.os }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - ubuntu
+          - alpine
     steps:
       -
         name: Checkout
         uses: actions/checkout@v2
       -
         name: Docker meta
+        if: ${{ matrix.os == 'ubuntu' }}
         id: docker_meta
         uses: crazy-max/ghaction-docker-meta@v1
         with:
@@ -209,6 +215,7 @@ jobs:
             {{date 'YYYYMMDD'}}
       -
         name: Docker meta alpine
+        if: ${{ matrix.os == 'alpine' }}
         id: docker_meta_alpine
         uses: crazy-max/ghaction-docker-meta@v1
         with:
@@ -240,6 +247,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Build and push
+        if: ${{ matrix.os == 'ubuntu' }}
         id: docker_build
         uses: docker/build-push-action@v2
         with:
@@ -253,6 +261,7 @@ jobs:
           labels: ${{ steps.docker_meta.outputs.labels }}
       -
         name: Build and push alpine
+        if: ${{ matrix.os == 'alpine' }}
         id: docker_build_alpine
         uses: docker/build-push-action@v2
         with:
@@ -266,7 +275,9 @@ jobs:
           labels: ${{ steps.docker_meta_alpine.outputs.labels }}
       -
         name: Image digest
+        if: ${{ matrix.os == 'ubuntu' }}
         run: echo ${{ steps.docker_build.outputs.digest }}
       -
         name: Image digest alpine
+        if: ${{ matrix.os == 'alpine' }}
         run: echo ${{ steps.docker_build_alpine.outputs.digest }}

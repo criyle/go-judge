@@ -9,6 +9,7 @@ import (
 
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/container"
+	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/rlimit"
 )
 
@@ -47,14 +48,9 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		if err != nil {
 			return nil, fmt.Errorf("execve: failed to get cgroup %v", err)
 		}
-		if c.cpuset != "" {
-			cg.SetCpuset(c.cpuset)
+		if err := c.setCgroupLimit(cg, limit); err != nil {
+			return nil, err
 		}
-		if c.cpuRate && limit.Rate > 0 {
-			cg.SetCPURate(limit.Rate)
-		}
-		cg.SetMemoryLimit(limit.Memory)
-		cg.SetProcLimit(limit.Proc)
 		syncFunc = cg.AddProc
 	}
 
@@ -100,4 +96,28 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 		return nil, fmt.Errorf("openAtWorkDir: failed to NewFile")
 	}
 	return f, nil
+}
+
+func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
+	if c.cpuset != "" {
+		if err := cg.SetCpuset(c.cpuset); isCgroupSetHasError(err) {
+			return fmt.Errorf("execve: cgroup failed to set cpu_set limit %v", err)
+		}
+	}
+	if c.cpuRate && limit.Rate > 0 {
+		if err := cg.SetCPURate(limit.Rate); isCgroupSetHasError(err) {
+			return fmt.Errorf("execve: cgroup failed to set cpu_rate limit %v", err)
+		}
+	}
+	if err := cg.SetMemoryLimit(limit.Memory); isCgroupSetHasError(err) {
+		return fmt.Errorf("execve: cgroup failed to set memory limit %v", err)
+	}
+	if err := cg.SetProcLimit(limit.Proc); isCgroupSetHasError(err) {
+		return fmt.Errorf("execve: cgroup failed to set process limit %v", err)
+	}
+	return nil
+}
+
+func isCgroupSetHasError(err error) bool {
+	return err != nil && err != cgroup.ErrNotInitialized
 }

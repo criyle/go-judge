@@ -5,7 +5,7 @@ go 1.16
 require (
 	cloud.google.com/go v0.80.0 // indirect
 	github.com/creack/pty v1.1.11
-	github.com/criyle/go-sandbox v0.6.8
+	github.com/criyle/go-sandbox v0.7.0
 	github.com/elastic/go-seccomp-bpf v1.1.0
 	github.com/elastic/go-ucfg v0.8.3
 	github.com/fatih/camelcase v1.0.0 // indirect

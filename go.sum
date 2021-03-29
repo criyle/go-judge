@@ -87,8 +87,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.11 h1:07n33Z8lZxZ2qwegKbObQohDhXDQxiMMz1NOUGYlesw=
 github.com/creack/pty v1.1.11/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/criyle/go-sandbox v0.6.8 h1:hUDlF4SM7pCLOUXajGcthPWvR58I7f7UOJflKlWKaZc=
-github.com/criyle/go-sandbox v0.6.8/go.mod h1:k3b2hoz4SFTZB91Omr9OQj2HFpXLH/kAEFeqhitlGeY=
+github.com/criyle/go-sandbox v0.7.0 h1:TXm6GxltZKj0xC044SGEXP0LPQ+anfsTLOcJ6QJgGEc=
+github.com/criyle/go-sandbox v0.7.0/go.mod h1:k3b2hoz4SFTZB91Omr9OQj2HFpXLH/kAEFeqhitlGeY=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -5,7 +5,7 @@ go 1.16
 require (
 	cloud.google.com/go v0.80.0 // indirect
 	github.com/creack/pty v1.1.11
-	github.com/criyle/go-sandbox v0.7.1
+	github.com/criyle/go-sandbox v0.7.2
 	github.com/elastic/go-seccomp-bpf v1.1.0
 	github.com/elastic/go-ucfg v0.8.3
 	github.com/fatih/camelcase v1.0.0 // indirect
@@ -25,21 +25,28 @@ require (
 	github.com/prometheus/client_golang v1.10.0
 	github.com/prometheus/common v0.20.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/ugorji/go v1.2.4 // indirect
+	github.com/ugorji/go v1.2.5 // indirect
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/net v0.0.0-20210329181859-df645c7b52b1
+	golang.org/x/net v0.0.0-20210330230544-e57232859fb2
 	golang.org/x/oauth2 v0.0.0-20210323180902-22b0adad7558 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210326220804-49726bf1d181
+	golang.org/x/sys v0.0.0-20210330210617-4fbd30eecc44
 	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6 // indirect
-	google.golang.org/genproto v0.0.0-20210329143202-679c6ae281ee // indirect
+	google.golang.org/genproto v0.0.0-20210330181207-2295ebbda0c6 // indirect
 	google.golang.org/grpc v1.36.1
 	google.golang.org/grpc/examples v0.0.0-20210326170912-4a19753e9dfd // indirect
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	honnef.co/go/tools v0.1.3 // indirect
+)
+
+retract (
+	// File descripter leak when multiple container fork at the same time
+	[v0.9.5, v1.1.3]
+	// Old version, don't use
+	[v0.0.1, v0.9.4]
 )

@@ -2,7 +2,11 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/criyle/go-judge.svg)](https://pkg.go.dev/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest) ![Build](https://github.com/criyle/go-judge/workflows/Build/badge.svg)
 
+[中文文档](README.cn.md)
+
 ## Executor Service
+
+Fast, Simple, Secure
 
 ### Architecture
 
@@ -54,17 +58,17 @@ Sandbox:
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
 - `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)
 - `-copy-out-limit` specifies the default file copy out max (default 64MiB)
-- `-cpuset` specifies `cpuset.cpus` cgroup for each container
-- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000)
+- `-cpuset` specifies `cpuset.cpus` cgroup for each container (Linux only)
+- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000) (Linux only)
   - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
-- `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control
-- `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
-- `-seccomp-conf` specifies `seecomp` filter setting to load when running program (need build tag `seccomp`)
+- `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control (Linux only)
+  - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
+- `-seccomp-conf` specifies `seecomp` filter setting to load when running program (need build tag `seccomp`) (Linux only)
   - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
   - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
   - the program killed by seccomp filter will have status `Dangerous Syscall`
 - `-pre-fork` specifies number of container to create when server starts
-- `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting
+- `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting (Linux only)
 
 ### Environment Variables
 
@@ -77,7 +81,7 @@ Download compiled executable from [Release](https://github.com/criyle/go-judge/r
 Or, by docker
 
 ```bash
-docker run -it --rm --privileged -p 5050:5050 criyle/executorserver:demo
+docker run -it --rm --privileged -p 5050:5050 criyle/executorserver
 ```
 
 #### Build Executor Server
@@ -188,8 +192,8 @@ wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"
 wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
 ```
 
-- Single thread ~400-460 op/s Windows 10 WSL2
-- Multi thread ~1100-1200 op/s Windows 10 WSL2
+- Single thread ~800-860 op/s Windows 10 WSL2 @ 5800X
+- Multi thread ~1800-2000 op/s Windows 10 WSL2 @ 5800X
 
 Single thread:
 
@@ -197,16 +201,16 @@ Single thread:
 Running 30s test @ http://localhost:5050/run
   1 threads and 1 connections
   Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     2.23ms  287.79us  14.29ms   86.51%
-    Req/Sec   451.05     17.60   494.00     76.00%
+    Latency     1.16ms  132.89us   6.20ms   90.15%
+    Req/Sec     0.87k    19.33     0.91k    85.33%
   Latency Distribution
-     50%    2.19ms
-     75%    2.33ms
-     90%    2.50ms
-     99%    2.93ms
-  13482 requests in 30.02s, 3.58MB read
-Requests/sec:    449.15
-Transfer/sec:    121.98KB
+     50%    1.13ms
+     75%    1.18ms
+     90%    1.27ms
+     99%    1.61ms
+  25956 requests in 30.01s, 6.88MB read
+Requests/sec:    864.88
+Transfer/sec:    234.68KB
 ```
 
 ### REST API Interface
@@ -290,6 +294,7 @@ interface Request {
 interface Result {
     status: Status;
     error?: string; // potential system error message
+    exitStatus: number;
     time: number;   // ns (cgroup recorded time)
     memory: number; // byte
     runTime: number; // ns (wall clock time)
@@ -483,6 +488,49 @@ Single (this example require `apt install g++` inside the container):
         "fileIds": {
             "a": "5LWIZAA45JHX4Y4Z",
             "a.cc": "NOHPGGDTYQUFRSLJ"
+        }
+    }
+]
+```
+
+```json
+{
+    "cmd": [{
+        "args": ["a"],
+        "env": ["PATH=/usr/bin:/bin"],
+        "files": [{
+            "content": "1 1"
+        }, {
+            "name": "stdout",
+            "max": 10240
+        }, {
+            "name": "stderr",
+            "max": 10240
+        }],
+        "cpuLimit": 10000000000,
+        "memoryLimit": 104857600,
+        "procLimit": 50,
+        "strictMemoryLimit": false,
+        "copyIn": {
+            "a": {
+                "fileId": "5LWIZAA45JHX4Y4Z"
+            }
+        }
+    }]
+}
+```
+
+```json
+[
+    {
+        "status": "Accepted",
+        "exitStatus": 0,
+        "time": 1173000,
+        "memory": 10637312,
+        "runTime": 1100200,
+        "files": {
+            "stderr": "",
+            "stdout": "2\n"
         }
     }
 ]

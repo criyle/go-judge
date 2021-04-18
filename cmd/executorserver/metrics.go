@@ -157,6 +157,7 @@ func (m *metricsFileStore) Remove(id string) bool {
 	if !ok {
 		return success
 	}
+	delete(m.fileSize, id)
 
 	sf := float64(s)
 	fsTotalSize.Sub(sf)

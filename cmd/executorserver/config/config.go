@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
@@ -17,7 +18,7 @@ type Config struct {
 	NetShare           bool   `flagUsage:"share net namespace with host"`
 	MountConf          string `flagUsage:"specifies mount configuration file" default:"mount.yaml"`
 	SeccompConf        string `flagUsage:"specifies seccomp filter" default:"seccomp.yaml"`
-	Parallelism        int    `flagUsage:"control the # of concurrency execution" default:"4"`
+	Parallelism        int    `flagUsage:"control the # of concurrency execution (default equal to number of cpu)"`
 	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"executor_server"`
 	ContainerCredStart int    `flagUsage:"control the start uid&gid for container" default:"10000"`
 
@@ -33,6 +34,7 @@ type Config struct {
 	Cpuset                   string        `flagUsage:"control the usage of cpuset for all containerd process"`
 	EnableCPURate            bool          `flagUsage:"enable cpu cgroup rate control"`
 	CPUCfsPeriod             time.Duration `flagUsage:"set cpu.cfs_period" default:"100ms"`
+	FileTimeout              time.Duration `flagUsage:"specified timeout for filestore files"`
 
 	// server config
 	HTTPAddr      string `flagUsage:"specifies the http binding address" default:":5050"`
@@ -62,6 +64,9 @@ func (c *Config) Load() error {
 	)
 	if os.Getpid() == 1 {
 		c.Release = true
+	}
+	if c.Parallelism <= 0 {
+		c.Parallelism = runtime.NumCPU()
 	}
 	return cl.Load(c)
 }

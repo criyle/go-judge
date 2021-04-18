@@ -11,7 +11,7 @@ import (
 
 const randIDLength = 12
 
-var errUniqueIDNotGenerated = errors.New("Unique id does not exists after tried 50 times")
+var errUniqueIDNotGenerated = errors.New("unique id does not exists after tried 50 times")
 
 // FileStore defines interface to store file
 type FileStore interface {
@@ -31,7 +31,7 @@ func generateID() (string, error) {
 	if _, err := base32.NewEncoder(base32.StdEncoding, &buf).Write(b); err != nil {
 		return "", err
 	}
-	return string(buf.Bytes()), nil
+	return buf.String(), nil
 }
 
 func generateUniqueID(isExists func(string) (bool, error)) (string, error) {

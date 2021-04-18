@@ -50,7 +50,7 @@ Server:
 
 Sandbox:
 
-- The default concurrency is `4`, Can be specified with `-parallelism` flag.
+- The default concurrency equal to number of CPU, Can be specified with `-parallelism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
 - The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
 - `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
@@ -69,6 +69,7 @@ Sandbox:
   - the program killed by seccomp filter will have status `Dangerous Syscall`
 - `-pre-fork` specifies number of container to create when server starts
 - `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting (Linux only)
+- `-file-timeout` specifies maximum TTL for file created in file store （e.g. `30m`)
 
 ### Environment Variables
 

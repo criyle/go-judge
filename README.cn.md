@@ -50,7 +50,7 @@
 
 沙箱相关:
 
-- 默认同时运行任务数为 `4` ，使用 `-parallelism` 指定
+- 默认同时运行任务数为和 CPU 数量相同，使用 `-parallelism` 指定
 - 默认文件存储在内存里，使用 `-dir` 指定本地目录为文件存储
 - 默认 cgroup 的前缀为 `executor_server` ，使用 `-cgroup-prefix` 指定
 - 默认没有磁盘文件复制限制，使用 `-src-prefix` 限制 copyIn 操作文件目录前缀（需要绝对路径）
@@ -66,6 +66,7 @@
 - 使用 `-seccomp-conf` 指定 `seecomp` 过滤器（需要编译标志 `seccomp`，默认不开启）（仅 Linux）
 - 使用 `-pre-fork` 指定启动时创建的容器数量
 - 使用 `-tmp-fs-param` 指定容器内 `tmpfs` 的挂载参数（仅 Linux）
+- 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（举例 `30m`）
 
 ### 环境变量
 

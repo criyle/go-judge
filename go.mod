@@ -12,8 +12,8 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-contrib/zap v0.0.1
-	github.com/gin-gonic/gin v1.6.3
-	github.com/go-playground/validator/v10 v10.4.2 // indirect
+	github.com/gin-gonic/gin v1.7.1
+	github.com/go-playground/validator/v10 v10.5.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.2
@@ -29,16 +29,15 @@ require (
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
-	golang.org/x/oauth2 v0.0.0-20210402161424-2e8d93401602 // indirect
+	golang.org/x/crypto v0.0.0-20210415154028-4f45737414dc
+	golang.org/x/net v0.0.0-20210415231046-e915ea6b2b7d
+	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57
-	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6 // indirect
-	golang.org/x/text v0.3.6 // indirect
-	google.golang.org/genproto v0.0.0-20210405174219-a39eb2f71cb9 // indirect
-	google.golang.org/grpc v1.36.1
-	google.golang.org/grpc/examples v0.0.0-20210405205600-8892a7b247c0 // indirect
+	golang.org/x/sys v0.0.0-20210415045647-66c3f260301c
+	golang.org/x/term v0.0.0-20210406210042-72f3dc4e9b72 // indirect
+	google.golang.org/genproto v0.0.0-20210416161957-9910b6c460de // indirect
+	google.golang.org/grpc v1.37.0
+	google.golang.org/grpc/examples v0.0.0-20210415220803-1a870aec2ff9 // indirect
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0

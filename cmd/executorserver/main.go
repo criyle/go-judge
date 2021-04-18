@@ -50,7 +50,7 @@ func main() {
 	logger.Sugar().Infof("config loaded: %+v", conf)
 
 	// Init environment pool
-	fs := newFilsStore(conf.Dir)
+	fs := newFilsStore(conf.Dir, conf.FileTimeout, conf.EnableMetrics)
 	b := newEnvBuilder(conf)
 	envPool := pool.NewPool(b)
 	prefork(envPool, conf.PreFork)
@@ -275,13 +275,21 @@ func grpcTokenAuth(token string) func(context.Context) (context.Context, error) 
 	}
 }
 
-func newFilsStore(dir string) filestore.FileStore {
+func newFilsStore(dir string, fileTimeout time.Duration, enableMetrics bool) filestore.FileStore {
+	const timeoutCheckInterval = 15 * time.Second
+
 	var fs filestore.FileStore
 	if dir == "" {
 		fs = filestore.NewFileMemoryStore()
 	} else {
 		os.MkdirAll(dir, 0755)
 		fs = filestore.NewFileLocalStore(dir)
+	}
+	if enableMetrics {
+		fs = newMetricsFileStore(fs)
+	}
+	if fileTimeout > 0 {
+		fs = filestore.NewTimeout(fs, fileTimeout, timeoutCheckInterval)
 	}
 	return fs
 }

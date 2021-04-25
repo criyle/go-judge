@@ -1,5 +1,9 @@
 package envexec
 
+import (
+	"fmt"
+)
+
 // Status defines run task Status return status
 type Status int
 
@@ -51,10 +55,28 @@ var statusToString = []string{
 	"Container Error",
 }
 
+// Map string to corresponding Status
+var stringToStatus = make(map[string]Status)
+
 func (s Status) String() string {
 	si := int(s)
 	if si < 0 || si >= len(statusToString) {
 		return statusToString[0] // invalid
 	}
 	return statusToString[si]
+}
+
+// Convert string to Status
+func StringToStatus(s string) (Status, error) {
+	v, ok := stringToStatus[s]
+	if !ok {
+		return 0, fmt.Errorf("invalid string converting: %s", s)
+	}
+	return v, nil
+}
+
+func init() {
+	for i, v := range statusToString {
+		stringToStatus["\""+v+"\""] = Status(i)
+	}
 }

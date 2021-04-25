@@ -71,6 +71,17 @@ func (s Status) MarshalJSON() ([]byte, error) {
 	return []byte("\"" + (envexec.Status)(s).String() + "\""), nil
 }
 
+// UnmarshalJSON convert string into status
+func (s *Status) UnmarshalJSON(b []byte) error {
+	str := string(b)
+	v, err := envexec.StringToStatus(str)
+	if err != nil {
+		return err
+	}
+	*s = Status(v)
+	return nil
+}
+
 // Result defines single command result
 type Result struct {
 	Status     Status            `json:"status"`

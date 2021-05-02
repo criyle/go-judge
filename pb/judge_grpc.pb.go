@@ -12,6 +12,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // ExecutorClient is the client API for Executor service.
@@ -54,7 +55,7 @@ func (c *executorClient) Exec(ctx context.Context, in *Request, opts ...grpc.Cal
 }
 
 func (c *executorClient) ExecStream(ctx context.Context, opts ...grpc.CallOption) (Executor_ExecStreamClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_Executor_serviceDesc.Streams[0], "/pb.Executor/ExecStream", opts...)
+	stream, err := c.cc.NewStream(ctx, &Executor_ServiceDesc.Streams[0], "/pb.Executor/ExecStream", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +176,7 @@ type UnsafeExecutorServer interface {
 }
 
 func RegisterExecutorServer(s grpc.ServiceRegistrar, srv ExecutorServer) {
-	s.RegisterService(&_Executor_serviceDesc, srv)
+	s.RegisterService(&Executor_ServiceDesc, srv)
 }
 
 func _Executor_Exec_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -294,7 +295,10 @@ func _Executor_FileDelete_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-var _Executor_serviceDesc = grpc.ServiceDesc{
+// Executor_ServiceDesc is the grpc.ServiceDesc for Executor service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var Executor_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "pb.Executor",
 	HandlerType: (*ExecutorServer)(nil),
 	Methods: []grpc.MethodDesc{

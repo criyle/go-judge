@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/worker"
 	"github.com/prometheus/client_golang/prometheus"
@@ -86,6 +88,18 @@ var (
 		Name:      "file_size_current_total",
 		Help:      "Total size of current files in the file store",
 	})
+
+	envCreated = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsNamespace,
+		Name:      "environment_created",
+		Help:      "Total number of environment build by environment builder",
+	})
+
+	envInUse = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsNamespace,
+		Name:      "environment_in_use",
+		Help:      "Total number of environment currently in use",
+	})
 )
 
 func init() {
@@ -93,6 +107,7 @@ func init() {
 	prometheus.MustRegister(execTimeHist, execTimeSummary)
 	prometheus.MustRegister(execMemHist, execMemSummary)
 	prometheus.MustRegister(fsSizeHist, fsSizeSummary, fsTotalSize)
+	prometheus.MustRegister(envCreated, envInUse)
 }
 
 func execObserve(res worker.Response) {
@@ -164,4 +179,39 @@ func (m *metricsFileStore) Remove(id string) bool {
 	fsTotalCount.Dec()
 
 	return success
+}
+
+var _ pool.EnvBuilder = &metriceEnvBuilder{}
+
+type metriceEnvBuilder struct {
+	pool.EnvBuilder
+}
+
+func (b *metriceEnvBuilder) Build() (pool.Environment, error) {
+	e, err := b.EnvBuilder.Build()
+	if err != nil {
+		return nil, err
+	}
+	envCreated.Inc()
+	return e, nil
+}
+
+var _ worker.EnvironmentPool = &metricsEnvPool{}
+
+type metricsEnvPool struct {
+	worker.EnvironmentPool
+}
+
+func (p *metricsEnvPool) Get() (envexec.Environment, error) {
+	e, err := p.EnvironmentPool.Get()
+	if err != nil {
+		return nil, err
+	}
+	envInUse.Inc()
+	return e, nil
+}
+
+func (p *metricsEnvPool) Put(env envexec.Environment) {
+	p.EnvironmentPool.Put(env)
+	envInUse.Dec()
 }

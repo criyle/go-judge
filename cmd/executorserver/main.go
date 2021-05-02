@@ -52,7 +52,7 @@ func main() {
 	// Init environment pool
 	fs := newFilsStore(conf.Dir, conf.FileTimeout, conf.EnableMetrics)
 	b := newEnvBuilder(conf)
-	envPool := pool.NewPool(b)
+	envPool := newEnvPool(b, conf.EnableMetrics)
 	prefork(envPool, conf.PreFork)
 	work := newWorker(conf, envPool, fs)
 	work.Start()
@@ -311,7 +311,18 @@ func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)
 	}
+	if conf.EnableMetrics {
+		b = &metriceEnvBuilder{b}
+	}
 	return b
+}
+
+func newEnvPool(b pool.EnvBuilder, enableMetrics bool) worker.EnvironmentPool {
+	p := pool.NewPool(b)
+	if enableMetrics {
+		p = &metricsEnvPool{p}
+	}
+	return p
 }
 
 func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore.FileStore) worker.Worker {

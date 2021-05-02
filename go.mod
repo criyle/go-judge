@@ -18,11 +18,12 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/prometheus/client_golang v1.10.0
-	github.com/prometheus/common v0.21.0 // indirect
+	github.com/prometheus/common v0.23.0 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/ugorji/go v1.2.5 // indirect
 	github.com/zsais/go-gin-prometheus v0.1.0
@@ -30,17 +31,17 @@ require (
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210423184538-5f58ad60dda6
-	golang.org/x/oauth2 v0.0.0-20210413134643-5e61552d6c78 // indirect
+	golang.org/x/net v0.0.0-20210502030024-e5908800b52b
+	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210423185535-09eb48e85fd7
-	golang.org/x/term v0.0.0-20210422114643-f5beecf764ed // indirect
-	google.golang.org/genproto v0.0.0-20210423144448-3a41ef94ed2b // indirect
+	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
+	golang.org/x/term v0.0.0-20210429154555-c04ba851c2a4 // indirect
+	google.golang.org/genproto v0.0.0-20210429181445-86c259c2b4ab // indirect
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v2 v2.4.0
-	honnef.co/go/tools v0.1.3 // indirect
+	honnef.co/go/tools v0.1.4 // indirect
 )
 
 retract (

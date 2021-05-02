@@ -19,6 +19,7 @@ const (
 
 var (
 	errERROR_IO_PENDING error = syscall.Errno(errnoERROR_IO_PENDING)
+	errERROR_EINVAL     error = syscall.EINVAL
 )
 
 // errnoErr returns common boxed Errno values, to prevent
@@ -26,7 +27,7 @@ var (
 func errnoErr(e syscall.Errno) error {
 	switch e {
 	case 0:
-		return nil
+		return errERROR_EINVAL
 	case errnoERROR_IO_PENDING:
 		return errERROR_IO_PENDING
 	}
@@ -38,32 +39,48 @@ func errnoErr(e syscall.Errno) error {
 
 var (
 	modadvapi32 = windows.NewLazySystemDLL("advapi32.dll")
-	moduser32   = windows.NewLazySystemDLL("user32.dll")
 	modkernel32 = windows.NewLazySystemDLL("kernel32.dll")
+	moduser32   = windows.NewLazySystemDLL("user32.dll")
 
 	procCreateRestrictedToken     = modadvapi32.NewProc("CreateRestrictedToken")
-	procGetThreadDesktop          = moduser32.NewProc("GetThreadDesktop")
-	procGetProcessWindowStation   = moduser32.NewProc("GetProcessWindowStation")
-	procCreateDesktopW            = moduser32.NewProc("CreateDesktopW")
-	procCloseDesktop              = moduser32.NewProc("CloseDesktop")
 	procQueryInformationJobObject = modkernel32.NewProc("QueryInformationJobObject")
+	procCloseDesktop              = moduser32.NewProc("CloseDesktop")
+	procCreateDesktopW            = moduser32.NewProc("CreateDesktopW")
+	procGetProcessWindowStation   = moduser32.NewProc("GetProcessWindowStation")
+	procGetThreadDesktop          = moduser32.NewProc("GetThreadDesktop")
 )
 
 func CreateRestrictedToken(existingToken windows.Token, flags uint32, disableSidCount uint32, sidsToDisable *windows.SIDAndAttributes, deletePrivilegeCount uint32, privilegesToDelete *windows.SIDAndAttributes, restrictedSidCount uint32, sidToRestrict *windows.SIDAndAttributes, newTokenHandle *windows.Token) (err error) {
 	r1, _, e1 := syscall.Syscall9(procCreateRestrictedToken.Addr(), 9, uintptr(existingToken), uintptr(flags), uintptr(disableSidCount), uintptr(unsafe.Pointer(sidsToDisable)), uintptr(deletePrivilegeCount), uintptr(unsafe.Pointer(privilegesToDelete)), uintptr(restrictedSidCount), uintptr(unsafe.Pointer(sidToRestrict)), uintptr(unsafe.Pointer(newTokenHandle)))
 	if r1 == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
+		err = errnoErr(e1)
 	}
 	return
 }
 
-func GetThreadDesktop(threadID uint32) (h HDESK) {
-	r0, _, _ := syscall.Syscall(procGetThreadDesktop.Addr(), 1, uintptr(threadID), 0, 0)
+func QueryInformationJobObject(job windows.Handle, JobObjectInformationClass uint32, JobObjectInformation uintptr, JobObjectInformationLength uint32, lpReturnLength *uint32) (ret int, err error) {
+	r0, _, e1 := syscall.Syscall6(procQueryInformationJobObject.Addr(), 5, uintptr(job), uintptr(JobObjectInformationClass), uintptr(JobObjectInformation), uintptr(JobObjectInformationLength), uintptr(unsafe.Pointer(lpReturnLength)), 0)
+	ret = int(r0)
+	if ret == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func CloseDesktop(hDesktop HDESK) (err error) {
+	r1, _, e1 := syscall.Syscall(procCloseDesktop.Addr(), 1, uintptr(hDesktop), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func CreateDesktop(lpszDesktop *uint16, lpszDevice *uint16, pDevmode uintptr, dwFlags uint32, dwDesiredAccess windows.ACCESS_MASK, lpsa *windows.SecurityAttributes) (h HDESK, err error) {
+	r0, _, e1 := syscall.Syscall6(procCreateDesktopW.Addr(), 6, uintptr(unsafe.Pointer(lpszDesktop)), uintptr(unsafe.Pointer(lpszDevice)), uintptr(pDevmode), uintptr(dwFlags), uintptr(dwDesiredAccess), uintptr(unsafe.Pointer(lpsa)))
 	h = HDESK(r0)
+	if h == 0 {
+		err = errnoErr(e1)
+	}
 	return
 }
 
@@ -73,40 +90,8 @@ func GetProcessWindowStation() (h HWINSTA) {
 	return
 }
 
-func CreateDesktop(lpszDesktop *uint16, lpszDevice *uint16, pDevmode uintptr, dwFlags uint32, dwDesiredAccess windows.ACCESS_MASK, lpsa *windows.SecurityAttributes) (h HDESK, err error) {
-	r0, _, e1 := syscall.Syscall6(procCreateDesktopW.Addr(), 6, uintptr(unsafe.Pointer(lpszDesktop)), uintptr(unsafe.Pointer(lpszDevice)), uintptr(pDevmode), uintptr(dwFlags), uintptr(dwDesiredAccess), uintptr(unsafe.Pointer(lpsa)))
+func GetThreadDesktop(threadID uint32) (h HDESK) {
+	r0, _, _ := syscall.Syscall(procGetThreadDesktop.Addr(), 1, uintptr(threadID), 0, 0)
 	h = HDESK(r0)
-	if h == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-	return
-}
-
-func CloseDesktop(hDesktop HDESK) (err error) {
-	r1, _, e1 := syscall.Syscall(procCloseDesktop.Addr(), 1, uintptr(hDesktop), 0, 0)
-	if r1 == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
-	return
-}
-
-func QueryInformationJobObject(job windows.Handle, JobObjectInformationClass uint32, JobObjectInformation uintptr, JobObjectInformationLength uint32, lpReturnLength *uint32) (ret int, err error) {
-	r0, _, e1 := syscall.Syscall6(procQueryInformationJobObject.Addr(), 5, uintptr(job), uintptr(JobObjectInformationClass), uintptr(JobObjectInformation), uintptr(JobObjectInformationLength), uintptr(unsafe.Pointer(lpReturnLength)), 0)
-	ret = int(r0)
-	if ret == 0 {
-		if e1 != 0 {
-			err = errnoErr(e1)
-		} else {
-			err = syscall.EINVAL
-		}
-	}
 	return
 }

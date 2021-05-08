@@ -13,7 +13,7 @@ require (
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-contrib/zap v0.0.1
 	github.com/gin-gonic/gin v1.7.1
-	github.com/go-playground/validator/v10 v10.5.0 // indirect
+	github.com/go-playground/validator/v10 v10.6.0 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -27,16 +27,16 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/ugorji/go v1.2.5 // indirect
 	github.com/zsais/go-gin-prometheus v0.1.0
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20210421170649-83a5a9bb288b
+	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf
 	golang.org/x/mod v0.4.2 // indirect
-	golang.org/x/net v0.0.0-20210502030024-e5908800b52b
+	golang.org/x/net v0.0.0-20210508051633-16afe75a6701
 	golang.org/x/oauth2 v0.0.0-20210427180440-81ed05c6b58c // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210426230700-d19ff857e887
-	golang.org/x/term v0.0.0-20210429154555-c04ba851c2a4 // indirect
-	google.golang.org/genproto v0.0.0-20210429181445-86c259c2b4ab // indirect
+	golang.org/x/sys v0.0.0-20210507161434-a76c4d0a0096
+	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
+	google.golang.org/genproto v0.0.0-20210506142907-4a47615972c2 // indirect
 	google.golang.org/grpc v1.37.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

@@ -270,7 +270,9 @@ interface WSResult {
 
 ### 示例
 
-单个文件编译运行（这个例子需要安装 `g++` 例如 `apt install g++` ):
+<details><summary>单个文件编译运行（这个例子需要安装 `g++` 例如 `apt install g++` )</summary>
+
+需要注意 `copyOutCached` 产生的文件在使用完之后需要显示删除
 
 ```json
 {
@@ -364,7 +366,9 @@ interface WSResult {
 ]
 ```
 
-多个程序（例如交互题）:
+</details>
+
+<details><summary>多个程序（例如交互题）</summary>
 
 ```json
 {
@@ -435,7 +439,9 @@ interface WSResult {
 ]
 ```
 
-开启 CPURate 限制的死循环：
+</details>
+
+<details><summary>开启 CPURate 限制的死循环</summary>
 
 ```json
 {
@@ -471,3 +477,5 @@ interface WSResult {
     }
 ]
 ```
+
+</details>

@@ -315,7 +315,7 @@ interface WSResult {
 
 ### Example Request & Response
 
-FFI:
+<details><summary>FFI</summary>
 
 ```javascript
 var ffi = require('ffi-napi');
@@ -443,7 +443,9 @@ Output:
 }
 ```
 
-Single (this example require `apt install g++` inside the container):
+</details>
+
+<details><summary>Single (this example require `apt install g++` inside the container)</summary>
 
 ```json
 {
@@ -537,7 +539,9 @@ Single (this example require `apt install g++` inside the container):
 ]
 ```
 
-Multiple (interaction problem):
+</details>
+
+<details><summary>Multiple (interaction problem)</summary>
 
 ```json
 {
@@ -608,7 +612,9 @@ Multiple (interaction problem):
 ]
 ```
 
-Compile On Windows (cygwin):
+</details>
+
+<details><summary>Compile On Windows (cygwin)</summary>
 
 ```json
 {
@@ -655,7 +661,10 @@ Compile On Windows (cygwin):
 ]
 ```
 
-Infinite loop with cpu rate control:
+</details>
+
+<details><summary>Infinite loop with cpu rate control</summary>
+
 
 ```json
 {
@@ -691,3 +700,5 @@ Infinite loop with cpu rate control:
     }
 ]
 ```
+
+</details>

@@ -16,7 +16,7 @@ type process struct {
 	cg   Cgroup
 }
 
-func newProcess(ch <-chan runner.Result, cg Cgroup, cgPool CgroupPool) *process {
+func newProcess(run func() runner.Result, cg Cgroup, cgPool CgroupPool) *process {
 	p := &process{
 		done: make(chan struct{}),
 		cg:   cg,
@@ -26,17 +26,22 @@ func newProcess(ch <-chan runner.Result, cg Cgroup, cgPool CgroupPool) *process 
 		if cgPool != nil {
 			defer cgPool.Put(cg)
 		}
-		p.rt = <-ch
-		if cg != nil {
-			if t, err := cg.CPUUsage(); err == nil {
-				p.rt.Time = t
-			}
-			if m, err := cg.MemoryUsage(); err == nil {
-				p.rt.Memory = m
-			}
-		}
+		p.rt = run()
+		p.collectUsage()
 	}()
 	return p
+}
+
+func (p *process) collectUsage() {
+	if p.cg == nil {
+		return
+	}
+	if t, err := p.cg.CPUUsage(); err == nil {
+		p.rt.Time = t
+	}
+	if m, err := p.cg.MemoryUsage(); err == nil {
+		p.rt.Memory = m
+	}
 }
 
 func (p *process) Done() <-chan struct{} {

@@ -11,6 +11,7 @@ import (
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/rlimit"
+	"github.com/criyle/go-sandbox/runner"
 )
 
 var _ envexec.Environment = &environ{}
@@ -65,6 +66,9 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		rLimits.Data = limit.Memory.Byte()
 	}
 
+	// wait for sync or error before turn (avoid file close before pass to child process)
+	syncDone := make(chan struct{})
+
 	p := container.ExecveParam{
 		Args:     param.Args,
 		Env:      param.Env,
@@ -73,10 +77,24 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		ExecFile: param.ExecFile,
 		RLimits:  rLimits.PrepareRLimit(),
 		Seccomp:  c.seccomp,
-		SyncFunc: syncFunc,
+		SyncFunc: func(pid int) error {
+			defer close(syncDone)
+			if syncFunc != nil {
+				return syncFunc(pid)
+			}
+			return nil
+		},
 	}
-	rt := c.Environment.Execve(ctx, p)
-	return newProcess(rt, cg, c.cgPool), nil
+	proc := newProcess(func() runner.Result {
+		return c.Environment.Execve(ctx, p)
+	}, cg, c.cgPool)
+
+	select {
+	case <-proc.done:
+	case <-syncDone:
+	}
+
+	return proc, nil
 }
 
 // WorkDir returns opened work directory, should not close after

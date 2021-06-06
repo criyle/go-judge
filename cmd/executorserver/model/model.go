@@ -185,8 +185,8 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 		ProcLimit:         c.ProcLimit,
 		CPURateLimit:      c.CPURateLimit,
 		StrictMemoryLimit: c.StrictMemoryLimit,
-		CopyOut:           c.CopyOut,
-		CopyOutCached:     c.CopyOutCached,
+		CopyOut:           convertCopyOut(c.CopyOut),
+		CopyOutCached:     convertCopyOut(c.CopyOutCached),
 		CopyOutMax:        c.CopyOutMax,
 		CopyOutDir:        c.CopyOutDir,
 	}
@@ -245,4 +245,23 @@ func checkPathPrefix(path, prefix string) (bool, error) {
 		return false, err
 	}
 	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
+}
+
+const optionalSuffix = "?"
+
+func convertCopyOut(copyOut []string) []envexec.CmdCopyOutFile {
+	rt := make([]envexec.CmdCopyOutFile, 0, len(copyOut))
+	for _, n := range copyOut {
+		if strings.HasSuffix(n, optionalSuffix) {
+			rt = append(rt, envexec.CmdCopyOutFile{
+				Name:     strings.TrimSuffix(n, optionalSuffix),
+				Optional: true,
+			})
+			continue
+		}
+		rt = append(rt, envexec.CmdCopyOutFile{
+			Name: n,
+		})
+	}
+	return rt
 }

@@ -276,18 +276,18 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 	for k := range pipeFileName {
 		copyOutSet[k] = true
 	}
-	copyOut := make([]string, 0, len(rc.CopyOut)+len(rc.CopyOutCached))
+	copyOut := make([]envexec.CmdCopyOutFile, 0, len(rc.CopyOut)+len(rc.CopyOutCached))
 	for _, fn := range rc.CopyOut {
-		if !pipeFileName[fn] {
+		if !pipeFileName[fn.Name] {
 			copyOut = append(copyOut, fn)
 		}
-		copyOutSet[fn] = true
+		copyOutSet[fn.Name] = true
 	}
 	for _, fn := range rc.CopyOutCached {
-		if !pipeFileName[fn] {
+		if !pipeFileName[fn.Name] {
 			copyOut = append(copyOut, fn)
 		} else {
-			delete(copyOutSet, fn)
+			delete(copyOutSet, fn.Name)
 		}
 	}
 

@@ -107,7 +107,7 @@ func (c *environ) WorkDir() *os.File {
 func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, error) {
 	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_CLOEXEC, uint32(perm))
 	if err != nil {
-		return nil, fmt.Errorf("openAtWorkDir: %v", err)
+		return nil, &os.PathError{Op: "open", Path: path, Err: err}
 	}
 	f := os.NewFile(uintptr(fd), path)
 	if f == nil {

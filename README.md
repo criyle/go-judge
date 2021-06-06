@@ -256,6 +256,7 @@ interface Cmd {
     copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
 
     // copy out specifies files need to be copied out from the container after execution
+    // append '?' after file name will make the file optional and do not cause FileError when missing
     copyOut?: string[];
     // similar to copyOut but stores file in executor service and returns fileId, later download through /file/:fileId
     copyOutCached?: string[];

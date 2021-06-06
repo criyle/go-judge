@@ -341,9 +341,10 @@ func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore
 
 func handleVersion(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"buildVersion": version.Version,
-		"goVersion":    runtime.Version(),
-		"platform":     runtime.GOARCH,
-		"os":           runtime.GOOS,
+		"buildVersion":    version.Version,
+		"goVersion":       runtime.Version(),
+		"platform":        runtime.GOARCH,
+		"os":              runtime.GOOS,
+		"copyOutOptional": true,
 	})
 }

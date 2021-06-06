@@ -52,7 +52,7 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 		return nil, err
 	}
 	if len(si) > 0 || len(so) > 0 {
-		return nil, fmt.Errorf("Stream in / out are not available for exec request")
+		return nil, fmt.Errorf("stream in / out are not available for exec request")
 	}
 	e.logger.Sugar().Debugf("request: %+v", r)
 	rt := <-e.worker.Submit(ctx, r)
@@ -203,8 +203,8 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 		ProcLimit:         c.GetProcLimit(),
 		CPURateLimit:      c.GetCPURateLimit(),
 		StrictMemoryLimit: c.GetStrictMemoryLimit(),
-		CopyOut:           c.GetCopyOut(),
-		CopyOutCached:     c.GetCopyOutCached(),
+		CopyOut:           convertCopyOut(c.GetCopyOut()),
+		CopyOutCached:     convertCopyOut(c.GetCopyOutCached()),
 		CopyOutMax:        c.GetCopyOutMax(),
 		CopyOutDir:        c.GetCopyOutDir(),
 	}
@@ -276,4 +276,15 @@ func checkPathPrefix(path, prefix string) (bool, error) {
 		return false, err
 	}
 	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
+}
+
+func convertCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []envexec.CmdCopyOutFile {
+	rt := make([]envexec.CmdCopyOutFile, 0, len(copyOut))
+	for _, n := range copyOut {
+		rt = append(rt, envexec.CmdCopyOutFile{
+			Name:     n.GetName(),
+			Optional: n.GetOptional(),
+		})
+	}
+	return rt
 }

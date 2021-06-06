@@ -24,8 +24,8 @@ type Cmd struct {
 
 	CopyIn map[string]CmdFile
 
-	CopyOut       []string
-	CopyOutCached []string
+	CopyOut       []envexec.CmdCopyOutFile
+	CopyOutCached []envexec.CmdCopyOutFile
 	CopyOutMax    uint64
 	CopyOutDir    string
 }

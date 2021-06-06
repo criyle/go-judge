@@ -2,6 +2,7 @@ package envexec
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -28,8 +29,11 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][
 	for _, n := range c.CopyOut {
 		n := n
 		g.Go(func() error {
-			cf, err := m.Open(n, os.O_RDONLY, 0777)
+			cf, err := m.Open(n.Name, os.O_RDONLY, 0777)
 			if err != nil {
+				if errors.Is(err, os.ErrNotExist) && n.Optional {
+					return nil
+				}
 				return err
 			}
 			defer cf.Close()
@@ -40,12 +44,12 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][
 			}
 			// check regular file
 			if stat.Mode()&os.ModeType != 0 {
-				return fmt.Errorf("File(%s) is not a regular file %d", n, stat.Mode()&os.ModeType)
+				return fmt.Errorf("%s: not a regular file %d", n.Name, stat.Mode()&os.ModeType)
 			}
 			// check size limit
 			s := stat.Size()
 			if c.CopyOutMax > 0 && s > int64(c.CopyOutMax) {
-				return fmt.Errorf("File(%s) have size (%d) exceeded the limit (%d)", n, s, c.CopyOutMax)
+				return fmt.Errorf("%s: size (%d) exceeded the limit (%d)", n.Name, s, c.CopyOutMax)
 			}
 			var buf bytes.Buffer
 			buf.Grow(int(s))
@@ -55,7 +59,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][
 			if err != nil {
 				return err
 			}
-			put(buf.Bytes(), n)
+			put(buf.Bytes(), n.Name)
 			return nil
 		})
 	}

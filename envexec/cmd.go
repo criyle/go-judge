@@ -44,11 +44,17 @@ type Cmd struct {
 	Waiter func(context.Context, Process) bool
 
 	// file names to copyout after exec
-	CopyOut    []string
+	CopyOut    []CmdCopyOutFile
 	CopyOutMax Size // file size limit
 
 	// CopyOutDir specifies a dir to dump all /w contnet
 	CopyOutDir string
+}
+
+// CmdCopyOutFile defines the file to be copy out after cmd execution
+type CmdCopyOutFile struct {
+	Name     string // Name is the file out to copyOut
+	Optional bool   // Optional ignores the file if not exists
 }
 
 // Result defines the running result for single Cmd

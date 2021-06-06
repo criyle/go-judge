@@ -85,11 +85,16 @@ message Request {
 
     map<string, File> copyIn = 8;
 
-    repeated string copyOut = 9;
-    repeated string copyOutCached = 10;
+    repeated CmdCopyOutFile copyOut = 9;
+    repeated CmdCopyOutFile copyOutCached = 10;
     string copyOutDir = 11;
     uint64 copyOutMax = 14;
     bool strictMemoryLimit = 16;
+  }
+
+  message CmdCopyOutFile {
+    string name = 1;
+    bool optional = 2;
   }
 
   message PipeMap {

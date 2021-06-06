@@ -213,6 +213,7 @@ interface Cmd {
     copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
 
     // 在执行程序后从容器文件系统中复制出来的文件列表
+    // 在文件名之后加入 '?' 来使文件变为可选，可选文件不存在的情况不会触发 FileError
     copyOut?: string[];
     // 和 copyOut 相同，不过文件不返回内容，而是返回一个对应文件 ID ，内容可以通过 /file/:fileId 接口下载
     copyOutCached?: string[];

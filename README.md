@@ -70,6 +70,8 @@ Sandbox:
 - `-pre-fork` specifies number of container to create when server starts
 - `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting (Linux only)
 - `-file-timeout` specifies maximum TTL for file created in file store （e.g. `30m`)
+- `-mount-conf` specifies detailed mount configuration, please refer `mount.yaml` as a reference (Linux only)
+- `-container-init-path` specifies path to `cinit` (do not use, debug only) (Linux only)
 
 ### Environment Variables
 
@@ -672,7 +674,6 @@ Output:
 </details>
 
 <details><summary>Infinite loop with cpu rate control</summary>
-
 
 ```json
 {

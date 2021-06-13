@@ -67,6 +67,8 @@
 - 使用 `-pre-fork` 指定启动时创建的容器数量
 - 使用 `-tmp-fs-param` 指定容器内 `tmpfs` 的挂载参数（仅 Linux）
 - 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（举例 `30m`）
+- 使用`-mount-conf` 指定沙箱文件系统挂载细节，详细请参见 `mount.yaml` (仅 Linux)
+- 使用 `-container-init-path` 指定 `cinit` 路径 (请不要使用，仅 debug) (Linux only)
 
 ### 环境变量
 

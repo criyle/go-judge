@@ -285,6 +285,13 @@ interface PipeIndex {
 interface PipeMap {
     in: PipeIndex;  // input end of the pipe
     out: PipeIndex; // output end of the pipe
+    // enable pipe proxy from in to out, 
+    // content from in will be discarded if out closes
+    proxy: boolean; 
+    name: string;   // copy out proxy content if proxy enabled
+    // limit the copy out content size, 
+    // proxy will still functioning after max
+    max: number;    
 }
 
 interface Request {

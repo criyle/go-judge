@@ -214,12 +214,16 @@ func prepareFds(r *Group) (f [][]*os.File, p [][]pipeCollector, err error) {
 
 	// prepare pipes
 	for _, p := range r.Pipes {
-		out, in, err := os.Pipe()
+		out, in, pc, err := pipe(p)
 		if err != nil {
 			return nil, nil, err
 		}
 		files[p.Out.Index][p.Out.Fd] = out
 		files[p.In.Index][p.In.Fd] = in
+
+		if pc != nil {
+			pipeToCollect[p.In.Index] = append(pipeToCollect[p.In.Index], *pc)
+		}
 	}
 	return files, pipeToCollect, nil
 }
@@ -243,4 +247,73 @@ func countFd(r *Group) ([]int, error) {
 		}
 	}
 	return fdCount, nil
+}
+
+func pipe(p Pipe) (out *os.File, in *os.File, pc *pipeCollector, err error) {
+	if p.Proxy {
+		out1, in1, out2, in2, err := pipe2()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+		pc := pipeProxy(p, out1, in2)
+		return out2, in1, pc, nil
+	}
+
+	out, in, err = os.Pipe()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return out, in, nil, nil
+}
+
+func pipe2() (out1 *os.File, in1 *os.File, out2 *os.File, in2 *os.File, err error) {
+	out1, in1, err = os.Pipe()
+	if err != nil {
+		return
+	}
+	out2, in2, err = os.Pipe()
+	if err != nil {
+		out1.Close()
+		in1.Close()
+		return
+	}
+	return
+}
+
+func pipeProxy(p Pipe, out1 *os.File, in2 *os.File) *pipeCollector {
+	copyAndClose := func() {
+		io.Copy(in2, out1)
+		in2.Close()
+		io.Copy(io.Discard, out1)
+		out1.Close()
+	}
+
+	// if no name, simply copy data
+	if p.Name == "" {
+		go copyAndClose()
+		return nil
+	}
+
+	done := make(chan struct{})
+	buffer := new(bytes.Buffer)
+	limit := p.Limit
+
+	// out1 -> in2
+	go func() {
+		// copy with limit
+		r := io.TeeReader(io.LimitReader(out1, int64(limit)), buffer)
+		io.Copy(in2, r)
+		close(done)
+
+		// copy without limit
+		copyAndClose()
+	}()
+
+	return &pipeCollector{
+		done:   done,
+		buffer: buffer,
+		limit:  p.Limit,
+		name:   p.Name,
+	}
 }

@@ -52,8 +52,11 @@ type PipeIndex struct {
 
 // PipeMap defines in / out pipe for multiple program
 type PipeMap struct {
-	In  PipeIndex `json:"in"`
-	Out PipeIndex `json:"out"`
+	In    PipeIndex `json:"in"`
+	Out   PipeIndex `json:"out"`
+	Name  string    `json:"name"`
+	Max   int64     `json:"max"`
+	Proxy bool      `json:"proxy"`
 }
 
 // Request defines single worker request
@@ -165,6 +168,9 @@ func convertPipe(p PipeMap) worker.PipeMap {
 			Index: p.Out.Index,
 			Fd:    p.Out.Fd,
 		},
+		Proxy: p.Proxy,
+		Name:  p.Name,
+		Limit: worker.Size(p.Max),
 	}
 }
 
@@ -249,17 +255,17 @@ func checkPathPrefix(path, prefix string) (bool, error) {
 
 const optionalSuffix = "?"
 
-func convertCopyOut(copyOut []string) []envexec.CmdCopyOutFile {
-	rt := make([]envexec.CmdCopyOutFile, 0, len(copyOut))
+func convertCopyOut(copyOut []string) []worker.CmdCopyOutFile {
+	rt := make([]worker.CmdCopyOutFile, 0, len(copyOut))
 	for _, n := range copyOut {
 		if strings.HasSuffix(n, optionalSuffix) {
-			rt = append(rt, envexec.CmdCopyOutFile{
+			rt = append(rt, worker.CmdCopyOutFile{
 				Name:     strings.TrimSuffix(n, optionalSuffix),
 				Optional: true,
 			})
 			continue
 		}
-		rt = append(rt, envexec.CmdCopyOutFile{
+		rt = append(rt, worker.CmdCopyOutFile{
 			Name: n,
 		})
 	}

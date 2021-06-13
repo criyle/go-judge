@@ -14,7 +14,7 @@ type Group struct {
 
 	// Pipes defines the potential mapping between Cmd.
 	// ensure nil is used as placeholder in correspond cmd
-	Pipes []*Pipe
+	Pipes []Pipe
 }
 
 // PipeIndex defines the index of cmd and the fd of the that cmd
@@ -25,7 +25,18 @@ type PipeIndex struct {
 
 // Pipe defines the pipe between parallel Cmd
 type Pipe struct {
+	// In, Out defines the pipe input source and output destination
 	In, Out PipeIndex
+
+	// Name defines copy out entry name if it is not empty and proxy is enabled
+	Name string
+
+	// Limit defines maximun bytes copy out from proxy and proxy will still
+	// copy data after limit exceeded
+	Limit Size
+
+	// Proxy creates 2 pipe and connects them by copying data
+	Proxy bool
 }
 
 // Run starts the cmd and returns exec results

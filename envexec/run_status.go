@@ -55,7 +55,7 @@ var statusToString = []string{
 	"Container Error",
 }
 
-// Map string to corresponding Status
+// stringToStatus map string to corresponding Status
 var stringToStatus = make(map[string]Status)
 
 func (s Status) String() string {
@@ -66,7 +66,7 @@ func (s Status) String() string {
 	return statusToString[si]
 }
 
-// Convert string to Status
+// StringToStatus convert string to Status
 func StringToStatus(s string) (Status, error) {
 	v, ok := stringToStatus[s]
 	if !ok {

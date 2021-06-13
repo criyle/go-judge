@@ -176,6 +176,9 @@ func convertPBPipeMap(p *pb.Request_PipeMap) worker.PipeMap {
 			Index: int(p.GetOut().GetIndex()),
 			Fd:    int(p.GetOut().GetFd()),
 		},
+		Proxy: p.GetProxy(),
+		Name:  p.GetName(),
+		Limit: worker.Size(p.Max),
 	}
 }
 
@@ -278,10 +281,10 @@ func checkPathPrefix(path, prefix string) (bool, error) {
 	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
 }
 
-func convertCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []envexec.CmdCopyOutFile {
-	rt := make([]envexec.CmdCopyOutFile, 0, len(copyOut))
+func convertCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []worker.CmdCopyOutFile {
+	rt := make([]worker.CmdCopyOutFile, 0, len(copyOut))
 	for _, n := range copyOut {
-		rt = append(rt, envexec.CmdCopyOutFile{
+		rt = append(rt, worker.CmdCopyOutFile{
 			Name:     n.GetName(),
 			Optional: n.GetOptional(),
 		})

@@ -159,7 +159,7 @@ func (w *worker) workDoCmd(req workRequest) {
 }
 
 func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
-	c, copyOutSet, err := w.prepareCmd(rc)
+	c, err := w.prepareCmd(rc)
 	if err != nil {
 		rt.Error = err
 		return
@@ -183,24 +183,21 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 		rt.Error = err
 		return
 	}
-	res := w.convertResult(result, copyOutSet)
+	res := w.convertResult(result, rc)
 	rt.Results = []Result{res}
 	return
 }
 
 func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Response) {
 	var rts []Result
-	p := preparePipeMapping(pm)
 	cs := make([]*envexec.Cmd, 0, len(rc))
-	copyOutSets := make([]map[string]bool, 0, len(rc))
 	for _, cc := range rc {
-		c, os, err := w.prepareCmd(cc)
+		c, err := w.prepareCmd(cc)
 		if err != nil {
 			rt.Error = err
 			return
 		}
 		cs = append(cs, c)
-		copyOutSets = append(copyOutSets, os)
 	}
 	for i := range cs {
 		env, err := w.envPool.Get()
@@ -219,7 +216,7 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Re
 	}
 	g := envexec.Group{
 		Cmd:   cs,
-		Pipes: p,
+		Pipes: pm,
 	}
 	results, err := g.Run(ctx)
 	if err != nil {
@@ -228,14 +225,14 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Re
 	}
 	rts = make([]Result, 0, len(results))
 	for i, result := range results {
-		res := w.convertResult(result, copyOutSets[i])
+		res := w.convertResult(result, rc[i])
 		rts = append(rts, res)
 	}
 	rt.Results = rts
 	return
 }
 
-func (w *worker) convertResult(result envexec.Result, copyOutSet map[string]bool) (res Result) {
+func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	res.Status = result.Status
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
@@ -245,49 +242,46 @@ func (w *worker) convertResult(result envexec.Result, copyOutSet map[string]bool
 	res.Files = make(map[string][]byte)
 	res.FileIDs = make(map[string]string)
 
+	copyOutCachedSet := make(map[string]bool, len(cmd.CopyOutCached))
+	for _, f := range cmd.CopyOutCached {
+		copyOutCachedSet[f.Name] = true
+	}
+
 	for name, b := range result.Files {
-		if copyOutSet[name] {
+		if !copyOutCachedSet[name] {
 			res.Files[name] = b
-		} else {
-			id, err := w.fs.Add(name, b)
-			if err != nil {
-				res.Status = envexec.StatusFileError
-				res.Error = err.Error()
-				return
-			}
-			res.FileIDs[name] = id
+			continue
 		}
+		id, err := w.fs.Add(name, b)
+		if err != nil {
+			res.Status = envexec.StatusFileError
+			res.Error = err.Error()
+			return
+		}
+		res.FileIDs[name] = id
 	}
 	return res
 }
 
-func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
+func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, error) {
 	files, pipeFileName, err := w.prepareCmdFiles(rc.Files)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	copyIn, err := w.prepareCopyIn(rc.CopyIn)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	copyOutSet := make(map[string]bool)
-	// pipe default copyout
-	for k := range pipeFileName {
-		copyOutSet[k] = true
-	}
 	copyOut := make([]envexec.CmdCopyOutFile, 0, len(rc.CopyOut)+len(rc.CopyOutCached))
 	for _, fn := range rc.CopyOut {
 		if !pipeFileName[fn.Name] {
 			copyOut = append(copyOut, fn)
 		}
-		copyOutSet[fn.Name] = true
 	}
 	for _, fn := range rc.CopyOutCached {
 		if !pipeFileName[fn.Name] {
 			copyOut = append(copyOut, fn)
-		} else {
-			delete(copyOutSet, fn.Name)
 		}
 	}
 
@@ -330,18 +324,7 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, map[string]bool, error) {
 		CopyOutDir:        copyOutDir,
 		CopyOutMax:        copyOutMax,
 		Waiter:            wait.Wait,
-	}, copyOutSet, nil
-}
-
-func preparePipeMapping(pm []PipeMap) []*envexec.Pipe {
-	rt := make([]*envexec.Pipe, 0, len(pm))
-	for _, p := range pm {
-		rt = append(rt, &envexec.Pipe{
-			In:  envexec.PipeIndex{Index: p.In.Index, Fd: p.In.Fd},
-			Out: envexec.PipeIndex{Index: p.Out.Index, Fd: p.Out.Fd},
-		})
-	}
-	return rt
+	}, nil
 }
 
 func (w *worker) prepareCopyIn(cf map[string]CmdFile) (map[string]envexec.File, error) {

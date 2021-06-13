@@ -240,6 +240,12 @@ interface PipeIndex {
 interface PipeMap {
     in: PipeIndex;  // 管道的输入端
     out: PipeIndex; // 管道的输出端
+    // 开启管道代理，传输内容会从输出端复制到输入端
+    // 输入端内容在输出端关闭以后会丢弃 （防止 SIGPIPE ）
+    proxy: boolean; 
+    name: string;   // 如果代理开启，内容会作为 copyOut 放在输入端 （用来 debug ）
+    // 限制 copyOut 的最大大小，代理会在超出大小之后正常复制
+    max: number;    
 }
 
 interface Request {

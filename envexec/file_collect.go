@@ -69,10 +69,10 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][
 		p := p
 		g.Go(func() error {
 			<-p.done
+			put(p.buffer.Bytes(), p.name)
 			if int64(p.buffer.Len()) > int64(p.limit) {
 				return runner.StatusOutputLimitExceeded
 			}
-			put(p.buffer.Bytes(), p.name)
 			return nil
 		})
 	}

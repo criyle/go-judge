@@ -105,6 +105,9 @@ message Request {
 
     PipeIndex in = 1;
     PipeIndex out = 2;
+    bool proxy = 3;
+    string name = 4;
+    uint64 max = 5;
   }
 
   string requestID = 1;

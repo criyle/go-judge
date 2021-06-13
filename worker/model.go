@@ -7,6 +7,11 @@ import (
 	"github.com/criyle/go-judge/envexec"
 )
 
+type Size = envexec.Size
+type CmdCopyOutFile = envexec.CmdCopyOutFile
+type PipeMap = envexec.Pipe
+type PipeIndex = envexec.PipeIndex
+
 // Cmd defines command and limits to start a program using in envexec
 type Cmd struct {
 	Args  []string
@@ -16,30 +21,18 @@ type Cmd struct {
 
 	CPULimit          time.Duration
 	ClockLimit        time.Duration
-	MemoryLimit       envexec.Size
-	StackLimit        envexec.Size
+	MemoryLimit       Size
+	StackLimit        Size
 	ProcLimit         uint64
 	CPURateLimit      float64
 	StrictMemoryLimit bool
 
 	CopyIn map[string]CmdFile
 
-	CopyOut       []envexec.CmdCopyOutFile
-	CopyOutCached []envexec.CmdCopyOutFile
+	CopyOut       []CmdCopyOutFile
+	CopyOutCached []CmdCopyOutFile
 	CopyOutMax    uint64
 	CopyOutDir    string
-}
-
-// PipeIndex defines indexing for a pipe fd
-type PipeIndex struct {
-	Index int
-	Fd    int
-}
-
-// PipeMap defines in / out pipe for multiple program
-type PipeMap struct {
-	In  PipeIndex
-	Out PipeIndex
 }
 
 // Request defines single worker request

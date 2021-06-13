@@ -346,5 +346,6 @@ func handleVersion(c *gin.Context) {
 		"platform":        runtime.GOARCH,
 		"os":              runtime.GOOS,
 		"copyOutOptional": true,
+		"pipeProxy":       true,
 	})
 }

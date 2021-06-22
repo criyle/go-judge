@@ -37,7 +37,7 @@ message FileContent {
   bytes content = 2;
 }
 
-message FileListType { repeated string fileIDs = 1; }
+message FileListType { map<string, string> fileIDs = 1; }
 
 message Request {
   message LocalFile { string src = 1; }

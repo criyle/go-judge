@@ -77,17 +77,18 @@ func (s *fileLocalStore) Remove(id string) bool {
 	return true
 }
 
-func (s *fileLocalStore) List() []string {
+func (s *fileLocalStore) List() map[string]string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	var names []string
 	fi, err := os.ReadDir(s.dir)
 	if err != nil {
 		return nil
 	}
+
+	names := make(map[string]string, len(fi))
 	for _, f := range fi {
-		names = append(names, f.Name())
+		names[f.Name()] = s.name[f.Name()]
 	}
 	return names
 }

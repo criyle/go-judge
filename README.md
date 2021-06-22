@@ -27,7 +27,7 @@ Fast, Simple, Secure
 A REST service to run program in restricted environment and it is basically a wrapper for `envexec` to run single / multiple programs.
 
 - /run POST execute program in the restricted environment (examples below)
-- /file GET list all cached file
+- /file GET list all cached file id to original name map
 - /file POST prepare a file in the executor service (in memory), returns fileId (can be referenced in /run parameter)
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId

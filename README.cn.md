@@ -27,7 +27,7 @@
 沙箱服务提供 REST API 接口来在受限制的环境中运行程序。本质是 `envexec` 的简单封装。
 
 - /run POST 在受限制的环境中运行程序（下面有例子）
-- /file GET 得到所有在文件存储中的文件列表
+- /file GET 得到所有在文件存储中的文件 ID 到原始命名映射
 - /file POST 上传一个文件到文件存储，返回一个文件 ID 用于提供给 /run 接口
 - /file/:fileId GET 下载文件 ID 指定的文件
 - /file/:fileId DELETE 删除文件 ID 指定的文件

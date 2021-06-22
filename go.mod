@@ -30,12 +30,12 @@ require (
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.17.0
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
-	golang.org/x/net v0.0.0-20210610132358-84b48f89b13b
+	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210611083646-a4fc73990273
-	golang.org/x/term v0.0.0-20210503060354-a79de5458b56 // indirect
-	google.golang.org/genproto v0.0.0-20210611144927-798beca9d670 // indirect
+	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22
+	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
+	google.golang.org/genproto v0.0.0-20210617175327-b9e0b3197ced // indirect
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect

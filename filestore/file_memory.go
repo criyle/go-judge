@@ -60,13 +60,13 @@ func (s *fileMemoryStore) Get(fileID string) (string, envexec.File) {
 	return f.name, envexec.NewFileReader(bytes.NewReader(f.content), false)
 }
 
-func (s *fileMemoryStore) List() []string {
+func (s *fileMemoryStore) List() map[string]string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	b := make([]string, 0, len(s.store))
-	for n := range s.store {
-		b = append(b, n)
+	b := make(map[string]string, len(s.store))
+	for n, v := range s.store {
+		b[n] = v.name
 	}
 	return b
 }

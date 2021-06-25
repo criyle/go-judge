@@ -183,6 +183,17 @@ echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
 sysctl -p
 ```
 
+#### Memory Usage
+
+The controller will consume `60M` memory and each container will consume `20M` + size of tmpfs `2 * 16M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max * 2.
+
+For example, when concurrency = 4, the executor itself can consume as much as `60 + (20+32) * 4M = 268M` + 8 * total copy out + total max memory of requests.
+
+Due to limitation of GO runtime, the memory will not return to OS automatically, which could lead to OOM killer. The background worker was introduced to checks heap usage and invokes GC when necessary.
+
+- `-force-gc-target` default `10m`, the minimal size to trigger GC
+- `-force-gc-interval` default `5s`, the interval to check memory usage
+
 ### Benchmark
 
 By `wrk` with `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.

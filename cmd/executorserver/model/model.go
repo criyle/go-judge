@@ -152,7 +152,7 @@ func convertResult(r worker.Result) Result {
 	if r.Files != nil {
 		res.Files = make(map[string]string)
 		for k, v := range r.Files {
-			res.Files[k] = string(v)
+			res.Files[k] = byteArrayToString(v)
 		}
 	}
 	return res

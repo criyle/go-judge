@@ -142,6 +142,17 @@ echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
 sysctl -p
 ```
 
+#### 内存使用
+
+控制进程通常会使用 `60M` 内存，每个容器进程最大会使用 `20M` 内存，每个请求最大会使用 `2 * 16M` + 总 copy out max 限制 * 2 内存。
+
+比方说当同时请求数最大为 4 的时候，本程序最大会占用 `60 + (20+32) * 4M = 268M` + 总 copy out max 限制 * 8 内存 + 总运行程序最大内存限制。
+
+因为 go 语言 runtime 垃圾收集算法实现的问题，它并不会主动归还占用内存。这种情况可能会引发 OOM Killer 杀死进程。加入了一个后台检查线程用于在堆内存占用高时强制垃圾收集和归还内存。
+
+- `-force-gc-target` 默认 `10m`, 堆内存使用超过该值是强制垃圾收集和归还内存
+- `-force-gc-interval` 默认 `5s`, 为后台线程检查的频繁程度
+
 ### 压力测试
 
 使用 `wrk` 和 `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.

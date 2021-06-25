@@ -1,6 +1,7 @@
 package restexecutor
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
@@ -71,5 +72,14 @@ func (h *handle) handleRun(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())
 		return
 	}
-	c.JSON(http.StatusOK, model.ConvertResponse(rt).Results)
+
+	// encode json directly to avoid allocation
+	// c.JSON(http.StatusOK, model.ConvertResponse(rt).Results)
+
+	c.Status(http.StatusOK)
+	c.Header("Content-Type", "application/json; charset=utf-8")
+
+	if err := json.NewEncoder(c.Writer).Encode(model.ConvertResponse(rt).Results); err != nil {
+		c.Error(err)
+	}
 }

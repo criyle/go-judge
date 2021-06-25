@@ -47,6 +47,10 @@ type Config struct {
 	// logger config
 	Release bool `flagUsage:"release level of logs"`
 	Silent  bool `flagUsage:"do not print logs"`
+
+	// fix for high memory usage
+	ForceGCTarget   *envexec.Size `flagUsage:"specifies force GC trigger heap size" default:"10m"`
+	ForceGCInterval time.Duration `flagUsage:"specifies force GC trigger interval" default:"5s"`
 }
 
 // Load loads config from flag & environment variables

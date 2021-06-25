@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -86,6 +87,9 @@ func main() {
 			logger.Sugar().Info("gRPC serve finished: ", grpcServer.Serve(lis))
 		}()
 	}
+
+	// background force GC worker
+	newForceGCWorker(conf)
 
 	// Graceful shutdown...
 	sig := make(chan os.Signal, 1)
@@ -337,6 +341,23 @@ func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore
 		CopyOutLimit:          *conf.CopyOutLimit,
 		ExecObserver:          execObserve,
 	})
+}
+
+func newForceGCWorker(conf *config.Config) {
+	go func() {
+		ticker := time.NewTicker(conf.ForceGCInterval)
+		for {
+			var mem runtime.MemStats
+			runtime.ReadMemStats(&mem)
+			if mem.HeapInuse > uint64(*conf.ForceGCTarget) {
+				logger.Sugar().Infof("Force GC as heap_in_use(%v) > target(%v)",
+					envexec.Size(mem.HeapInuse), *conf.ForceGCTarget)
+				runtime.GC()
+				debug.FreeOSMemory()
+			}
+			<-ticker.C
+		}
+	}()
 }
 
 func handleVersion(c *gin.Context) {

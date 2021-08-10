@@ -94,7 +94,7 @@ func runSingleExecve(ctx context.Context, m Environment, c *Cmd, fds []*os.File)
 
 	var stackLimit Size
 	if c.StackLimit > 0 {
-		stackLimit = c.StackLimit + extraMemoryLimit
+		stackLimit = c.StackLimit
 	}
 	if stackLimit > memoryLimit {
 		stackLimit = memoryLimit

@@ -72,7 +72,7 @@
 
 ### 环境变量
 
-所以命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `executorserver --help` 查看所有环境变量
+所有命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `executorserver --help` 查看所有环境变量
 
 ### 安装和运行
 

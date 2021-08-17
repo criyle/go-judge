@@ -33,8 +33,8 @@
 - /file/:fileId DELETE 删除文件 ID 指定的文件
 - /ws /run 接口的 WebSocket 版
 - /metrics 提供 prometheus 版监控 (使用 `ES_ENABLE_METRICS=1` 环境变量开启)
-- /debug 提供 go 语音调试接口 (使用 `ES_ENABLE_DEBUG=1` 环境变量开启)
-- /version 得到本程序编译版本和 go 语音运行时版本
+- /debug 提供 go 语言调试接口 (使用 `ES_ENABLE_DEBUG=1` 环境变量开启)
+- /version 得到本程序编译版本和 go 语言运行时版本
 
 ### 命令行参数
 
@@ -67,12 +67,12 @@
 - 使用 `-pre-fork` 指定启动时创建的容器数量
 - 使用 `-tmp-fs-param` 指定容器内 `tmpfs` 的挂载参数（仅 Linux）
 - 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（举例 `30m`）
-- 使用`-mount-conf` 指定沙箱文件系统挂载细节，详细请参见 `mount.yaml` (仅 Linux)
+- 使用 `-mount-conf` 指定沙箱文件系统挂载细节，详细请参见 `mount.yaml` (仅 Linux)
 - 使用 `-container-init-path` 指定 `cinit` 路径 (请不要使用，仅 debug) (Linux only)
 
 ### 环境变量
 
-所以命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `executorserver --help` 查看所以环境变量
+所有命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `executorserver --help` 查看所有环境变量
 
 ### 安装和运行
 

@@ -164,7 +164,7 @@ jobs:
           go build -tags nomsgpack -o executorserver ./cmd/executorserver
           go build -o executorshell ./cmd/executorshell
       - name: Build shared object on macOS
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
         env:
           GOARCH: ${{ matrix.GOARCH }}
         run: |

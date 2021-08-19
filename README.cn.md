@@ -166,7 +166,7 @@ wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
 ```
 
 - 单线程 ~800-860 op/s Windows 10 WSL2 @ 5800X
-- 多线程 ~1800-2000 op/s Windows 10 WSL2 @ 5800X
+- 多线程 ~4500-6000 op/s Windows 10 WSL2 @ 5800X
 
 单线程:
 

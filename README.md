@@ -207,7 +207,7 @@ wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
 ```
 
 - Single thread ~800-860 op/s Windows 10 WSL2 @ 5800X
-- Multi thread ~1800-2000 op/s Windows 10 WSL2 @ 5800X
+- Multi thread ~4500-6000 op/s Windows 10 WSL2 @ 5800X
 
 Single thread:
 

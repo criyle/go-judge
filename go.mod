@@ -62,5 +62,3 @@ retract (
 	// Old version, don't use
 	[v0.0.1, v0.9.4]
 )
-
-replace github.com/criyle/go-sandbox => ../go-sandbox

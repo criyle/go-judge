@@ -8,6 +8,11 @@
 
 快速，简单，安全
 
+### 运行要求
+
+- Linux 内核版本 >= 3.10
+- 系统 Cgroup V1 文件系统挂载于 `/sys/fs/cgroup`（Systemd 默认）。Cgroup V2 还未支持
+
 ### 系统架构
 
 ```text
@@ -35,6 +40,7 @@
 - /metrics 提供 prometheus 版监控 (使用 `ES_ENABLE_METRICS=1` 环境变量开启)
 - /debug 提供 go 语言调试接口 (使用 `ES_ENABLE_DEBUG=1` 环境变量开启)
 - /version 得到本程序编译版本和 go 语言运行时版本
+- /config 得到本程序部分运行参数
 
 ### 命令行参数
 
@@ -81,7 +87,7 @@
 或者使用 docker
 
 ```bash
-docker run -it --rm --privileged -p 5050:5050 criyle/executorserver
+docker run -it --rm --privileged --shm-size=256m -p 5050:5050 criyle/executorserver
 ```
 
 #### 编译 docker
@@ -125,6 +131,8 @@ docker run -it --rm --privileged -p 5050:5050 criyle/executorserver
 在 Linux 平台，默认只读挂载点包括主机的 `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom` 和临时文件系统 `/w`, `/tmp` 以及 `/proc`。
 
 使用 `mount.yaml` 定制容器文件系统。
+
+`/w` 的 `/tmp` 挂载 `tmpfs` 大小通过 `-tmp-fs-param` 指定，默认值为 `size=128m,nr_inodes=4k`
 
 ### 包
 

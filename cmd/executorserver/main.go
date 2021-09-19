@@ -51,7 +51,11 @@ func main() {
 	logger.Sugar().Infof("config loaded: %+v", conf)
 
 	// Init environment pool
-	fs := newFilsStore(conf.Dir, conf.FileTimeout, conf.EnableMetrics)
+	fs, fsDir, fsCleanUp, err := newFilsStore(conf.Dir, conf.FileTimeout, conf.EnableMetrics)
+	if err != nil {
+		logger.Sugar().Fatalf("Create temp dir failed %v", err)
+	}
+	conf.Dir = fsDir
 	b := newEnvBuilder(conf)
 	envPool := newEnvPool(b, conf.EnableMetrics)
 	prefork(envPool, conf.PreFork)
@@ -67,9 +71,13 @@ func main() {
 		Handler: r,
 	}
 
+	// Gracefully shutdown, with signal / HTTP server / gRPC server
+	sig := make(chan os.Signal, 3)
+
 	go func() {
 		logger.Sugar().Info("Starting http server at ", conf.HTTPAddr)
-		logger.Sugar().Info("Http serve finished: ", srv.ListenAndServe())
+		logger.Sugar().Info("Http server stopped: ", srv.ListenAndServe())
+		sig <- os.Interrupt
 	}()
 
 	// Init gRPC server
@@ -84,7 +92,8 @@ func main() {
 		}
 		go func() {
 			logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr)
-			logger.Sugar().Info("gRPC serve finished: ", grpcServer.Serve(lis))
+			logger.Sugar().Info("gRPC server stopped: ", grpcServer.Serve(lis))
+			sig <- os.Interrupt
 		}()
 	}
 
@@ -92,9 +101,9 @@ func main() {
 	newForceGCWorker(conf)
 
 	// Graceful shutdown...
-	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
 	<-sig
+	signal.Reset(os.Interrupt)
 
 	logger.Sugar().Info("Shutting Down...")
 
@@ -118,6 +127,14 @@ func main() {
 			grpcServer.GracefulStop()
 			logger.Sugar().Info("GRPC server shutdown")
 			return nil
+		})
+	}
+
+	if fsCleanUp != nil {
+		eg.Go(func() error {
+			err := fsCleanUp()
+			logger.Sugar().Info("FileStore clean up")
+			return err
 		})
 	}
 
@@ -196,6 +213,9 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 
 	// Version handle
 	r.GET("/version", handleVersion)
+
+	// Config handle
+	r.GET("/config", generateHandleConfig(conf))
 
 	// Add auth token
 	if conf.AuthToken != "" {
@@ -279,23 +299,35 @@ func grpcTokenAuth(token string) func(context.Context) (context.Context, error) 
 	}
 }
 
-func newFilsStore(dir string, fileTimeout time.Duration, enableMetrics bool) filestore.FileStore {
+func newFilsStore(dir string, fileTimeout time.Duration, enableMetrics bool) (filestore.FileStore, string, func() error, error) {
 	const timeoutCheckInterval = 15 * time.Second
+	var cleanUp func() error
 
 	var fs filestore.FileStore
 	if dir == "" {
-		fs = filestore.NewFileMemoryStore()
-	} else {
-		os.MkdirAll(dir, 0755)
-		fs = filestore.NewFileLocalStore(dir)
+		if runtime.GOOS == "linux" {
+			dir = "/dev/shm"
+		} else {
+			dir = os.TempDir()
+		}
+		var err error
+		dir, err = os.MkdirTemp(dir, "executorserver")
+		if err != nil {
+			return nil, "", cleanUp, err
+		}
+		cleanUp = func() error {
+			return os.RemoveAll(dir)
+		}
 	}
+	os.MkdirAll(dir, 0755)
+	fs = filestore.NewFileLocalStore(dir)
 	if enableMetrics {
 		fs = newMetricsFileStore(fs)
 	}
 	if fileTimeout > 0 {
 		fs = filestore.NewTimeout(fs, fileTimeout, timeoutCheckInterval)
 	}
-	return fs
+	return fs, dir, cleanUp, nil
 }
 
 func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
@@ -369,4 +401,14 @@ func handleVersion(c *gin.Context) {
 		"copyOutOptional": true,
 		"pipeProxy":       true,
 	})
+}
+
+func generateHandleConfig(conf *config.Config) func(*gin.Context) {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"copyOutOptional": true,
+			"pipeProxy":       true,
+			"fileStorePath":   conf.Dir,
+		})
+	}
 }

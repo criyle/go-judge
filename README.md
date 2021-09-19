@@ -8,18 +8,23 @@
 
 Fast, Simple, Secure
 
+### Prerequisite
+
+- Linux Kernel Version >= 3.10
+- Cgroup file system V1 mounted at /sys/fs/cgroup. Cgroup V2 is not supported
+
 ### Architecture
 
 ```text
-+---------------------------------------------------------------------------+
-| Transport Layer (HTTP / WebSocket / FFI / ...)                            |
-+---------------------------------------------------------------------------+
-| Executor Worker (Environment Pool w/ Environment Builder )                |
-+-----------------------------------------------------------+---------------+
-| EnvExec                                                   | File Store    |
-+--------------------+----------------+---------------------+--------+------+
-| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Memory | Disk |
-+--------------------+----------------+---------------------+--------+------+
++----------------------------------------------------------------------------------+
+| Transport Layer (HTTP / WebSocket / FFI / ...)                                   |
++----------------------------------------------------------------------------------+
+| Executor Worker (Environment Pool w/ Environment Builder )                       |
++-----------------------------------------------------------+----------------------+
+| EnvExec                                                   | File Store           |
++--------------------+----------------+---------------------+---------------+------+
+| Linux (go-sandbox) | Windows (winc) | macOS (app sandbox) | Shared Memory | Disk |
++--------------------+----------------+---------------------+---------------+------+
 ```
 
 ### REST API
@@ -35,6 +40,7 @@ A REST service to run program in restricted environment and it is basically a wr
 - /metrics prometheus metrics (specifies `ES_ENABLE_METRICS=1` environment variable to enable metrics)
 - /debug (specifies `ES_ENABLE_DEBUG=1` environment variable to enable go runtime debug endpoint)
 - /version gets build git version (e.g. `v0.9.4`) together with runtime information (go version, os, platform)
+- /config gets some configuration (e.g. `fileStorePath`) together with some supported features
 
 ### Command Line Arguments
 
@@ -84,7 +90,7 @@ Download compiled executable from [Release](https://github.com/criyle/go-judge/r
 Or, by docker
 
 ```bash
-docker run -it --rm --privileged -p 5050:5050 criyle/executorserver
+docker run -it --rm --privileged --shm-size=256m -p 5050:5050 criyle/executorserver
 ```
 
 #### Build Executor Server
@@ -145,6 +151,8 @@ For linux platform, the default mounts points are bind mounting host's `/lib`, `
 
 To customize mount points, please look at example `mount.yaml` file.
 
+`tmpfs` size for `/w` and `/tmp` is configured through `-tmp-fs-param` with default value `size=128m,nr_inodes=4k`
+
 ### Packages
 
 - envexec: run single / group of programs in parallel within restricted environment and resource constraints
@@ -185,9 +193,9 @@ sysctl -p
 
 #### Memory Usage
 
-The controller will consume `60M` memory and each container will consume `20M` + size of tmpfs `2 * 16M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max * 2.
+The controller will consume `60M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max.
 
-For example, when concurrency = 4, the executor itself can consume as much as `60 + (20+32) * 4M = 268M` + 8 * total copy out + total max memory of requests.
+For example, when concurrency = 4, the executor itself can consume as much as `60 + (20+32) * 4M = 268M` + 4 * total copy out + total max memory of requests.
 
 Due to limitation of GO runtime, the memory will not return to OS automatically, which could lead to OOM killer. The background worker was introduced to checks heap usage and invokes GC when necessary.
 

@@ -33,13 +33,18 @@ func (f *fileHandle) filePost(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	b, err := io.ReadAll(fi)
+	sf, err := f.fs.New()
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	defer sf.Close()
 
-	id, err := f.fs.Add(fh.Filename, b)
+	if _, err := sf.ReadFrom(fi); err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	id, err := f.fs.Add(fh.Filename, sf.Name())
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return

@@ -1,7 +1,6 @@
 package envexec
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -13,13 +12,13 @@ import (
 )
 
 // copyOutAndCollect reads file and pipes in parallel from container
-func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][]byte, error) {
+func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile NewStoreFile) (map[string]*os.File, error) {
 	var (
 		g errgroup.Group
 		l sync.Mutex
 	)
-	rt := make(map[string][]byte)
-	put := func(f []byte, n string) {
+	rt := make(map[string]*os.File)
+	put := func(f *os.File, n string) {
 		l.Lock()
 		defer l.Unlock()
 		rt[n] = f
@@ -51,15 +50,18 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][
 			if c.CopyOutMax > 0 && s > int64(c.CopyOutMax) {
 				return fmt.Errorf("%s: size (%d) exceeded the limit (%d)", n.Name, s, c.CopyOutMax)
 			}
-			var buf bytes.Buffer
-			buf.Grow(int(s))
+			// create store file
+			buf, err := newStoreFile()
+			if err != nil {
+				return fmt.Errorf("%s: failed to create store file %v", n.Name, err)
+			}
 
 			// Ensure not copy over file size
 			_, err = buf.ReadFrom(io.LimitReader(cf, s))
 			if err != nil {
 				return err
 			}
-			put(buf.Bytes(), n.Name)
+			put(buf, n.Name)
 			return nil
 		})
 	}
@@ -69,8 +71,8 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector) (map[string][
 		p := p
 		g.Go(func() error {
 			<-p.done
-			put(p.buffer.Bytes(), p.name)
-			if int64(p.buffer.Len()) > int64(p.limit) {
+			put(p.buffer, p.name)
+			if fi, err := p.buffer.Stat(); err == nil && fi.Size() > int64(p.limit) {
 				return runner.StatusOutputLimitExceeded
 			}
 			return nil

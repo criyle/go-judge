@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"os"
 	"path"
 	"sync"
 	"time"
@@ -176,7 +177,8 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 	c.Environment = env
 
 	s := &envexec.Single{
-		Cmd: c,
+		Cmd:          c,
+		NewStoreFile: w.fs.New,
 	}
 	result, err := s.Run(ctx)
 	if err != nil {
@@ -215,8 +217,9 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Re
 		cs[i].Environment = env
 	}
 	g := envexec.Group{
-		Cmd:   cs,
-		Pipes: pm,
+		Cmd:          cs,
+		Pipes:        pm,
+		NewStoreFile: w.fs.New,
 	}
 	results, err := g.Run(ctx)
 	if err != nil {
@@ -239,7 +242,7 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	res.Time = result.Time
 	res.RunTime = result.RunTime
 	res.Memory = result.Memory
-	res.Files = make(map[string][]byte)
+	res.Files = make(map[string]*os.File)
 	res.FileIDs = make(map[string]string)
 
 	copyOutCachedSet := make(map[string]bool, len(cmd.CopyOutCached))
@@ -252,13 +255,14 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 			res.Files[name] = b
 			continue
 		}
-		id, err := w.fs.Add(name, b)
+		id, err := w.fs.Add(name, b.Name())
 		if err != nil {
 			res.Status = envexec.StatusFileError
 			res.Error = err.Error()
 			return
 		}
 		res.FileIDs[name] = id
+		b.Close()
 	}
 	return res
 }

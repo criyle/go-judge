@@ -15,6 +15,9 @@ type Group struct {
 	// Pipes defines the potential mapping between Cmd.
 	// ensure nil is used as placeholder in correspond cmd
 	Pipes []Pipe
+
+	// NewStoreFile defines interface to create stored file
+	NewStoreFile NewStoreFile
 }
 
 // PipeIndex defines the index of cmd and the fd of the that cmd
@@ -42,7 +45,7 @@ type Pipe struct {
 // Run starts the cmd and returns exec results
 func (r *Group) Run(ctx context.Context) ([]Result, error) {
 	// prepare files
-	fds, pipeToCollect, err := prepareFds(r)
+	fds, pipeToCollect, err := prepareFds(r, r.NewStoreFile)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +56,7 @@ func (r *Group) Run(ctx context.Context) ([]Result, error) {
 	for i, c := range r.Cmd {
 		i, c := i, c
 		g.Go(func() error {
-			r, err := runSingle(ctx, c, fds[i], pipeToCollect[i])
+			r, err := runSingle(ctx, c, fds[i], pipeToCollect[i], r.NewStoreFile)
 			result[i] = r
 			if err != nil {
 				result[i].Status = StatusInternalError

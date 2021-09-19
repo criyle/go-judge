@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -131,18 +132,18 @@ var _ filestore.FileStore = &metricsFileStore{}
 type metricsFileStore struct {
 	mu sync.Mutex
 	filestore.FileStore
-	fileSize map[string]int
+	fileSize map[string]int64
 }
 
 func newMetricsFileStore(fs filestore.FileStore) filestore.FileStore {
 	return &metricsFileStore{
 		FileStore: fs,
-		fileSize:  make(map[string]int),
+		fileSize:  make(map[string]int64),
 	}
 }
 
-func (m *metricsFileStore) Add(name string, content []byte) (string, error) {
-	id, err := m.FileStore.Add(name, content)
+func (m *metricsFileStore) Add(name, path string) (string, error) {
+	id, err := m.FileStore.Add(name, path)
 	if err != nil {
 		return "", err
 	}
@@ -150,7 +151,12 @@ func (m *metricsFileStore) Add(name string, content []byte) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	s := len(content)
+	fi, err := os.Stat(path)
+	if err != nil {
+		return id, nil
+	}
+
+	s := fi.Size()
 	m.fileSize[id] = s
 
 	sf := float64(s)

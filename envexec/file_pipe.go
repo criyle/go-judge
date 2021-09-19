@@ -1,21 +1,20 @@
 package envexec
 
 import (
-	"bytes"
 	"io"
 	"os"
 )
 
 type pipeBuffer struct {
 	W      *os.File
-	Buffer *bytes.Buffer
+	Buffer *os.File
 	Done   <-chan struct{}
 	Limit  Size
 }
 
 type pipeCollector struct {
 	done   <-chan struct{}
-	buffer *bytes.Buffer
+	buffer *os.File
 	limit  Size
 	name   string
 }
@@ -36,10 +35,14 @@ func newPipe(writer io.Writer, limit Size) (<-chan struct{}, *os.File, error) {
 	return done, w, nil
 }
 
-func newPipeBuffer(limit Size) (*pipeBuffer, error) {
-	buffer := new(bytes.Buffer)
+func newPipeBuffer(limit Size, newFile NewStoreFile) (*pipeBuffer, error) {
+	buffer, err := newFile()
+	if err != nil {
+		return nil, err
+	}
 	done, w, err := newPipe(buffer, limit+1)
 	if err != nil {
+		buffer.Close()
 		return nil, err
 	}
 	return &pipeBuffer{

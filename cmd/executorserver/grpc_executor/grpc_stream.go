@@ -6,6 +6,7 @@ import (
 	"io"
 	"sync"
 
+	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/worker"
 	"go.uber.org/zap"
@@ -99,9 +100,19 @@ func execStreamLoop(es pb.Executor_ExecStreamServer, errCh chan error, outCh cha
 
 		case rt := <-rtCh:
 			logger.Sugar().Debugf("response: %+v", rt)
+			ret, err := model.ConvertResponse(rt)
+			if err != nil {
+				return status.Errorf(codes.Aborted, "response: %v", err)
+			}
+			defer ret.Close()
+
+			resp, err := convertPBResponse(ret)
+			if err != nil {
+				return status.Errorf(codes.Aborted, "response: %v", err)
+			}
 			return es.Send(&pb.StreamResponse{
 				Response: &pb.StreamResponse_ExecResponse{
-					ExecResponse: convertPBResponse(rt),
+					ExecResponse: resp,
 				},
 			})
 		}

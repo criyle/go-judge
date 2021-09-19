@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime"
 	"time"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
@@ -40,14 +41,16 @@ var (
 )
 
 func newFilsStore(dir string) filestore.FileStore {
-	var fs filestore.FileStore
 	if dir == "" {
-		fs = filestore.NewFileMemoryStore()
-	} else {
-		os.MkdirAll(dir, 0755)
-		fs = filestore.NewFileLocalStore(dir)
+		if runtime.GOOS == "linux" {
+			dir = "/dev/shm"
+		} else {
+			dir = os.TempDir()
+		}
+		dir, _ = os.MkdirTemp(dir, "executorserver")
 	}
-	return fs
+	os.MkdirAll(dir, 0755)
+	return filestore.NewFileLocalStore(dir)
 }
 
 // Init initialize the sandbox environment
@@ -114,11 +117,13 @@ func Exec(e *C.char) *C.char {
 		return nil
 	}
 	rt := <-work.Submit(context.TODO(), r)
-	ret := model.ConvertResponse(rt)
+	ret, _ := model.ConvertResponse(rt)
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(ret); err != nil {
 		return nil
 	}
+	defer ret.Close()
+
 	return C.CString(buf.String())
 }
 
@@ -143,12 +148,21 @@ func FileAdd(e *C.char) *C.char {
 	}
 	es := C.GoString(e)
 
-	var f fileAdd
-	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&f); err != nil {
+	var fa fileAdd
+	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&fa); err != nil {
 		return nil
 	}
 
-	id, err := fs.Add(f.Name, []byte(f.Content))
+	f, err := fs.New()
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+
+	if _, err := f.Write([]byte(fa.Content)); err != nil {
+		return nil
+	}
+	id, err := fs.Add(fa.Name, f.Name())
 	if err != nil {
 		return nil
 	}

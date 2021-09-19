@@ -2,8 +2,10 @@ package filestore
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 
 	"github.com/criyle/go-judge/envexec"
@@ -18,35 +20,21 @@ type fileLocalStore struct {
 // NewFileLocalStore create new local file store
 func NewFileLocalStore(dir string) FileStore {
 	return &fileLocalStore{
-		dir:  dir,
+		dir:  filepath.Clean(dir),
 		name: make(map[string]string),
 	}
 }
 
-func (s *fileLocalStore) Add(name string, content []byte) (string, error) {
+func (s *fileLocalStore) Add(name, path string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	id, err := generateUniqueID(func(id string) (bool, error) {
-		_, err := os.Stat(path.Join(s.dir, id))
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-			return false, nil
-		case err == nil:
-			return true, nil
-		default:
-			return false, err
-		}
-	})
-	if err != nil {
-		return "", err
+	if s.dir == filepath.Dir(path) {
+		id := filepath.Base(path)
+		s.name[id] = name
+		return id, nil
 	}
-	err = os.WriteFile(path.Join(s.dir, id), content, 0644)
-	if err != nil {
-		return "", err
-	}
-	s.name[id] = name
-	return id, err
+	return "", fmt.Errorf("add: %s does not have prefix %s", path, s.dir)
 }
 
 func (s *fileLocalStore) Get(id string) (string, envexec.File) {
@@ -91,4 +79,26 @@ func (s *fileLocalStore) List() map[string]string {
 		names[f.Name()] = s.name[f.Name()]
 	}
 	return names
+}
+
+func (s *fileLocalStore) New() (*os.File, error) {
+	id, err := generateUniqueID(func(id string) (bool, error) {
+		_, err := os.Stat(path.Join(s.dir, id))
+		switch {
+		case errors.Is(err, os.ErrNotExist):
+			return false, nil
+		case err == nil:
+			return true, nil
+		default:
+			return false, err
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	f, err := os.OpenFile(path.Join(s.dir, id), os.O_CREATE|os.O_RDWR, 0644)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }

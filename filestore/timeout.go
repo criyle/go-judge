@@ -2,6 +2,7 @@ package filestore
 
 import (
 	"container/heap"
+	"os"
 	"sync"
 	"time"
 
@@ -86,9 +87,9 @@ func (t *Timeout) Pop() interface{} {
 	return e
 }
 
-func (t *Timeout) Add(name string, content []byte) (string, error) {
+func (t *Timeout) Add(name, path string) (string, error) {
 	// try add to file store underlying
-	id, err := t.FileStore.Add(name, content)
+	id, err := t.FileStore.Add(name, path)
 	if err != nil {
 		return "", err
 	}
@@ -130,4 +131,8 @@ func (t *Timeout) Get(id string) (string, envexec.File) {
 	heap.Fix(t, index)
 
 	return name, file
+}
+
+func (t *Timeout) New() (*os.File, error) {
+	return t.FileStore.New()
 }

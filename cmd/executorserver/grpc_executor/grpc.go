@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
@@ -60,7 +61,13 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	if rt.Error != nil {
 		return nil, rt.Error
 	}
-	return convertPBResponse(rt), nil
+	ret, err := model.ConvertResponse(rt)
+	if err != nil {
+		return nil, err
+	}
+	defer ret.Close()
+
+	return convertPBResponse(ret)
 }
 
 func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileListType, error) {
@@ -88,9 +95,18 @@ func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, 
 }
 
 func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID, error) {
-	fid, err := e.fs.Add(fc.GetName(), fc.GetContent())
+	f, err := e.fs.New()
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	defer f.Close()
+
+	if _, err := f.Write(fc.GetContent()); err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	fid, err := e.fs.Add(fc.GetName(), f.Name())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &pb.FileID{
 		FileID: fid,
@@ -105,21 +121,23 @@ func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty
 	return &emptypb.Empty{}, nil
 }
 
-func convertPBResponse(r worker.Response) *pb.Response {
+func convertPBResponse(r model.Response) (*pb.Response, error) {
 	res := &pb.Response{
 		RequestID: r.RequestID,
 		Results:   make([]*pb.Response_Result, 0, len(r.Results)),
+		Error:     r.ErrorMsg,
 	}
 	for _, c := range r.Results {
-		res.Results = append(res.Results, convertPBResult(c))
+		rt, err := convertPBResult(c)
+		if err != nil {
+			return nil, err
+		}
+		res.Results = append(res.Results, rt)
 	}
-	if r.Error != nil {
-		res.Error = r.Error.Error()
-	}
-	return res
+	return res, nil
 }
 
-func convertPBResult(r worker.Result) *pb.Response_Result {
+func convertPBResult(r model.Result) (*pb.Response_Result, error) {
 	return &pb.Response_Result{
 		Status:     pb.Response_Result_StatusType(r.Status),
 		ExitStatus: int32(r.ExitStatus),
@@ -127,9 +145,9 @@ func convertPBResult(r worker.Result) *pb.Response_Result {
 		Time:       uint64(r.Time),
 		RunTime:    uint64(r.RunTime),
 		Memory:     uint64(r.Memory),
-		Files:      r.Files,
+		Files:      r.Buffs,
 		FileIDs:    r.FileIDs,
-	}
+	}, nil
 }
 
 func convertPBRequest(r *pb.Request, srcPrefix string) (req *worker.Request, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {

@@ -74,12 +74,18 @@ func (h *handle) handleRun(c *gin.Context) {
 	}
 
 	// encode json directly to avoid allocation
-	// c.JSON(http.StatusOK, model.ConvertResponse(rt).Results)
-
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "application/json; charset=utf-8")
 
-	if err := json.NewEncoder(c.Writer).Encode(model.ConvertResponse(rt).Results); err != nil {
+	res, err := model.ConvertResponse(rt)
+	if err != nil {
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer res.Close()
+
+	if err := json.NewEncoder(c.Writer).Encode(res.Results); err != nil {
 		c.Error(err)
 	}
 }

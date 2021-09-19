@@ -1,7 +1,6 @@
 package envexec
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -11,7 +10,7 @@ import (
 )
 
 // prepare Files for tty input / output
-func prepareCmdFdTTY(c *Cmd, count int) (f []*os.File, p []pipeCollector, err error) {
+func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
 	var wg sync.WaitGroup
 	var hasInput, hasOutput bool
 
@@ -74,7 +73,10 @@ func prepareCmdFdTTY(c *Cmd, count int) (f []*os.File, p []pipeCollector, err er
 			hasOutput = true
 
 			done := make(chan struct{})
-			buf := new(bytes.Buffer)
+			buf, err := newStoreFile()
+			if err != nil {
+				return nil, nil, fmt.Errorf("filed to create store file %v", err)
+			}
 			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name})
 
 			wg.Add(1)
@@ -110,9 +112,9 @@ func prepareCmdFdTTY(c *Cmd, count int) (f []*os.File, p []pipeCollector, err er
 	return files, pipeToCollect, nil
 }
 
-func prepareCmdFd(c *Cmd, count int) (f []*os.File, p []pipeCollector, err error) {
+func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
 	if c.TTY {
-		return prepareCmdFdTTY(c, count)
+		return prepareCmdFdTTY(c, count, newFileStore)
 	}
 	files := make([]*os.File, count)
 	pipeToCollect := make([]pipeCollector, 0)
@@ -160,7 +162,7 @@ func prepareCmdFd(c *Cmd, count int) (f []*os.File, p []pipeCollector, err error
 				break
 			}
 
-			b, err := newPipeBuffer(t.Limit)
+			b, err := newPipeBuffer(t.Limit, newFileStore)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to create pipe %v", err)
 			}
@@ -184,7 +186,7 @@ func prepareCmdFd(c *Cmd, count int) (f []*os.File, p []pipeCollector, err error
 }
 
 // prepareFd returns fds, pipeToCollect fileToClose, error
-func prepareFds(r *Group) (f [][]*os.File, p [][]pipeCollector, err error) {
+func prepareFds(r *Group, newStoreFile NewStoreFile) (f [][]*os.File, p [][]pipeCollector, err error) {
 	// prepare fd count
 	fdCount, err := countFd(r)
 	if err != nil {
@@ -206,7 +208,7 @@ func prepareFds(r *Group) (f [][]*os.File, p [][]pipeCollector, err error) {
 
 	// prepare cmd fd
 	for i, c := range r.Cmd {
-		files[i], pipeToCollect[i], err = prepareCmdFd(c, fdCount[i])
+		files[i], pipeToCollect[i], err = prepareCmdFd(c, fdCount[i], newStoreFile)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -214,7 +216,7 @@ func prepareFds(r *Group) (f [][]*os.File, p [][]pipeCollector, err error) {
 
 	// prepare pipes
 	for _, p := range r.Pipes {
-		out, in, pc, err := pipe(p)
+		out, in, pc, err := pipe(p, newStoreFile)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -249,14 +251,19 @@ func countFd(r *Group) ([]int, error) {
 	return fdCount, nil
 }
 
-func pipe(p Pipe) (out *os.File, in *os.File, pc *pipeCollector, err error) {
+func pipe(p Pipe, newStoreFile NewStoreFile) (out *os.File, in *os.File, pc *pipeCollector, err error) {
 	if p.Proxy {
-		out1, in1, out2, in2, err := pipe2()
+		buffer, err := newStoreFile()
 		if err != nil {
 			return nil, nil, nil, err
 		}
+		out1, in1, out2, in2, err := pipe2()
+		if err != nil {
+			buffer.Close()
+			return nil, nil, nil, err
+		}
 
-		pc := pipeProxy(p, out1, in2)
+		pc := pipeProxy(p, out1, in2, buffer)
 		return out2, in1, pc, nil
 	}
 
@@ -281,7 +288,7 @@ func pipe2() (out1 *os.File, in1 *os.File, out2 *os.File, in2 *os.File, err erro
 	return
 }
 
-func pipeProxy(p Pipe, out1 *os.File, in2 *os.File) *pipeCollector {
+func pipeProxy(p Pipe, out1 *os.File, in2 *os.File, buffer *os.File) *pipeCollector {
 	copyAndClose := func() {
 		io.Copy(in2, out1)
 		in2.Close()
@@ -296,7 +303,6 @@ func pipeProxy(p Pipe, out1 *os.File, in2 *os.File) *pipeCollector {
 	}
 
 	done := make(chan struct{})
-	buffer := new(bytes.Buffer)
 	limit := p.Limit
 
 	// out1 -> in2

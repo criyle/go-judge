@@ -58,3 +58,6 @@ type Environment interface {
 	// Open open file at work dir with given relative path and flags
 	Open(path string, flags int, perm os.FileMode) (*os.File, error)
 }
+
+// NewStoreFile creates a new file in storage
+type NewStoreFile func() (*os.File, error)

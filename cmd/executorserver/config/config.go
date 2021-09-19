@@ -14,7 +14,7 @@ type Config struct {
 	// container
 	ContainerInitPath  string `flagUsage:"container init path"`
 	PreFork            int    `flagUsage:"control # of the prefork workers" default:"1"`
-	TmpFsParam         string `flagUsage:"tmpfs mount data (only for default mount with no mount.yaml)" default:"size=16m,nr_inodes=4k"`
+	TmpFsParam         string `flagUsage:"tmpfs mount data (only for default mount with no mount.yaml)" default:"size=128m,nr_inodes=4k"`
 	NetShare           bool   `flagUsage:"share net namespace with host"`
 	MountConf          string `flagUsage:"specifies mount configuration file" default:"mount.yaml"`
 	SeccompConf        string `flagUsage:"specifies seccomp filter" default:"seccomp.yaml"`
@@ -49,7 +49,7 @@ type Config struct {
 	Silent  bool `flagUsage:"do not print logs"`
 
 	// fix for high memory usage
-	ForceGCTarget   *envexec.Size `flagUsage:"specifies force GC trigger heap size" default:"10m"`
+	ForceGCTarget   *envexec.Size `flagUsage:"specifies force GC trigger heap size" default:"20m"`
 	ForceGCInterval time.Duration `flagUsage:"specifies force GC trigger interval" default:"5s"`
 }
 

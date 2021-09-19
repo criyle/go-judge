@@ -95,6 +95,9 @@ type Result struct {
 	RunTime    uint64            `json:"runTime"`
 	Files      map[string]string `json:"files,omitempty"`
 	FileIDs    map[string]string `json:"fileIds,omitempty"`
+
+	files []string
+	Buffs map[string][]byte `json:"-"`
 }
 
 // Response defines worker response for single request
@@ -104,19 +107,55 @@ type Response struct {
 	ErrorMsg  string   `json:"error,omitempty"`
 }
 
+func (r *Response) Close() {
+	for _, res := range r.Results {
+		res.Close()
+	}
+}
+
+func (r *Result) Close() {
+	// remove temporary files
+	for _, f := range r.files {
+		os.Remove(f)
+	}
+	// remove potential mmap
+	for _, b := range r.Buffs {
+		releaseByte(b)
+	}
+}
+
 // ConvertResponse converts
-func ConvertResponse(r worker.Response) Response {
-	ret := Response{
+func ConvertResponse(r worker.Response) (ret Response, err error) {
+	// in error case, release all resources
+	defer func() {
+		if err != nil {
+			for _, r := range ret.Results {
+				r.Close()
+			}
+			for _, r := range r.Results {
+				for _, f := range r.Files {
+					f.Close()
+					os.Remove(f.Name())
+				}
+			}
+		}
+	}()
+
+	ret = Response{
 		RequestID: r.RequestID,
 		Results:   make([]Result, 0, len(r.Results)),
 	}
 	for _, r := range r.Results {
-		ret.Results = append(ret.Results, convertResult(r))
+		res, err := convertResult(r)
+		if err != nil {
+			return ret, err
+		}
+		ret.Results = append(ret.Results, res)
 	}
 	if r.Error != nil {
 		ret.ErrorMsg = r.Error.Error()
 	}
-	return ret
+	return ret, nil
 }
 
 // ConvertRequest converts json request into worker request
@@ -139,7 +178,7 @@ func ConvertRequest(r *Request, srcPrefix string) (*worker.Request, error) {
 	return req, nil
 }
 
-func convertResult(r worker.Result) Result {
+func convertResult(r worker.Result) (Result, error) {
 	res := Result{
 		Status:     Status(r.Status),
 		ExitStatus: r.ExitStatus,
@@ -151,11 +190,19 @@ func convertResult(r worker.Result) Result {
 	}
 	if r.Files != nil {
 		res.Files = make(map[string]string)
-		for k, v := range r.Files {
-			res.Files[k] = byteArrayToString(v)
+		res.Buffs = make(map[string][]byte)
+		for k, f := range r.Files {
+			b, err := fileToByte(f)
+			if err != nil {
+				return res, err
+			}
+			res.Files[k] = byteArrayToString(b)
+
+			res.files = append(res.files, f.Name())
+			res.Buffs[k] = b
 		}
 	}
-	return res
+	return res, nil
 }
 
 func convertPipe(p PipeMap) worker.PipeMap {

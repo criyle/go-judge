@@ -8,7 +8,7 @@ import (
 )
 
 // runSingle runs Cmd inside the given environment and cgroup
-func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector) (result Result, err error) {
+func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, newStoreFile NewStoreFile) (result Result, err error) {
 	m := c.Environment
 	// copyin
 	if err := runSingleCopyIn(m, c.CopyIn); err != nil {
@@ -22,7 +22,7 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector) 
 	rt := runSingleWait(pc, m, c, fds)
 
 	// collect result
-	files, err := copyOutAndCollect(m, c, ptc)
+	files, err := copyOutAndCollect(m, c, ptc, newStoreFile)
 	result = Result{
 		Status:     convertStatus(rt.Status),
 		ExitStatus: rt.ExitStatus,

@@ -2,6 +2,7 @@ package worker
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
@@ -50,7 +51,7 @@ type Result struct {
 	Time       time.Duration
 	RunTime    time.Duration
 	Memory     envexec.Size
-	Files      map[string][]byte
+	Files      map[string]*os.File
 	FileIDs    map[string]string
 }
 
@@ -83,7 +84,7 @@ func (r Result) String() string {
 		FileIDs:    r.FileIDs,
 	}
 	for k, v := range r.Files {
-		d.Files[k] = fmt.Sprintf("(len:%d)", len(v))
+		d.Files[k] = fmt.Sprintf("(path:%s)", v.Name())
 	}
 	return fmt.Sprintf("%+v", d)
 }

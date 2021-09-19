@@ -2,6 +2,7 @@ package envexec
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/criyle/go-sandbox/runner"
@@ -70,5 +71,5 @@ type Result struct {
 	Memory  Size // byte
 
 	// Files stores copy out files
-	Files map[string][]byte
+	Files map[string]*os.File
 }

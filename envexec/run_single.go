@@ -11,9 +11,10 @@ import (
 func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, newStoreFile NewStoreFile) (result Result, err error) {
 	m := c.Environment
 	// copyin
-	if err := runSingleCopyIn(m, c.CopyIn); err != nil {
+	if fe, err := runSingleCopyIn(m, c.CopyIn); err != nil {
 		result.Status = StatusFileError
 		result.Error = err.Error()
+		result.FileError = fe
 		closeFiles(fds...)
 		return result, nil
 	}
@@ -22,7 +23,7 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 	rt := runSingleWait(pc, m, c, fds)
 
 	// collect result
-	files, err := copyOutAndCollect(m, c, ptc, newStoreFile)
+	files, fe, err := copyOutAndCollect(m, c, ptc, newStoreFile)
 	result = Result{
 		Status:     convertStatus(rt.Status),
 		ExitStatus: rt.ExitStatus,
@@ -31,6 +32,7 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 		RunTime:    rt.RunningTime,
 		Memory:     rt.Memory,
 		Files:      files,
+		FileError:  fe,
 	}
 	// collect error (only if the process exits normally)
 	if rt.Status == runner.StatusNormal && err != nil && result.Error == "" {
@@ -51,9 +53,9 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 	return result, nil
 }
 
-func runSingleCopyIn(m Environment, copyInFiles map[string]File) error {
+func runSingleCopyIn(m Environment, copyInFiles map[string]File) ([]FileError, error) {
 	if len(copyInFiles) == 0 {
-		return nil
+		return nil, nil
 	}
 	return copyIn(m, copyInFiles)
 }

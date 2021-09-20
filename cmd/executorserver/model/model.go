@@ -88,14 +88,15 @@ func (s *Status) UnmarshalJSON(b []byte) error {
 
 // Result defines single command result
 type Result struct {
-	Status     Status            `json:"status"`
-	ExitStatus int               `json:"exitStatus"`
-	Error      string            `json:"error,omitempty"`
-	Time       uint64            `json:"time"`
-	Memory     uint64            `json:"memory"`
-	RunTime    uint64            `json:"runTime"`
-	Files      map[string]string `json:"files,omitempty"`
-	FileIDs    map[string]string `json:"fileIds,omitempty"`
+	Status     Status              `json:"status"`
+	ExitStatus int                 `json:"exitStatus"`
+	Error      string              `json:"error,omitempty"`
+	Time       uint64              `json:"time"`
+	Memory     uint64              `json:"memory"`
+	RunTime    uint64              `json:"runTime"`
+	Files      map[string]string   `json:"files,omitempty"`
+	FileIDs    map[string]string   `json:"fileIds,omitempty"`
+	FileError  []envexec.FileError `json:"fileError,omitempty"`
 
 	files []string
 	Buffs map[string][]byte `json:"-"`
@@ -188,6 +189,7 @@ func convertResult(r worker.Result) (Result, error) {
 		RunTime:    uint64(r.RunTime),
 		Memory:     uint64(r.Memory),
 		FileIDs:    r.FileIDs,
+		FileError:  r.FileError,
 	}
 	if r.Files != nil {
 		res.Files = make(map[string]string)

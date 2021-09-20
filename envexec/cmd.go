@@ -2,6 +2,7 @@ package envexec
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -72,4 +73,69 @@ type Result struct {
 
 	// Files stores copy out files
 	Files map[string]*os.File
+
+	// FileError stores file errors details
+	FileError []FileError
+}
+
+type FileErrorType int
+
+const (
+	ErrCopyInOpenFile FileErrorType = iota
+	ErrCopyInCreateFile
+	ErrCopyInCopyContent
+	ErrCopyOutOpen
+	ErrCopyOutNotRegularFile
+	ErrCopyOutSizeExceeded
+	ErrCopyOutCreateFile
+	ErrCopyOutCopyContent
+	ErrCollectSizeExceeded
+)
+
+type FileError struct {
+	Name    string        `json:"name"`
+	Type    FileErrorType `json:"type"`
+	Message string        `json:"message,omitempty"`
+}
+
+var fileErrorString = []string{
+	"CopyInOpenFile",
+	"CopyInCreateFile",
+	"CopyInCopyContent",
+	"CopyOutOpen",
+	"CopyOutNotRegularFile",
+	"CopyOutSizeExceeded",
+	"CopyOutCreateFile",
+	"CopyOutCopyContent",
+	"CollectSizeExceeded",
+}
+
+var fileErrorStringReverse = make(map[string]FileErrorType)
+
+func (t FileErrorType) String() string {
+	v := int(t)
+	if v >= 0 && v < len(fileErrorString) {
+		return fileErrorString[v]
+	}
+	return ""
+}
+
+func (t FileErrorType) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + t.String() + `"`), nil
+}
+
+func (t *FileErrorType) UnmarshalJSON(b []byte) error {
+	str := string(b)
+	if v, ok := fileErrorStringReverse[str]; ok {
+		return fmt.Errorf("%s is not file error type", str)
+	} else {
+		*t = v
+	}
+	return nil
+}
+
+func init() {
+	for i, v := range fileErrorString {
+		fileErrorStringReverse[`"`+v+`"`] = FileErrorType(i)
+	}
 }

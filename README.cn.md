@@ -270,6 +270,24 @@ interface PipeMap {
     max: number;    
 }
 
+enum FileErrorType {
+    CopyInOpenFile,
+    CopyInCreateFile,
+    CopyInCopyContent,
+    CopyOutOpen,
+    CopyOutNotRegularFile,
+    CopyOutSizeExceeded,
+    CopyOutCreateFile,
+    CopyOutCopyContent,
+    CollectSizeExceeded,
+}
+
+interface FileError {
+    name: string; // 错误文件名称
+    type: FileErrorType; // 错误代码
+    message?: string; // 错误信息
+}
+
 interface Request {
     requestId?: string; // 给 WebSocket 使用
     cmd: Cmd[];
@@ -287,6 +305,8 @@ interface Result {
     files?: {[name:string]:string};
     // copyFileCached 指定的文件 id
     fileIds?: {[name:string]:string};
+    // 文件错误详细信息
+    fileError?: []FileError;
 }
 
 // WebSocket 结果

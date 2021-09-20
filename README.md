@@ -316,6 +316,24 @@ interface PipeMap {
     max: number;    
 }
 
+enum FileErrorType {
+    CopyInOpenFile,
+    CopyInCreateFile,
+    CopyInCopyContent,
+    CopyOutOpen,
+    CopyOutNotRegularFile,
+    CopyOutSizeExceeded,
+    CopyOutCreateFile,
+    CopyOutCopyContent,
+    CollectSizeExceeded,
+}
+
+interface FileError {
+    name: string; // error file name
+    type: FileErrorType; // type
+    message?: string; // detailed message
+}
+
 interface Request {
     requestId?: string; // for WebSocket requests
     cmd: Cmd[];
@@ -333,6 +351,8 @@ interface Result {
     files?: {[name:string]:string};
     // copyFileCached name -> fileId
     fileIds?: {[name:string]:string};
+    // fileError contains detailed file errors
+    fileError?: []FileError;
 }
 
 // WebSocket results

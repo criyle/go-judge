@@ -53,6 +53,7 @@ type Result struct {
 	Memory     envexec.Size
 	Files      map[string]*os.File
 	FileIDs    map[string]string
+	FileError  []envexec.FileError
 }
 
 // Response defines worker response for single request
@@ -72,6 +73,7 @@ func (r Result) String() string {
 		Memory     envexec.Size
 		Files      map[string]string
 		FileIDs    map[string]string
+		FileError  []envexec.FileError
 	}
 	d := Result{
 		Status:     r.Status,
@@ -82,6 +84,7 @@ func (r Result) String() string {
 		Memory:     r.Memory,
 		Files:      make(map[string]string),
 		FileIDs:    r.FileIDs,
+		FileError:  r.FileError,
 	}
 	for k, v := range r.Files {
 		d.Files[k] = fmt.Sprintf("(path:%s)", v.Name())

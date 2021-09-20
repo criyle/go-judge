@@ -147,7 +147,20 @@ func convertPBResult(r model.Result) (*pb.Response_Result, error) {
 		Memory:     uint64(r.Memory),
 		Files:      r.Buffs,
 		FileIDs:    r.FileIDs,
+		FileError:  convertPBFileError(r.FileError),
 	}, nil
+}
+
+func convertPBFileError(fe []envexec.FileError) []*pb.Response_FileError {
+	rt := make([]*pb.Response_FileError, 0, len(fe))
+	for _, e := range fe {
+		rt = append(rt, &pb.Response_FileError{
+			Name:    e.Name,
+			Type:    pb.Response_FileError_ErrorType(e.Type),
+			Message: e.Message,
+		})
+	}
+	return rt
 }
 
 func convertPBRequest(r *pb.Request, srcPrefix string) (req *worker.Request, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {

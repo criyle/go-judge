@@ -117,6 +117,25 @@ message Request {
 }
 
 message Response {
+  message FileError {
+    enum ErrorType {
+      CopyInOpenFile = 0;
+      CopyInCreateFile = 1;
+      CopyInCopyContent = 2;
+
+      CopyOutOpen = 3;
+      CopyOutNotRegularFile = 4;
+      CopyOutSizeExceeded = 5;
+      CopyOutCreateFile = 6;
+      CopyOutCopyContent = 7;
+
+      CollectSizeExceeded = 8;
+    }
+    string name = 1;
+    ErrorType type = 2;
+    string message = 3;
+  }
+
   message Result {
     enum StatusType {
       Invalid = 0;
@@ -143,6 +162,7 @@ message Response {
     uint64 memory = 5;
     map<string, bytes> files = 6;
     map<string, string> fileIDs = 7;
+    repeated FileError fileError = 9;
   }
   string requestID = 1;
   repeated Result results = 2;

@@ -18,6 +18,7 @@ type CmdFile struct {
 	FileID  *string `json:"fileId"`
 	Name    *string `json:"name"`
 	Max     *int64  `json:"max"`
+	Pipe    bool    `json:"pipe"`
 }
 
 // Cmd defines command and limits to start a program using in envexec
@@ -283,7 +284,7 @@ func convertCmdFile(f *CmdFile, srcPrefix string) (worker.CmdFile, error) {
 	case f.FileID != nil:
 		return &worker.CachedFile{FileID: *f.FileID}, nil
 	case f.Max != nil && f.Name != nil:
-		return &worker.PipeCollector{Name: *f.Name, Max: envexec.Size(*f.Max)}, nil
+		return &worker.Collector{Name: *f.Name, Max: envexec.Size(*f.Max), Pipe: f.Pipe}, nil
 	default:
 		return nil, fmt.Errorf("file is not valid for cmd")
 	}

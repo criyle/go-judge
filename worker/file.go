@@ -20,7 +20,7 @@ var (
 	_ CmdFile = &LocalFile{}
 	_ CmdFile = &MemoryFile{}
 	_ CmdFile = &CachedFile{}
-	_ CmdFile = &PipeCollector{}
+	_ CmdFile = &Collector{}
 )
 
 // LocalFile defines file stores on the local file system
@@ -69,18 +69,18 @@ func (f *CachedFile) String() string {
 	return fmt.Sprintf("cached:(fileId:%s)", f.FileID)
 }
 
-// PipeCollector defines on the output (stdout / stderr) to be collected over pipe
-type PipeCollector struct {
+// Collector defines on the output (stdout / stderr) to be collected over pipe
+type Collector struct {
 	Name string       // pseudo name generated into copyOut
 	Max  envexec.Size // max size to be collected
+	Pipe bool
 }
 
 // EnvFile prepares file for envexec file
-func (f *PipeCollector) EnvFile(fs filestore.FileStore) (envexec.File, error) {
-	return envexec.NewFilePipeCollector(f.Name, f.Max), nil
-
+func (f *Collector) EnvFile(fs filestore.FileStore) (envexec.File, error) {
+	return envexec.NewFileCollector(f.Name, f.Max, f.Pipe), nil
 }
 
-func (f *PipeCollector) String() string {
-	return fmt.Sprintf("pipeCollector:(name:%s,max:%d)", f.Name, f.Max)
+func (f *Collector) String() string {
+	return fmt.Sprintf("collector:(name:%s,max:%d,pipe:%v)", f.Name, f.Max, f.Pipe)
 }

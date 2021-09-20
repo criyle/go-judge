@@ -283,7 +283,7 @@ func convertPBFile(c *pb.Request_File, srcPrefix string) (worker.CmdFile, error)
 	case *pb.Request_File_Cached:
 		return &worker.CachedFile{FileID: c.Cached.GetFileID()}, nil
 	case *pb.Request_File_Pipe:
-		return &worker.PipeCollector{Name: c.Pipe.GetName(), Max: envexec.Size(c.Pipe.GetMax())}, nil
+		return &worker.Collector{Name: c.Pipe.GetName(), Max: envexec.Size(c.Pipe.GetMax()), Pipe: c.Pipe.GetPipe()}, nil
 	}
 	return nil, fmt.Errorf("request file type not supported yet %v", c)
 }

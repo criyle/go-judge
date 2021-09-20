@@ -59,6 +59,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 			// Ensure not copy over file size
 			_, err = buf.ReadFrom(io.LimitReader(cf, s))
 			if err != nil {
+				buf.Close()
 				return err
 			}
 			put(buf, n.Name)
@@ -77,6 +78,55 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 			}
 			return nil
 		})
+	}
+
+	// collect container collector
+	ct := make(map[string]bool)
+	for _, f := range c.Files {
+		if t, ok := f.(*FileCollector); ok {
+			if t.Pipe || ct[t.Name] {
+				continue
+			}
+			ct[t.Name] = true
+
+			g.Go(func() error {
+				cf, err := m.Open(t.Name, os.O_RDONLY, 0777)
+				if err != nil {
+					return err
+				}
+				defer cf.Close()
+
+				stat, err := cf.Stat()
+				if err != nil {
+					return err
+				}
+				// check regular file
+				if stat.Mode()&os.ModeType != 0 {
+					return fmt.Errorf("%s: not a regular file %d", t.Name, stat.Mode()&os.ModeType)
+				}
+
+				// create store file
+				buf, err := newStoreFile()
+				if err != nil {
+					return fmt.Errorf("%s: failed to create store file %v", t.Name, err)
+				}
+
+				// Ensure not copy over file size
+				_, err = buf.ReadFrom(io.LimitReader(cf, int64(t.Limit)+1))
+				if err != nil {
+					buf.Close()
+					return err
+				}
+				put(buf, t.Name)
+
+				// check size limit
+				s := stat.Size()
+				if s > int64(t.Limit) {
+					return runner.StatusOutputLimitExceeded
+				}
+				return nil
+			})
+		}
 	}
 
 	// copy out dir

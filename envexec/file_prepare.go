@@ -65,7 +65,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			}
 			files[j] = f
 
-		case *FilePipeCollector:
+		case *FileCollector:
 			files[j] = fTty
 			if hasOutput {
 				break
@@ -125,6 +125,8 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 	}()
 	// record same name buffer for one command to avoid multiple pipe creation
 	pb := make(map[string]*pipeBuffer)
+	// record same file to avoid multiple file open
+	cf := make(map[string]*os.File)
 
 	for j, t := range c.Files {
 		switch t := t.(type) {
@@ -156,20 +158,35 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			}
 			files[j] = f
 
-		case *FilePipeCollector:
-			if b, ok := pb[t.Name]; ok {
+		case *FileCollector:
+			if t.Pipe {
+				if b, ok := pb[t.Name]; ok {
+					files[j] = b.W
+					break
+				}
+
+				b, err := newPipeBuffer(t.Limit, newFileStore)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to create pipe %v", err)
+				}
+				pb[t.Name] = b
+
 				files[j] = b.W
-				break
-			}
+				pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name})
+			} else {
+				if f, ok := cf[t.Name]; ok {
+					files[j] = f
+					break
+				}
 
-			b, err := newPipeBuffer(t.Limit, newFileStore)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to create pipe %v", err)
-			}
-			pb[t.Name] = b
+				f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
+				if err != nil {
+					return nil, nil, fmt.Errorf("filed to create container file %v", err)
+				}
+				cf[t.Name] = f
 
-			files[j] = b.W
-			pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name})
+				files[j] = f
+			}
 
 		case *FileWriter:
 			_, w, err := newPipe(t.Writer, t.Limit)

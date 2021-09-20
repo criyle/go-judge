@@ -44,17 +44,18 @@ func NewFileInput(p string) File {
 	return &FileInput{Path: p}
 }
 
-// FilePipeCollector represent pipe output which will be collected through pipe
-type FilePipeCollector struct {
+// FileCollector represent pipe output which will be collected through pipe
+type FileCollector struct {
 	Name  string
 	Limit Size
+	Pipe  bool
 }
 
-func (*FilePipeCollector) isFile() {}
+func (*FileCollector) isFile() {}
 
-// NewFilePipeCollector creates file output which will be collected through pipe
-func NewFilePipeCollector(name string, limit Size) File {
-	return &FilePipeCollector{Name: name, Limit: limit}
+// NewFileCollector creates file output which will be collected through pipe
+func NewFileCollector(name string, limit Size, pipe bool) File {
+	return &FileCollector{Name: name, Limit: limit, Pipe: pipe}
 }
 
 // FileWriter represent pipe output which will be piped out from exec

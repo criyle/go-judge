@@ -359,7 +359,7 @@ func (w *worker) prepareCmdFiles(files []CmdFile) ([]envexec.File, map[string]bo
 			return nil, nil, err
 		}
 		rt = append(rt, cf)
-		if t, ok := cf.(*envexec.FilePipeCollector); ok {
+		if t, ok := cf.(*envexec.FileCollector); ok {
 			pipeFileName[t.Name] = true
 		}
 	}

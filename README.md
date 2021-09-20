@@ -250,9 +250,10 @@ interface PreparedFile {
     fileId: string; // fileId defines file uploaded by /file
 }
 
-interface Pipe {
+interface Collector {
     name: string; // file name in copyOut
     max: number;  // maximum bytes to collect from pipe
+    pipe: boolean; // collect over pipe or not (default false)
 }
 
 interface Cmd {
@@ -260,7 +261,7 @@ interface Cmd {
     env?: string[]; // environment
 
     // specifies file input / pipe collector for program file descriptors
-    files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector | null)[];
     tty?: boolean; // enables tty on the input and output pipes (should have just one input & one output)
     // Notice: must have TERM environment variables (e.g. TERM=xterm)
 

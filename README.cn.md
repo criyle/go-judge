@@ -209,9 +209,10 @@ interface PreparedFile {
     fileId: string; // 文件 id
 }
 
-interface Pipe {
+interface Collector {
     name: string; // copyOut 文件名
     max: number;  // 最大大小限制
+    pipe: boolean; // 通过管道收集（默认值为false文件收集）
 }
 
 interface Cmd {
@@ -219,7 +220,7 @@ interface Cmd {
     env?: string[]; // 程序环境变量
 
     // 指定 标准输入、标准输出和标准错误的文件
-    files?: (LocalFile | MemoryFile | PreparedFile | Pipe | null)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector | null)[];
     tty?: boolean; // 开启 TTY （需要保证标准输出和标准错误为同一文件）同时需要指定 TERM 环境变量 （例如 TERM=xterm）
 
     // 资源限制

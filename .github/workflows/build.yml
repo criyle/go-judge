@@ -182,7 +182,7 @@ jobs:
           name: ExecutorShell-MacOS-${{ matrix.GOARCH }}
           path: executorshell
       - name: Upload executorserver.dylib on macOS
-        if: ${{ matrix.os == 'macos-latest' }}
+        if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
         uses: actions/upload-artifact@v2
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.dylib

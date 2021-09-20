@@ -49,6 +49,7 @@ message Request {
   message PipeCollector {
     string name = 1;
     int64 max = 2;
+    bool pipe = 3;
   }
 
   message StreamInput { string name = 1; }

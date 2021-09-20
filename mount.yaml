@@ -47,11 +47,11 @@ mount:
   # work dir
   - type: tmpfs
     target: /w
-    data: size=16m,nr_inodes=4k
+    data: size=128m,nr_inodes=4k
   # tmp dir
   - type: tmpfs
     target: /tmp
-    data: size=16m,nr_inodes=4k
+    data: size=128m,nr_inodes=4k
   # (optional) bind a /etc/passwd to show customized user name
   - type: bind
     source: containerPasswd.txt

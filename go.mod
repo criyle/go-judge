@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/creack/pty v1.1.15
-	github.com/criyle/go-sandbox v0.8.5
+	github.com/criyle/go-sandbox v0.8.6
 	github.com/elastic/go-seccomp-bpf v1.2.0
 	github.com/elastic/go-ucfg v0.8.3
 	github.com/gin-contrib/pprof v1.3.0

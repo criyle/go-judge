@@ -77,7 +77,7 @@ func (h *handle) handleRun(c *gin.Context) {
 	c.Status(http.StatusOK)
 	c.Header("Content-Type", "application/json; charset=utf-8")
 
-	res, err := model.ConvertResponse(rt)
+	res, err := model.ConvertResponse(rt, true)
 	if err != nil {
 		c.Error(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, err.Error())

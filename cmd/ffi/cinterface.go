@@ -117,13 +117,15 @@ func Exec(e *C.char) *C.char {
 		return nil
 	}
 	rt := <-work.Submit(context.TODO(), r)
-	ret, _ := model.ConvertResponse(rt)
+	ret, err := model.ConvertResponse(rt, true)
+	if err != nil {
+		return nil
+	}
+	defer ret.Close()
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(ret); err != nil {
 		return nil
 	}
-	defer ret.Close()
-
 	return C.CString(buf.String())
 }
 

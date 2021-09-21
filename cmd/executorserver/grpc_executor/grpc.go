@@ -61,12 +61,10 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	if rt.Error != nil {
 		return nil, rt.Error
 	}
-	ret, err := model.ConvertResponse(rt)
+	ret, err := model.ConvertResponse(rt, false)
 	if err != nil {
 		return nil, err
 	}
-	defer ret.Close()
-
 	return convertPBResponse(ret)
 }
 

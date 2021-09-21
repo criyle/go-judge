@@ -5,7 +5,14 @@ import (
 	"syscall"
 )
 
-func fileToByte(f *os.File) ([]byte, error) {
+func fileToByte(f *os.File, mmap bool) ([]byte, error) {
+	if mmap {
+		return fileToByteMmap(f)
+	}
+	return fileToByteGeneric(f)
+}
+
+func fileToByteMmap(f *os.File) ([]byte, error) {
 	defer f.Close()
 
 	var s int64

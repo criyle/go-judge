@@ -81,8 +81,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			}
 			go func() {
 				ret := <-h.worker.Submit(ctx, r)
-				resp, _ := model.ConvertResponse(ret)
-				resp.Close()
+				resp, _ := model.ConvertResponse(ret, false)
 				resultCh <- resp
 			}()
 		}

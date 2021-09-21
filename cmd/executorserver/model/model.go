@@ -107,9 +107,14 @@ type Response struct {
 	RequestID string   `json:"requestId"`
 	Results   []Result `json:"results"`
 	ErrorMsg  string   `json:"error,omitempty"`
+
+	mmap bool
 }
 
 func (r *Response) Close() {
+	if !r.mmap {
+		return
+	}
 	for _, res := range r.Results {
 		res.Close()
 	}
@@ -127,7 +132,7 @@ func (r *Result) Close() {
 }
 
 // ConvertResponse converts
-func ConvertResponse(r worker.Response) (ret Response, err error) {
+func ConvertResponse(r worker.Response, mmap bool) (ret Response, err error) {
 	// in error case, release all resources
 	defer func() {
 		if err != nil {
@@ -146,9 +151,10 @@ func ConvertResponse(r worker.Response) (ret Response, err error) {
 	ret = Response{
 		RequestID: r.RequestID,
 		Results:   make([]Result, 0, len(r.Results)),
+		mmap:      mmap,
 	}
 	for _, r := range r.Results {
-		res, err := convertResult(r)
+		res, err := convertResult(r, mmap)
 		if err != nil {
 			return ret, err
 		}
@@ -180,7 +186,7 @@ func ConvertRequest(r *Request, srcPrefix string) (*worker.Request, error) {
 	return req, nil
 }
 
-func convertResult(r worker.Result) (Result, error) {
+func convertResult(r worker.Result, mmap bool) (Result, error) {
 	res := Result{
 		Status:     Status(r.Status),
 		ExitStatus: r.ExitStatus,
@@ -195,7 +201,7 @@ func convertResult(r worker.Result) (Result, error) {
 		res.Files = make(map[string]string)
 		res.Buffs = make(map[string][]byte)
 		for k, f := range r.Files {
-			b, err := fileToByte(f)
+			b, err := fileToByte(f, mmap)
 			if err != nil {
 				return res, err
 			}

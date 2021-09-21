@@ -100,11 +100,10 @@ func execStreamLoop(es pb.Executor_ExecStreamServer, errCh chan error, outCh cha
 
 		case rt := <-rtCh:
 			logger.Sugar().Debugf("response: %+v", rt)
-			ret, err := model.ConvertResponse(rt)
+			ret, err := model.ConvertResponse(rt, false)
 			if err != nil {
 				return status.Errorf(codes.Aborted, "response: %v", err)
 			}
-			defer ret.Close()
 
 			resp, err := convertPBResponse(ret)
 			if err != nil {

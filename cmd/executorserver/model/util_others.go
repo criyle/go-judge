@@ -3,10 +3,7 @@
 
 package model
 
-import (
-	"io"
-	"os"
-)
+import "os"
 
 func fileToByte(f *os.File, mmap bool) ([]byte, error) {
 	return fileToByteGeneric(f)

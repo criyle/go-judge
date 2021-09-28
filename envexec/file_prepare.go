@@ -123,9 +123,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			closeFiles(files...)
 		}
 	}()
-	// record same name buffer for one command to avoid multiple pipe creation
-	pb := make(map[string]*pipeBuffer)
-	// record same file to avoid multiple file open
+	// record the same file to avoid multiple file open
 	cf := make(map[string]*os.File)
 
 	for j, t := range c.Files {
@@ -159,26 +157,21 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			files[j] = f
 
 		case *FileCollector:
-			if t.Pipe {
-				if b, ok := pb[t.Name]; ok {
-					files[j] = b.W
-					break
-				}
+			if f, ok := cf[t.Name]; ok {
+				files[j] = f
+				break
+			}
 
+			if t.Pipe {
 				b, err := newPipeBuffer(t.Limit, newFileStore)
 				if err != nil {
 					return nil, nil, fmt.Errorf("failed to create pipe %v", err)
 				}
-				pb[t.Name] = b
+				cf[t.Name] = b.W
 
 				files[j] = b.W
 				pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name})
 			} else {
-				if f, ok := cf[t.Name]; ok {
-					files[j] = f
-					break
-				}
-
 				f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
 				if err != nil {
 					return nil, nil, fmt.Errorf("filed to create container file %v", err)

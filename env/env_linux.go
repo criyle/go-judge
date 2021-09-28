@@ -67,12 +67,8 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 
 	// use setuid container only if running in root privilege
 	var credGen container.CredGenerator
-	if os.Getuid() == 0 {
-		cred := c.ContainerCredStart
-		if cred == 0 {
-			cred = containerCredStart
-		}
-		credGen = newCredGen(uint32(cred))
+	if os.Getuid() == 0 && c.ContainerCredStart > 0 {
+		credGen = newCredGen(uint32(c.ContainerCredStart))
 	}
 
 	hostName := containerName

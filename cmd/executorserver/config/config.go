@@ -20,7 +20,7 @@ type Config struct {
 	SeccompConf        string `flagUsage:"specifies seccomp filter" default:"seccomp.yaml"`
 	Parallelism        int    `flagUsage:"control the # of concurrency execution (default equal to number of cpu)"`
 	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"executor_server"`
-	ContainerCredStart int    `flagUsage:"control the start uid&gid for container" default:"10000"`
+	ContainerCredStart int    `flagUsage:"control the start uid&gid for container (0 uses unprivileged root)" default:"0"`
 
 	// file store
 	SrcPrefix string `flagUsage:"specifies directory prefix for source type copyin"`

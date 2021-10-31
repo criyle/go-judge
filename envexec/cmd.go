@@ -37,8 +37,9 @@ type Cmd struct {
 	ExtraMemoryLimit  Size
 	OutputLimit       Size
 	ProcLimit         uint64
-	CPURateLimit      float64
+	CPURateLimit      uint64
 	StrictMemoryLimit bool
+	CPUSetLimit       string
 
 	// Waiter is called after cmd starts and it should return
 	// once time limit exceeded.

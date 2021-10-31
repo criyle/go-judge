@@ -98,10 +98,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,
 	}
-	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids()
-	if c.Cpuset != "" {
-		cgb = cgb.WithCPUSet()
-	}
+	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids().WithCPUSet()
 	if c.EnableCPURate {
 		cgb = cgb.WithCPU()
 	}

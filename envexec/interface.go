@@ -34,7 +34,8 @@ type Limit struct {
 	Proc         uint64        // Process count limit
 	Stack        Size          // Stack limit
 	Output       Size          // Output limit
-	Rate         float64       // CPU Rate limit
+	Rate         uint64        // CPU Rate limit
+	CPUSet       string        // CPU set limit
 	StrictMemory bool          // Use stricter memory limit (e.g. rlimit)
 }
 

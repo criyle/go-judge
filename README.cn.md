@@ -229,6 +229,8 @@ interface Cmd {
     memoryLimit?: number;  // 内存限制，单位 byte
     stackLimit?: number;   // 栈内存限制，单位 byte
     procLimit?: number;    // 线程数量限制
+    cpuRateLimit?: number; // 仅 Linux，CPU 使用率限制，1000 等于单核 100%
+    cpuSetLimit?: string;  // 仅 Linux，限制 CPU 使用，使用方式和 cpuset cgroup 相同 （例如，`0` 表示限制仅使用第一个核）
     strictMemoryLimit?: boolean; // 开启严格内存限制 （仅 Linux，设置 rlimit 内存限制）
 
     // 在执行程序之前复制进容器的文件列表

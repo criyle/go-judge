@@ -323,6 +323,7 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, error) {
 		OutputLimit:       w.outputLimit,
 		ProcLimit:         rc.ProcLimit,
 		CPURateLimit:      rc.CPURateLimit,
+		CPUSetLimit:       rc.CPUSetLimit,
 		StrictMemoryLimit: rc.StrictMemoryLimit,
 		CopyIn:            copyIn,
 		CopyOut:           copyOut,

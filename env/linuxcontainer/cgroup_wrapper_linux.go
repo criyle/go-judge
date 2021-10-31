@@ -16,11 +16,11 @@ type wCgroup struct {
 	cfsPeriod time.Duration
 }
 
-func (c *wCgroup) SetCPURate(s float64) error {
+func (c *wCgroup) SetCPURate(s uint64) error {
 	if err := c.cg.SetCPUCfsPeriod(uint64(c.cfsPeriod.Microseconds())); err != nil {
 		return err
 	}
-	quota := time.Duration(float64(c.cfsPeriod) * s)
+	quota := time.Duration(uint64(c.cfsPeriod) * s / 1000)
 	return c.cg.SetCPUCfsQuota(uint64(quota.Microseconds()))
 }
 

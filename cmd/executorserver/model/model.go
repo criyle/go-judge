@@ -28,14 +28,15 @@ type Cmd struct {
 	Files []*CmdFile `json:"files,omitempty"`
 	TTY   bool       `json:"tty,omitempty"`
 
-	CPULimit          uint64  `json:"cpuLimit"`
-	RealCPULimit      uint64  `json:"realCpuLimit"`
-	ClockLimit        uint64  `json:"clockLimit"`
-	MemoryLimit       uint64  `json:"memoryLimit"`
-	StackLimit        uint64  `json:"stackLimit"`
-	ProcLimit         uint64  `json:"procLimit"`
-	CPURateLimit      float64 `json:"cpuRateLimit"`
-	StrictMemoryLimit bool    `json:"strictMemoryLimit"`
+	CPULimit          uint64 `json:"cpuLimit"`
+	RealCPULimit      uint64 `json:"realCpuLimit"`
+	ClockLimit        uint64 `json:"clockLimit"`
+	MemoryLimit       uint64 `json:"memoryLimit"`
+	StackLimit        uint64 `json:"stackLimit"`
+	ProcLimit         uint64 `json:"procLimit"`
+	CPURateLimit      uint64 `json:"cpuRateLimit"`
+	CPUSetLimit       string `json:"cpuSetLimit"`
+	StrictMemoryLimit bool   `json:"strictMemoryLimit"`
 
 	CopyIn map[string]CmdFile `json:"copyIn"`
 
@@ -246,6 +247,7 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 		StackLimit:        envexec.Size(c.StackLimit),
 		ProcLimit:         c.ProcLimit,
 		CPURateLimit:      c.CPURateLimit,
+		CPUSetLimit:       c.CPUSetLimit,
 		StrictMemoryLimit: c.StrictMemoryLimit,
 		CopyOut:           convertCopyOut(c.CopyOut),
 		CopyOutCached:     convertCopyOut(c.CopyOutCached),

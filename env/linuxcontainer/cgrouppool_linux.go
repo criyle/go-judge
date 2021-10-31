@@ -12,7 +12,7 @@ type Cgroup interface {
 	SetCpuset(string) error
 	SetMemoryLimit(envexec.Size) error
 	SetProcLimit(uint64) error
-	SetCPURate(float64) error
+	SetCPURate(uint64) error // 1000 as 1
 
 	CPUUsage() (time.Duration, error)
 	MemoryUsage() (envexec.Size, error)

@@ -3,8 +3,8 @@ module github.com/criyle/go-judge
 go 1.17
 
 require (
-	github.com/creack/pty v1.1.16
-	github.com/criyle/go-sandbox v0.8.6
+	github.com/creack/pty v1.1.17
+	github.com/criyle/go-sandbox v0.8.7
 	github.com/elastic/go-seccomp-bpf v1.2.0
 	github.com/elastic/go-ucfg v0.8.3
 	github.com/gin-contrib/pprof v1.3.0
@@ -19,9 +19,9 @@ require (
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
-	golang.org/x/net v0.0.0-20210928044308-7d9f5e0b762b
+	golang.org/x/net v0.0.0-20211029224645-99673261e6eb
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6
+	golang.org/x/sys v0.0.0-20211030160813-b3129d9d1021
 	google.golang.org/grpc v1.41.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -45,7 +45,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
-	github.com/prometheus/common v0.31.0 // indirect
+	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
@@ -53,7 +53,7 @@ require (
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20210927142257-433400c27d05 // indirect
+	google.golang.org/genproto v0.0.0-20211029142109-e255c875f7c7 // indirect
 )
 
 retract (

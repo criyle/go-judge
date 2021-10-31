@@ -82,7 +82,9 @@ message Request {
     uint64 memoryLimit = 6;
     uint64 stackLimit = 12;
     uint64 procLimit = 7;
-    double CPURateLimit = 15;
+    uint64 cpuRateLimit = 15;
+    string cpuSetLimit = 17;
+    bool strictMemoryLimit = 16;
 
     map<string, File> copyIn = 8;
 
@@ -90,7 +92,6 @@ message Request {
     repeated CmdCopyOutFile copyOutCached = 10;
     string copyOutDir = 11;
     uint64 copyOutMax = 14;
-    bool strictMemoryLimit = 16;
   }
 
   message CmdCopyOutFile {

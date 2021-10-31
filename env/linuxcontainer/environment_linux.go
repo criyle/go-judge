@@ -117,8 +117,12 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 }
 
 func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
-	if c.cpuset != "" {
-		if err := cg.SetCpuset(c.cpuset); isCgroupSetHasError(err) {
+	cpuSet := limit.CPUSet
+	if cpuSet == "" {
+		cpuSet = c.cpuset
+	}
+	if cpuSet != "" {
+		if err := cg.SetCpuset(cpuSet); isCgroupSetHasError(err) {
 			return fmt.Errorf("execve: cgroup failed to set cpu_set limit %v", err)
 		}
 	}

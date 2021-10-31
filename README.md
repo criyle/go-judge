@@ -272,6 +272,8 @@ interface Cmd {
     memoryLimit?: number;  // byte
     stackLimit?: number;   // byte (N/A on windows, macOS cannot set over 32M)
     procLimit?: number;
+    cpuRateLimit?: number; // limit cpu usage (1000 equals 1 cpu)
+    cpuSetLimit?: string; // Linux only: set the cpuSet for cgroup
     strictMemoryLimit?: boolean; // Linux only: use stricter memory limit (+ rlimit_data when cgroup enabled)
 
     // copy the correspond file to the container dst path

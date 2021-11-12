@@ -30,7 +30,10 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	}
 	c.Info("Created tmp dir for container root at:", root)
 
-	var mb *mount.Builder
+	var (
+		mb  *mount.Builder
+		sym []container.SymbolicLink
+	)
 	mc, err := readMountConfig(c.MountConf)
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -43,6 +46,14 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+	if mc != nil && len(mc.SymLinks) > 0 {
+		sym = make([]container.SymbolicLink, 0, len(mc.SymLinks))
+		for _, l := range mc.SymLinks {
+			sym = append(sym, container.SymbolicLink{LinkPath: l.LinkPath, Target: l.Target})
+		}
+	} else {
+		sym = defaultSymLinks
 	}
 	m := mb.FilterNotExist().Mounts
 	c.Info("Created container mount at:", mb)
@@ -88,6 +99,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	b := &container.Builder{
 		Root:          root,
 		Mounts:        m,
+		SymbolicLinks: sym,
 		CredGenerator: credGen,
 		Stderr:        os.Stderr,
 		CloneFlags:    unshareFlags,

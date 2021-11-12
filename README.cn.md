@@ -62,6 +62,7 @@
 - 默认没有磁盘文件复制限制，使用 `-src-prefix` 限制 copyIn 操作文件目录前缀（需要绝对路径）
 - 默认时间和内存使用检查周期为 100 毫秒(`100ms`)，使用 `-time-limit-checker-interval` 指定
 - 默认最大输出限制为 `256MiB`，使用 `-output-limit` 指定
+- 默认最大打开文件描述符为 `256`，使用 `-open-file-limit` 指定
 - 默认最大额外内存使用为 `16KiB` ，使用 `-extra-memory-limit` 指定
 - 默认最大 `copyOut` 文件大小为 `64MiB` ，使用 `-copy-out-limit` 指定
 - 使用 `-cpuset` 指定 `cpuset.cpus` （仅 Linux）
@@ -128,7 +129,7 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 criyle/executorser
 
 ### 容器的文件系统
 
-在 Linux 平台，默认只读挂载点包括主机的 `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom` 和临时文件系统 `/w`, `/tmp` 以及 `/proc`。
+在 Linux 平台，默认只读挂载点包括主机的 `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/ld.so.cache`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom`, `/dev/random`, `/dev/zero`, `/dev/full` 和临时文件系统 `/w`, `/tmp` 以及 `/proc`。
 
 使用 `mount.yaml` 定制容器文件系统。
 

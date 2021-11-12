@@ -35,6 +35,7 @@ type Limit struct {
 	Stack        Size          // Stack limit
 	Output       Size          // Output limit
 	Rate         uint64        // CPU Rate limit
+	OpenFile     uint64        // Number of open files
 	CPUSet       string        // CPU set limit
 	StrictMemory bool          // Use stricter memory limit (e.g. rlimit)
 }

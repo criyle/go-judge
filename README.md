@@ -64,6 +64,7 @@ Sandbox:
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
 - `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)
 - `-copy-out-limit` specifies the default file copy out max (default 64MiB)
+- `-open-file-limit` specifies the max number of open files (default 256)
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container (Linux only)
 - `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000) (Linux only)
   - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
@@ -147,7 +148,7 @@ Run `./executorshell`, connect to gRPC endpoint with interactive shell.
 
 ### Container Root Filesystem
 
-For linux platform, the default mounts points are bind mounting host's `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom` and mounts tmpfs at `/w`, `/tmp` and creates `/proc`.
+For linux platform, the default mounts points are bind mounting host's `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/ld.so.cache`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom`, `/dev/random`, `/dev/zero`, `/dev/full` and mounts tmpfs at `/w`, `/tmp` and creates `/proc`.
 
 To customize mount points, please look at example `mount.yaml` file.
 

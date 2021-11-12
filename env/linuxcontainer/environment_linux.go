@@ -59,6 +59,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		CPU:         uint64(limit.Time.Truncate(time.Second)/time.Second) + 1,
 		FileSize:    limit.Output.Byte(),
 		Stack:       limit.Stack.Byte(),
+		OpenFile:    limit.OpenFile,
 		DisableCore: true,
 	}
 

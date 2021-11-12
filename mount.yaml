@@ -16,6 +16,10 @@ mount:
     source: /usr
     target: /usr
     readonly: true
+  - type: bind
+    source: /etc/ld.so.cache
+    target: /etc/ld.so.cache
+    readonly: true
   # Some compiler have multiple versions
   - type: bind
     source: /etc/alternatives
@@ -44,6 +48,16 @@ mount:
   - type: bind
     source: /dev/urandom
     target: /dev/urandom
+  # additional devices
+  - type: bind
+    source: /dev/random
+    target: /dev/random
+  - type: bind
+    source: /dev/zero
+    target: /dev/zero
+  - type: bind
+    source: /dev/full
+    target: /dev/full
   # work dir
   - type: tmpfs
     target: /w
@@ -58,6 +72,16 @@ mount:
     target: /etc/passwd
 # java & ghc wants /proc/self/exe
 proc: true
+# create /dev standard io
+symLink:
+  - linkPath: /dev/fd
+    target: /proc/self/fd
+  - linkPath: /dev/stdin
+    target: /proc/self/fd/0
+  - linkPath: /dev/stdout
+    target: /proc/self/fd/1
+  - linkPath: /dev/stderr
+    target: /proc/self/fd/2
 # container work directory
 workDir: /w
 # container host name

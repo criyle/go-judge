@@ -30,6 +30,7 @@ type Config struct {
 	ExtraMemoryLimit      envexec.Size
 	OutputLimit           envexec.Size
 	CopyOutLimit          envexec.Size
+	OpenFileLimit         uint64
 	ExecObserver          func(Response)
 }
 
@@ -52,6 +53,7 @@ type worker struct {
 	extraMemoryLimit      envexec.Size
 	outputLimit           envexec.Size
 	copyOutLimit          envexec.Size
+	openFileLimit         uint64
 
 	execObserver func(Response)
 
@@ -79,6 +81,7 @@ func New(conf Config) Worker {
 		extraMemoryLimit:      conf.ExtraMemoryLimit,
 		outputLimit:           conf.OutputLimit,
 		copyOutLimit:          conf.CopyOutLimit,
+		openFileLimit:         conf.OpenFileLimit,
 		execObserver:          conf.ExecObserver,
 	}
 }
@@ -311,6 +314,16 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, error) {
 		copyOutMax = envexec.Size(rc.CopyOutMax)
 	}
 
+	outputLimit := rc.OutputLimit
+	if outputLimit == 0 {
+		outputLimit = w.outputLimit
+	}
+
+	openFileLimit := rc.OpenFileLimit
+	if openFileLimit == 0 {
+		openFileLimit = w.openFileLimit
+	}
+
 	return &envexec.Cmd{
 		Args:              rc.Args,
 		Env:               rc.Env,
@@ -320,8 +333,9 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, error) {
 		MemoryLimit:       envexec.Size(rc.MemoryLimit),
 		StackLimit:        envexec.Size(rc.StackLimit),
 		ExtraMemoryLimit:  w.extraMemoryLimit,
-		OutputLimit:       w.outputLimit,
+		OutputLimit:       outputLimit,
 		ProcLimit:         rc.ProcLimit,
+		OpenFileLimit:     openFileLimit,
 		CPURateLimit:      rc.CPURateLimit,
 		CPUSetLimit:       rc.CPUSetLimit,
 		StrictMemoryLimit: rc.StrictMemoryLimit,

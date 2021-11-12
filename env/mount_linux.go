@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/mount"
 	"gopkg.in/yaml.v2"
 )
@@ -19,9 +20,16 @@ type Mount struct {
 	Data     string `yaml:"data"`
 }
 
+// Link defines symlinks to be created after mounts
+type Link struct {
+	LinkPath string `yaml:"linkPath"`
+	Target   string `yaml:"target"`
+}
+
 // Mounts defines mount points for the container.
 type Mounts struct {
 	Mount      []Mount `yaml:"mount"`
+	SymLinks   []Link  `yaml:"symLink"`
 	WorkDir    string  `yaml:"workDir"`
 	HostName   string  `yaml:"hostName"`
 	DomainName string  `yaml:"domainName"`
@@ -63,7 +71,7 @@ func parseMountConfig(m *Mounts) (*mount.Builder, error) {
 		case "tmpfs":
 			b.WithTmpfs(target, mt.Data)
 		default:
-			return nil, fmt.Errorf("Invalid mount type")
+			return nil, fmt.Errorf("invalid_mount_type: %v", mt.Type)
 		}
 	}
 	if m.Proc {
@@ -79,6 +87,7 @@ func getDefaultMount(tmpFsConf string) *mount.Builder {
 		WithBind("/lib", "lib", true).
 		WithBind("/lib64", "lib64", true).
 		WithBind("/usr", "usr", true).
+		WithBind("/etc/ld.so.cache", "etc/ld.so.cache", true).
 		// java wants /proc/self/exe as it need relative path for lib
 		// however, /proc gives interface like /proc/1/fd/3 ..
 		// it is fine since open that file will be a EPERM
@@ -96,8 +105,19 @@ func getDefaultMount(tmpFsConf string) *mount.Builder {
 		WithBind("/var/lib/ghc", "var/lib/ghc", true).
 		// javaScript wants /dev/urandom
 		WithBind("/dev/urandom", "dev/urandom", false).
+		// additional devices
+		WithBind("/dev/random", "dev/random", false).
+		WithBind("/dev/zero", "dev/zero", false).
+		WithBind("/dev/full", "dev/full", false).
 		// work dir
 		WithTmpfs("w", tmpFsConf).
 		// tmp dir
 		WithTmpfs("tmp", tmpFsConf)
+}
+
+var defaultSymLinks = []container.SymbolicLink{
+	{LinkPath: "/dev/fd", Target: "/proc/self/fd"},
+	{LinkPath: "/dev/stdin", Target: "/proc/self/fd/0"},
+	{LinkPath: "/dev/stdout", Target: "/proc/self/fd/1"},
+	{LinkPath: "/dev/stderr", Target: "/proc/self/fd/2"},
 }

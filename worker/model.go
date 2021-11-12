@@ -24,7 +24,9 @@ type Cmd struct {
 	ClockLimit        time.Duration
 	MemoryLimit       Size
 	StackLimit        Size
+	OutputLimit       Size
 	ProcLimit         uint64
+	OpenFileLimit     uint64
 	CPURateLimit      uint64
 	CPUSetLimit       string
 	StrictMemoryLimit bool

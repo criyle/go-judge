@@ -249,6 +249,12 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	res.Files = make(map[string]*os.File)
 	res.FileIDs = make(map[string]string)
 
+	// Fix TLE due to context cancel
+	if res.Status == envexec.StatusTimeLimitExceeded && res.ExitStatus != 0 &&
+		res.Time < cmd.CPULimit && res.RunTime < cmd.ClockLimit {
+		res.Status = envexec.StatusSignalled
+	}
+
 	copyOutCachedSet := make(map[string]bool, len(cmd.CopyOutCached))
 	for _, f := range cmd.CopyOutCached {
 		copyOutCachedSet[f.Name] = true

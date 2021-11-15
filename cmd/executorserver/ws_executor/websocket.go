@@ -2,7 +2,9 @@ package wsexecutor
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
@@ -44,6 +46,11 @@ type wsHandle struct {
 	logger    *zap.Logger
 }
 
+type wsRequest struct {
+	model.Request
+	CancelRequestId string `json:"cancelRequestId"`
+}
+
 func (h *wsHandle) Register(r *gin.Engine) {
 	r.GET("/ws", h.handleWS)
 }
@@ -56,6 +63,48 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 		return
 	}
 	resultCh := make(chan model.Response, 128)
+	cm := newContextMap()
+
+	handleRequest := func(baseCtx context.Context, req *wsRequest) error {
+		if req.CancelRequestId != "" {
+			h.logger.Sugar().Debugf("ws cancel: %s", req.CancelRequestId)
+			cm.Remove(req.CancelRequestId)
+			return nil
+		}
+		r, err := model.ConvertRequest(&req.Request, h.srcPrefix)
+		if err != nil {
+			return fmt.Errorf("ws convert error: %v", err)
+		}
+
+		ctx, cancel := context.WithCancel(baseCtx)
+		if err := cm.Add(r.RequestID, cancel); err != nil {
+			resultCh <- model.Response{
+				RequestID: req.RequestID,
+				ErrorMsg:  err.Error(),
+			}
+			cancel()
+			h.logger.Sugar().Debugf("ws request error: %v", err)
+			return nil
+		}
+
+		go func() {
+			defer cm.Remove(r.RequestID)
+			h.logger.Sugar().Debugf("ws request: %+v", r)
+			ret := <-h.worker.Submit(ctx, r)
+			h.logger.Sugar().Debugf("ws response: %+v", ret)
+			resp, err := model.ConvertResponse(ret, false)
+			if err != nil {
+				resultCh <- model.Response{
+					RequestID: r.RequestID,
+					ErrorMsg:  resp.ErrorMsg,
+				}
+				return
+			}
+			resultCh <- resp
+		}()
+		return nil
+	}
+
 	// read request
 	go func() {
 		defer conn.Close()
@@ -65,25 +114,19 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			return nil
 		})
 
-		ctx, cancel := context.WithCancel(context.TODO())
-		defer cancel()
+		baseCtx, baseCancel := context.WithCancel(context.TODO())
+		defer baseCancel()
 
 		for {
-			req := new(model.Request)
+			req := new(wsRequest)
 			if err := conn.ReadJSON(req); err != nil {
 				h.logger.Sugar().Warn("ws read error:", err)
 				return
 			}
-			r, err := model.ConvertRequest(req, h.srcPrefix)
-			if err != nil {
-				h.logger.Sugar().Warn("convert error: ", err)
+			if err := handleRequest(baseCtx, req); err != nil {
+				h.logger.Sugar().Warn(err.Error())
 				return
 			}
-			go func() {
-				ret := <-h.worker.Submit(ctx, r)
-				resp, _ := model.ConvertResponse(ret, false)
-				resultCh <- resp
-			}()
 		}
 	}()
 
@@ -108,4 +151,37 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			}
 		}
 	}()
+}
+
+type contextMap struct {
+	m  map[string]context.CancelFunc
+	mu sync.Mutex
+}
+
+func newContextMap() *contextMap {
+	return &contextMap{m: make(map[string]context.CancelFunc)}
+}
+
+func (c *contextMap) Add(reqId string, cancel context.CancelFunc) error {
+	if reqId == "" {
+		return fmt.Errorf("empty request id")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, exist := c.m[reqId]; exist {
+		return fmt.Errorf("duplicated request id: %v", reqId)
+	}
+	c.m[reqId] = cancel
+	return nil
+}
+
+func (c *contextMap) Remove(reqId string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if cancel, exist := c.m[reqId]; exist {
+		delete(c.m, reqId)
+		cancel()
+	}
 }

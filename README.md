@@ -343,6 +343,13 @@ interface Request {
     pipeMapping: PipeMap[];
 }
 
+interface CancelRequest {
+    cancelRequestId: string;
+};
+
+// WebSocket request
+type WSRequest = Request | CancelRequest;
+
 interface Result {
     status: Status;
     error?: string; // potential system error message

@@ -5,7 +5,3 @@ cmd = "go build -o ./tmp/executorserver ./cmd/executorserver"
 full_bin = "tmp/executorserver -enable-grpc -enable-debug"
 
 include_ext = ["go"]
-
-delay = 1000
-send_interrupt = true
-kill_delay = 3000

@@ -65,7 +65,8 @@ func (h *handle) handleRun(c *gin.Context) {
 		return
 	}
 	h.logger.Sugar().Debugf("request: %+v", r)
-	rt := <-h.worker.Submit(c.Request.Context(), r)
+	rtCh, _ := h.worker.Submit(c.Request.Context(), r)
+	rt := <-rtCh
 	h.logger.Sugar().Debugf("response: %+v", rt)
 	if rt.Error != nil {
 		c.Error(rt.Error)

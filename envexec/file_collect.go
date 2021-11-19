@@ -61,7 +61,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 			// check regular file
 			if stat.Mode()&os.ModeType != 0 {
 				t = ErrCopyOutNotRegularFile
-				return fmt.Errorf("%s: not a regular file %d", n.Name, stat.Mode()&os.ModeType)
+				return fmt.Errorf("%s: not a regular file: %v", n.Name, stat.Mode())
 			}
 			// check size limit
 			s := stat.Size()

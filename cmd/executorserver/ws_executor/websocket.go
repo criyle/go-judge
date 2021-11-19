@@ -78,9 +78,12 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 
 		ctx, cancel := context.WithCancel(baseCtx)
 		if err := cm.Add(r.RequestID, cancel); err != nil {
-			resultCh <- model.Response{
+			select {
+			case <-baseCtx.Done():
+			case resultCh <- model.Response{
 				RequestID: req.RequestID,
 				ErrorMsg:  err.Error(),
+			}:
 			}
 			cancel()
 			h.logger.Sugar().Debugf("ws request error: %v", err)
@@ -89,18 +92,38 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 
 		go func() {
 			defer cm.Remove(r.RequestID)
+
 			h.logger.Sugar().Debugf("ws request: %+v", r)
-			ret := <-h.worker.Submit(ctx, r)
+			retCh, started := h.worker.Submit(ctx, r)
+			var ret worker.Response
+			select {
+			case <-baseCtx.Done(): // if connection lost
+				return
+			case <-ctx.Done(): // if context cancelled by cancelling request
+				select {
+				case <-started: // if started, wait for result
+					ret = <-retCh
+				default: // not started
+					ret = worker.Response{
+						RequestID: r.RequestID,
+						Error:     fmt.Errorf("request cancelled before execute"),
+					}
+				}
+			case ret = <-retCh:
+			}
 			h.logger.Sugar().Debugf("ws response: %+v", ret)
+
 			resp, err := model.ConvertResponse(ret, false)
 			if err != nil {
-				resultCh <- model.Response{
+				resp = model.Response{
 					RequestID: r.RequestID,
 					ErrorMsg:  resp.ErrorMsg,
 				}
-				return
 			}
-			resultCh <- resp
+			select {
+			case <-baseCtx.Done():
+			case resultCh <- resp:
+			}
 		}()
 		return nil
 	}

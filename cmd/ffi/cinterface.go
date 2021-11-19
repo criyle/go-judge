@@ -116,7 +116,8 @@ func Exec(e *C.char) *C.char {
 	if err != nil {
 		return nil
 	}
-	rt := <-work.Submit(context.TODO(), r)
+	rtCh, _ := work.Submit(context.TODO(), r)
+	rt := <-rtCh
 	ret, err := model.ConvertResponse(rt, true)
 	if err != nil {
 		return nil

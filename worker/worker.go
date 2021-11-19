@@ -37,7 +37,7 @@ type Config struct {
 // Worker defines interface for executor
 type Worker interface {
 	Start()
-	Submit(context.Context, *Request) <-chan Response
+	Submit(context.Context, *Request) (<-chan Response, <-chan struct{})
 	Execute(context.Context, *Request) <-chan Response
 	Shutdown()
 }
@@ -67,6 +67,7 @@ type worker struct {
 type workRequest struct {
 	*Request
 	context.Context
+	started  chan<- struct{}
 	resultCh chan<- Response
 }
 
@@ -99,14 +100,24 @@ func (w *worker) Start() {
 }
 
 // Submit submits a single request
-func (w *worker) Submit(ctx context.Context, req *Request) <-chan Response {
+func (w *worker) Submit(ctx context.Context, req *Request) (<-chan Response, <-chan struct{}) {
 	ch := make(chan Response, 1)
-	w.workCh <- workRequest{
+	started := make(chan struct{})
+	select {
+	case w.workCh <- workRequest{
 		Request:  req,
 		Context:  ctx,
+		started:  started,
 		resultCh: ch,
+	}:
+	default:
+		close(started)
+		ch <- Response{
+			RequestID: req.RequestID,
+			Error:     fmt.Errorf("worker queue is full"),
+		}
 	}
-	return ch
+	return ch, started
 }
 
 // Execute will execute the request in new goroutine (bypass the parallelism limit)
@@ -115,12 +126,7 @@ func (w *worker) Execute(ctx context.Context, req *Request) <-chan Response {
 	w.wg.Add(1)
 	go func() {
 		defer w.wg.Done()
-		wq := workRequest{
-			Request:  req,
-			Context:  ctx,
-			resultCh: ch,
-		}
-		w.workDoCmd(wq)
+		ch <- w.workDoCmd(ctx, req)
 	}()
 	return ch
 }
@@ -141,25 +147,36 @@ func (w *worker) loop() {
 			if !ok {
 				return
 			}
-			w.workDoCmd(req)
+			close(req.started)
+
+			select {
+			case <-req.Context.Done():
+				req.resultCh <- Response{
+					RequestID: req.RequestID,
+					Error:     fmt.Errorf("cancelled before execute"),
+				}
+			default:
+				req.resultCh <- w.workDoCmd(req.Context, req.Request)
+			}
+
 		case <-w.done:
 			return
 		}
 	}
 }
 
-func (w *worker) workDoCmd(req workRequest) {
+func (w *worker) workDoCmd(ctx context.Context, req *Request) Response {
 	var rt Response
 	if len(req.Cmd) == 1 {
-		rt = w.workDoSingle(req.Context, req.Cmd[0])
+		rt = w.workDoSingle(ctx, req.Cmd[0])
 	} else {
-		rt = w.workDoGroup(req.Context, req.Cmd, req.PipeMapping)
+		rt = w.workDoGroup(ctx, req.Cmd, req.PipeMapping)
 	}
 	rt.RequestID = req.RequestID
 	if w.execObserver != nil {
 		w.execObserver(rt)
 	}
-	req.resultCh <- rt
+	return rt
 }
 
 func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {

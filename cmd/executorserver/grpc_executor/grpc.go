@@ -56,7 +56,8 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 		return nil, fmt.Errorf("stream in / out are not available for exec request")
 	}
 	e.logger.Sugar().Debugf("request: %+v", r)
-	rt := <-e.worker.Submit(ctx, r)
+	rtCh, _ := e.worker.Submit(ctx, r)
+	rt := <-rtCh
 	e.logger.Sugar().Debugf("response: %+v", rt)
 	if rt.Error != nil {
 		return nil, rt.Error

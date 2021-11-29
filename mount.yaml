@@ -82,6 +82,19 @@ symLink:
     target: /proc/self/fd/1
   - linkPath: /dev/stderr
     target: /proc/self/fd/2
+# mask mounted paths with empty / null mount
+maskPath:
+  - /proc/acpi
+  - /proc/asound
+  - /proc/kcore
+  - /proc/keys
+  - /proc/latency_stats
+  - /proc/timer_list
+  - /proc/timer_stats
+  - /proc/sched_debug
+  - /proc/scsi
+  - /usr/lib/wsl/drivers
+  - /usr/lib/wsl/lib
 # container work directory
 workDir: /w
 # container host name

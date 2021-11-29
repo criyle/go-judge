@@ -28,14 +28,15 @@ type Link struct {
 
 // Mounts defines mount points for the container.
 type Mounts struct {
-	Mount      []Mount `yaml:"mount"`
-	SymLinks   []Link  `yaml:"symLink"`
-	WorkDir    string  `yaml:"workDir"`
-	HostName   string  `yaml:"hostName"`
-	DomainName string  `yaml:"domainName"`
-	UID        int     `yaml:"uid"`
-	GID        int     `yaml:"gid"`
-	Proc       bool    `yaml:"proc"`
+	Mount      []Mount  `yaml:"mount"`
+	SymLinks   []Link   `yaml:"symLink"`
+	MaskPaths  []string `yaml:"maskPath"`
+	WorkDir    string   `yaml:"workDir"`
+	HostName   string   `yaml:"hostName"`
+	DomainName string   `yaml:"domainName"`
+	UID        int      `yaml:"uid"`
+	GID        int      `yaml:"gid"`
+	Proc       bool     `yaml:"proc"`
 }
 
 func readMountConfig(p string) (*Mounts, error) {
@@ -120,4 +121,18 @@ var defaultSymLinks = []container.SymbolicLink{
 	{LinkPath: "/dev/stdin", Target: "/proc/self/fd/0"},
 	{LinkPath: "/dev/stdout", Target: "/proc/self/fd/1"},
 	{LinkPath: "/dev/stderr", Target: "/proc/self/fd/2"},
+}
+
+var defaultMaskPaths = []string{
+	"/proc/acpi",
+	"/proc/asound",
+	"/proc/kcore",
+	"/proc/keys",
+	"/proc/latency_stats",
+	"/proc/timer_list",
+	"/proc/timer_stats",
+	"/proc/sched_debug",
+	"/proc/scsi",
+	"/usr/lib/wsl/drivers",
+	"/usr/lib/wsl/lib",
 }

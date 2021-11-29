@@ -4,12 +4,12 @@ go 1.17
 
 require (
 	github.com/creack/pty v1.1.17
-	github.com/criyle/go-sandbox v0.8.10
+	github.com/criyle/go-sandbox v0.8.11
 	github.com/elastic/go-seccomp-bpf v1.2.0
 	github.com/elastic/go-ucfg v0.8.4
 	github.com/gin-contrib/pprof v1.3.0
 	github.com/gin-contrib/zap v0.0.1
-	github.com/gin-gonic/gin v1.7.4
+	github.com/gin-gonic/gin v1.7.7
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
@@ -19,9 +19,9 @@ require (
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/zap v1.19.1
 	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
-	golang.org/x/net v0.0.0-20211118161319-6a13c67c3ce4
+	golang.org/x/net v0.0.0-20211123203042-d83791d6bcd9
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
+	golang.org/x/sys v0.0.0-20211124211545-fe61309f8881
 	google.golang.org/grpc v1.42.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0

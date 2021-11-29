@@ -31,8 +31,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	c.Info("Created tmp dir for container root at:", root)
 
 	var (
-		mb  *mount.Builder
-		sym []container.SymbolicLink
+		mountBuilder  *mount.Builder
+		symbolicLinks []container.SymbolicLink
+		maskPaths     []string
 	)
 	mc, err := readMountConfig(c.MountConf)
 	if err != nil {
@@ -40,23 +41,28 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 			return nil, err
 		}
 		c.Info("Mount.yaml(", c.MountConf, ") does not exists, use the default container mount")
-		mb = getDefaultMount(c.TmpFsParam)
+		mountBuilder = getDefaultMount(c.TmpFsParam)
 	} else {
-		mb, err = parseMountConfig(mc)
+		mountBuilder, err = parseMountConfig(mc)
 		if err != nil {
 			return nil, err
 		}
 	}
 	if mc != nil && len(mc.SymLinks) > 0 {
-		sym = make([]container.SymbolicLink, 0, len(mc.SymLinks))
+		symbolicLinks = make([]container.SymbolicLink, 0, len(mc.SymLinks))
 		for _, l := range mc.SymLinks {
-			sym = append(sym, container.SymbolicLink{LinkPath: l.LinkPath, Target: l.Target})
+			symbolicLinks = append(symbolicLinks, container.SymbolicLink{LinkPath: l.LinkPath, Target: l.Target})
 		}
 	} else {
-		sym = defaultSymLinks
+		symbolicLinks = defaultSymLinks
 	}
-	m := mb.FilterNotExist().Mounts
-	c.Info("Created container mount at:", mb)
+	if mc != nil && len(mc.MaskPaths) > 0 {
+		maskPaths = mc.MaskPaths
+	} else {
+		maskPaths = defaultMaskPaths
+	}
+	m := mountBuilder.FilterNotExist().Mounts
+	c.Info("Created container mount at:", mountBuilder)
 
 	seccomp, err := readSeccompConf(c.SeccompConf)
 	if err != nil {
@@ -99,7 +105,8 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	b := &container.Builder{
 		Root:          root,
 		Mounts:        m,
-		SymbolicLinks: sym,
+		SymbolicLinks: symbolicLinks,
+		MaskPaths:     maskPaths,
 		CredGenerator: credGen,
 		Stderr:        os.Stderr,
 		CloneFlags:    unshareFlags,

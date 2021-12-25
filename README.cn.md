@@ -142,6 +142,12 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 criyle/executorser
 
 ### 注意
 
+#### cgroup v2
+
+`executorserver` 目前已经支持 cgroup v2 鉴于越来越多的 Linux 发行版默认启用 cgroup v2 而不是 v1 （比如 Ubuntu 21.10+，Fedora 31+）。然而，因为 cgroup v2 在内存控制器里面缺少 `memory.max_usage_in_bytes`，内存使用量计数会转而采用 `maxrss` 指标。这项指标会显示的比使用 cgroup v1 时候要稍多，在运行使用内存较少的程序时比较明显。
+
+同时，如果本程序在容器中运行，容器中的进程会被移到 `/init` cgroup v2 控制器中来开启 cgroup v2 嵌套支持。
+
 #### CentOS 7
 
 需要开启 user 命名空间来使用 [stack overflow](https://superuser.com/questions/1294215/is-it-safe-to-enable-user-namespaces-in-centos-7-4-and-how-to-do-it/1294246#1294246)

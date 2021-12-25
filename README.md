@@ -183,6 +183,12 @@ To customize mount points, please look at example `mount.yaml` file.
 
 ### Notice
 
+#### cgroup v2 support
+
+The cgroup v2 is supported by `executorserver` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1.
+
+When running in containers, the `executorserver` will migrate all processed into `/init` hierarchy to enable nesting support.
+
 #### CentOS 7
 
 By default, user namespace is disabled and it can be enabled following [stack overflow](https://superuser.com/questions/1294215/is-it-safe-to-enable-user-namespaces-in-centos-7-4-and-how-to-do-it/1294246#1294246)

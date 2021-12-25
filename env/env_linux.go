@@ -117,7 +117,14 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,
 	}
-	cgb := cgroup.NewBuilder(c.CgroupPrefix).DetectType().WithCPUAcct().WithMemory().WithPids().WithCPUSet()
+	t := cgroup.DetectType()
+	if t == cgroup.CgroupTypeV2 {
+		c.Info("Enable cgroup v2 nesting support")
+		if err := cgroup.EnableV2Nesting(); err != nil {
+			c.Warn("Enable cgroup v2 failed", err)
+		}
+	}
+	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithType(t).WithCPUAcct().WithMemory().WithPids().WithCPUSet()
 	if c.EnableCPURate {
 		cgb = cgb.WithCPU()
 	}

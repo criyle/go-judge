@@ -17,7 +17,7 @@ func NewFakeCgroupPool(builder CgroupBuilder, cfsPeriod time.Duration) CgroupPoo
 
 // Get gets new cgroup
 func (f *FakeCgroupPool) Get() (Cgroup, error) {
-	cg, err := f.builder.Build()
+	cg, err := f.builder.Random("")
 	if err != nil {
 		return nil, err
 	}

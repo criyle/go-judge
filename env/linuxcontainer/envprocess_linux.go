@@ -39,7 +39,7 @@ func (p *process) collectUsage() {
 	if t, err := p.cg.CPUUsage(); err == nil {
 		p.rt.Time = t
 	}
-	if m, err := p.cg.MemoryUsage(); err == nil {
+	if m, err := p.cg.MemoryUsage(); err == nil && m > 0 {
 		p.rt.Memory = m
 	}
 }

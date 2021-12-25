@@ -53,7 +53,7 @@ func (w *CgroupListPool) Get() (Cgroup, error) {
 		return rt, nil
 	}
 
-	cg, err := w.builder.Build()
+	cg, err := w.builder.Random("")
 	if err != nil {
 		return nil, err
 	}

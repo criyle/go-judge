@@ -12,5 +12,5 @@ type EnvironmentBuilder interface {
 
 // CgroupBuilder builds cgroup for runner
 type CgroupBuilder interface {
-	Build() (cg *cgroup.Cgroup, err error)
+	Random(string) (cg cgroup.Cgroup, err error)
 }

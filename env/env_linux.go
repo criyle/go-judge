@@ -117,7 +117,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,
 	}
-	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithCPUAcct().WithMemory().WithPids().WithCPUSet()
+	cgb := cgroup.NewBuilder(c.CgroupPrefix).DetectType().WithCPUAcct().WithMemory().WithPids().WithCPUSet()
 	if c.EnableCPURate {
 		cgb = cgb.WithCPU()
 	}
@@ -126,7 +126,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 		return nil, err
 	}
 	c.Info("Test created cgroup builder with: ", cgb)
-	if cg, err := cgb.Build(); err != nil {
+	if cg, err := cgb.Random(""); err != nil {
 		c.Warn("Tested created cgroup with error: ", err)
 		c.Warn("Failed back to rlimit / rusage mode")
 		cgb = nil

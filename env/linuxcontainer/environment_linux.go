@@ -2,6 +2,7 @@ package linuxcontainer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -142,5 +143,5 @@ func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
 }
 
 func isCgroupSetHasError(err error) bool {
-	return err != nil && err != cgroup.ErrNotInitialized
+	return err != nil && !errors.Is(err, cgroup.ErrNotInitialized) && !errors.Is(err, os.ErrNotExist)
 }

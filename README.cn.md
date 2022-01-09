@@ -51,7 +51,7 @@
 - 默认 gRPC 监听地址是 `:5051` ，使用 `-grpc-addr` 指定
 - 默认日志等级是 debug ，使用 `-silent` 关闭 或 使用 `-release` 开启 release 级别日志
 - 默认没有开启鉴权，使用 `-auth-token` 指定令牌鉴权
-- 默认没有开启 go 语音调试接口，使用 `-enable-debug` 开启
+- 默认没有开启 go 语音调试接口，使用 `-enable-debug` 开启，同时将日志层级设为 Debug
 - 默认没有开启监控接口，使用 `-enable-metrics` 开启
 
 沙箱相关:
@@ -219,7 +219,7 @@ interface PreparedFile {
 interface Collector {
     name: string; // copyOut 文件名
     max: number;  // 最大大小限制
-    pipe: boolean; // 通过管道收集（默认值为false文件收集）
+    pipe?: boolean; // 通过管道收集（默认值为false文件收集）
 }
 
 interface Cmd {
@@ -249,18 +249,18 @@ interface Cmd {
     // 和 copyOut 相同，不过文件不返回内容，而是返回一个对应文件 ID ，内容可以通过 /file/:fileId 接口下载
     copyOutCached?: string[];
     // 指定 copyOut 复制文件大小限制，单位 byte
-    copyOutMax: number;
+    copyOutMax?: number;
 }
 
 enum Status {
-    Accepted,            // normal
-    MemoryLimitExceeded, // mle
-    TimeLimitExceeded,   // tle
-    OutputLimitExceeded, // ole
-    FileError,           // fe
-    RuntimeError,        // re
-    DangerousSyscall,    // dgs
-    InternalError,       // system error
+    Accepted = 'Accepted', // normal
+    MemoryLimitExceeded = 'Memory Limit Exceeded', // mle
+    TimeLimitExceeded = 'Time Limit Exceeded', // tle
+    OutputLimitExceeded = 'Output Limit Exceeded', // ole
+    FileError = 'File Error', // fe
+    NonzeroExitStatus = 'Nonzero Exit Status',
+    Signalled = 'Signalled',
+    InternalError = 'Internal Error', // system error
 }
 
 interface PipeIndex {
@@ -273,22 +273,22 @@ interface PipeMap {
     out: PipeIndex; // 管道的输出端
     // 开启管道代理，传输内容会从输出端复制到输入端
     // 输入端内容在输出端关闭以后会丢弃 （防止 SIGPIPE ）
-    proxy: boolean; 
-    name: string;   // 如果代理开启，内容会作为 copyOut 放在输入端 （用来 debug ）
+    proxy?: boolean; 
+    name?: string;   // 如果代理开启，内容会作为 copyOut 放在输入端 （用来 debug ）
     // 限制 copyOut 的最大大小，代理会在超出大小之后正常复制
-    max: number;    
+    max?: number;    
 }
 
 enum FileErrorType {
-    CopyInOpenFile,
-    CopyInCreateFile,
-    CopyInCopyContent,
-    CopyOutOpen,
-    CopyOutNotRegularFile,
-    CopyOutSizeExceeded,
-    CopyOutCreateFile,
-    CopyOutCopyContent,
-    CollectSizeExceeded,
+    CopyInOpenFile = 'CopyInOpenFile',
+    CopyInCreateFile = 'CopyInCreateFile',
+    CopyInCopyContent = 'CopyInCopyContent',
+    CopyOutOpen = 'CopyOutOpen',
+    CopyOutNotRegularFile = 'CopyOutNotRegularFile',
+    CopyOutSizeExceeded = 'CopyOutSizeExceeded',
+    CopyOutCreateFile = 'CopyOutCreateFile',
+    CopyOutCopyContent = 'CopyOutCopyContent',
+    CollectSizeExceeded = 'CollectSizeExceeded',
 }
 
 interface FileError {
@@ -322,13 +322,13 @@ interface Result {
     // copyFileCached 指定的文件 id
     fileIds?: {[name:string]:string};
     // 文件错误详细信息
-    fileError?: []FileError;
+    fileError?: FileError[];
 }
 
 // WebSocket 结果
 interface WSResult {
     requestId: string;
-    results: []Result;
+    results: Result[];
     error?: string;
 }
 ```

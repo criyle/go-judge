@@ -2,15 +2,15 @@ package filestore
 
 import (
 	"bytes"
-	"crypto/rand"
 	"encoding/base32"
 	"errors"
+	"math/rand"
 	"os"
 
 	"github.com/criyle/go-judge/envexec"
 )
 
-const randIDLength = 12
+const randIDLength = 5
 
 var errUniqueIDNotGenerated = errors.New("unique id does not exists after tried 50 times")
 

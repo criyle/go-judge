@@ -51,7 +51,7 @@ Server:
 - The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag.
 - The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
 - `-auth-token` to add token-based authentication to REST / gRPC
-- By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`
+- By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`, and it also enables debug log
 - By default, the prometheus metrics endpoints are disabled, to enable, specifies `-enable-metrics`
 
 Sandbox:
@@ -260,7 +260,7 @@ interface PreparedFile {
 interface Collector {
     name: string; // file name in copyOut
     max: number;  // maximum bytes to collect from pipe
-    pipe: boolean; // collect over pipe or not (default false)
+    pipe?: boolean; // collect over pipe or not (default false)
 }
 
 interface Cmd {
@@ -294,18 +294,18 @@ interface Cmd {
     // specifies the directory to dump container /w content
     copyOutDir: string
     // specifies the max file size to copy out
-    copyOutMax: number; // byte
+    copyOutMax?: number; // byte
 }
 
 enum Status {
-    Accepted,            // normal
-    MemoryLimitExceeded, // mle
-    TimeLimitExceeded,   // tle
-    OutputLimitExceeded, // ole
-    FileError,           // fe
-    RuntimeError,        // re
-    DangerousSyscall,    // dgs
-    InternalError,       // system error
+    Accepted = 'Accepted', // normal
+    MemoryLimitExceeded = 'Memory Limit Exceeded', // mle
+    TimeLimitExceeded = 'Time Limit Exceeded', // tle
+    OutputLimitExceeded = 'Output Limit Exceeded', // ole
+    FileError = 'File Error', // fe
+    NonzeroExitStatus = 'Nonzero Exit Status',
+    Signalled = 'Signalled',
+    InternalError = 'Internal Error', // system error
 }
 
 interface PipeIndex {
@@ -318,23 +318,23 @@ interface PipeMap {
     out: PipeIndex; // output end of the pipe
     // enable pipe proxy from in to out, 
     // content from in will be discarded if out closes
-    proxy: boolean; 
-    name: string;   // copy out proxy content if proxy enabled
+    proxy?: boolean; 
+    name?: string;   // copy out proxy content if proxy enabled
     // limit the copy out content size, 
     // proxy will still functioning after max
-    max: number;    
+    max?: number;    
 }
 
 enum FileErrorType {
-    CopyInOpenFile,
-    CopyInCreateFile,
-    CopyInCopyContent,
-    CopyOutOpen,
-    CopyOutNotRegularFile,
-    CopyOutSizeExceeded,
-    CopyOutCreateFile,
-    CopyOutCopyContent,
-    CollectSizeExceeded,
+    CopyInOpenFile = 'CopyInOpenFile',
+    CopyInCreateFile = 'CopyInCreateFile',
+    CopyInCopyContent = 'CopyInCopyContent',
+    CopyOutOpen = 'CopyOutOpen',
+    CopyOutNotRegularFile = 'CopyOutNotRegularFile',
+    CopyOutSizeExceeded = 'CopyOutSizeExceeded',
+    CopyOutCreateFile = 'CopyOutCreateFile',
+    CopyOutCopyContent = 'CopyOutCopyContent',
+    CollectSizeExceeded = 'CollectSizeExceeded',
 }
 
 interface FileError {
@@ -346,7 +346,7 @@ interface FileError {
 interface Request {
     requestId?: string; // for WebSocket requests
     cmd: Cmd[];
-    pipeMapping: PipeMap[];
+    pipeMapping?: PipeMap[];
 }
 
 interface CancelRequest {
@@ -368,13 +368,13 @@ interface Result {
     // copyFileCached name -> fileId
     fileIds?: {[name:string]:string};
     // fileError contains detailed file errors
-    fileError?: []FileError;
+    fileError?: FileError[];
 }
 
 // WebSocket results
 interface WSResult {
     requestId: string;
-    results: []Result;
+    results: Result[];
     error?: string;
 }
 ```

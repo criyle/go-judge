@@ -3,6 +3,7 @@ package worker
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
@@ -90,7 +91,7 @@ func (r Result) String() string {
 		FileError:  r.FileError,
 	}
 	for k, v := range r.Files {
-		d.Files[k] = fmt.Sprintf("(path:%s)", v.Name())
+		d.Files[k] = filepath.Base(v.Name())
 	}
 	return fmt.Sprintf("%+v", d)
 }

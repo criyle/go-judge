@@ -4,8 +4,11 @@ package main
 
 import (
 	"context"
+	crypto_rand "crypto/rand"
+	"encoding/binary"
 	"flag"
 	"log"
+	math_rand "math/rand"
 	"net"
 	"net/http"
 	"os"
@@ -48,7 +51,9 @@ var logger *zap.Logger
 func main() {
 	conf := loadConf()
 	initLogger(conf)
+	defer logger.Sync()
 	logger.Sugar().Infof("config loaded: %+v", conf)
+	initRand()
 
 	// Init environment pool
 	fs, fsDir, fsCleanUp, err := newFilsStore(conf.Dir, conf.FileTimeout, conf.EnableMetrics)
@@ -157,22 +162,36 @@ func loadConf() *config.Config {
 }
 
 func initLogger(conf *config.Config) {
-	if !conf.Silent {
-		var err error
-		if conf.Release {
-			logger, err = zap.NewProduction()
-		} else {
-			config := zap.NewDevelopmentConfig()
-			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-			logger, err = config.Build()
-		}
-		if err != nil {
-			log.Fatalln("init logger failed", err)
-		}
-		defer logger.Sync()
-	} else {
+	if conf.Silent {
 		logger = zap.NewNop()
+		return
 	}
+
+	var err error
+	if conf.Release {
+		logger, err = zap.NewProduction()
+	} else {
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		if !conf.EnableDebug {
+			config.Level.SetLevel(zap.InfoLevel)
+		}
+		logger, err = config.Build()
+	}
+	if err != nil {
+		log.Fatalln("init logger failed", err)
+	}
+}
+
+func initRand() {
+	var b [8]byte
+	_, err := crypto_rand.Read(b[:])
+	if err != nil {
+		logger.Fatal("random generator init failed", zap.Error(err))
+	}
+	sd := int64(binary.LittleEndian.Uint64(b[:]))
+	logger.Sugar().Infof("random seed: %d", sd)
+	math_rand.Seed(sd)
 }
 
 func prefork(envPool worker.EnvironmentPool, prefork int) {
@@ -202,7 +221,7 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	if conf.Silent {
 		r.Use(gin.Recovery())
 	} else {
-		r.Use(ginzap.Ginzap(logger, time.RFC3339, true))
+		r.Use(ginzap.Ginzap(logger, "", false))
 		r.Use(ginzap.RecoveryWithZap(logger, true))
 	}
 

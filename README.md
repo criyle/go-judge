@@ -11,7 +11,7 @@ Fast, Simple, Secure
 ### Prerequisite
 
 - Linux Kernel Version >= 3.10
-- Cgroup file system V1 mounted at /sys/fs/cgroup. Cgroup V2 is not supported
+- Cgroup file system mounted at /sys/fs/cgroup. Usually done by systemd
 
 ### Architecture
 
@@ -200,13 +200,13 @@ sysctl -p
 
 #### Memory Usage
 
-The controller will consume `60M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max.
+The controller will consume `20M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max.
 
 For example, when concurrency = 4, the executor itself can consume as much as `60 + (20+32) * 4M = 268M` + 4 * total copy out + total max memory of requests.
 
 Due to limitation of GO runtime, the memory will not return to OS automatically, which could lead to OOM killer. The background worker was introduced to checks heap usage and invokes GC when necessary.
 
-- `-force-gc-target` default `10m`, the minimal size to trigger GC
+- `-force-gc-target` default `20m`, the minimal size to trigger GC
 - `-force-gc-interval` default `5s`, the interval to check memory usage
 
 ### Benchmark

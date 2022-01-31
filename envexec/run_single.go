@@ -74,13 +74,10 @@ func runSingleWait(pc context.Context, m Environment, c *Cmd, fds []*os.File) Ru
 	}
 
 	// starts waiter to periodically check cpu usage
-	go func() {
-		defer cancel()
-		c.Waiter(ctx, process)
-	}()
+	c.Waiter(ctx, process)
+	// cancel the process as waiter exits
+	cancel()
 
-	// ensure waiter exit
-	<-ctx.Done()
 	return process.Result()
 }
 

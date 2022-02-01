@@ -1,7 +1,6 @@
 package filestore
 
 import (
-	"bytes"
 	"encoding/base32"
 	"errors"
 	"math/rand"
@@ -28,27 +27,5 @@ func generateID() (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-
-	var buf bytes.Buffer
-	if _, err := base32.NewEncoder(base32.StdEncoding, &buf).Write(b); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-func generateUniqueID(isExists func(string) (bool, error)) (string, error) {
-	for range [50]struct{}{} {
-		id, err := generateID()
-		if err != nil {
-			return "", err
-		}
-		exists, err := isExists(id)
-		if err != nil {
-			return "", err
-		}
-		if !exists {
-			return id, nil
-		}
-	}
-	return "", errUniqueIDNotGenerated
+	return base32.StdEncoding.EncodeToString(b), nil
 }

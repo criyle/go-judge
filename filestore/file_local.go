@@ -82,23 +82,18 @@ func (s *fileLocalStore) List() map[string]string {
 }
 
 func (s *fileLocalStore) New() (*os.File, error) {
-	id, err := generateUniqueID(func(id string) (bool, error) {
-		_, err := os.Stat(path.Join(s.dir, id))
-		switch {
-		case errors.Is(err, os.ErrNotExist):
-			return false, nil
-		case err == nil:
-			return true, nil
-		default:
-			return false, err
+	for range [50]struct{}{} {
+		id, err := generateID()
+		if err != nil {
+			return nil, err
 		}
-	})
-	if err != nil {
-		return nil, err
+		f, err := os.OpenFile(path.Join(s.dir, id), os.O_CREATE|os.O_RDWR|os.O_EXCL, 0644)
+		if err == nil {
+			return f, nil
+		}
+		if !errors.Is(err, os.ErrExist) {
+			return nil, err
+		}
 	}
-	f, err := os.OpenFile(path.Join(s.dir, id), os.O_CREATE|os.O_RDWR, 0644)
-	if err != nil {
-		return nil, err
-	}
-	return f, nil
+	return nil, errUniqueIDNotGenerated
 }

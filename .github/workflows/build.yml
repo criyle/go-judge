@@ -67,6 +67,8 @@ jobs:
             ${{ runner.os }}-go-
       - name: Download dependencies
         run: go mod download
+      - name: Generate version
+        run: go generate ./cmd/executorserver/version
 
       - name: Build on Linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
@@ -74,7 +76,6 @@ jobs:
           GOARCH: ${{ matrix.GOARCH }}
           CGO_ENABLE: 0
         run: |
-          go generate ./cmd/executorserver/version
           go build -v -tags nomsgpack -o executorserver ./cmd/executorserver
           go build -v -o executorshell ./cmd/executorshell
           go build -o cinit ./cmd/cinit
@@ -124,7 +125,6 @@ jobs:
         env:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
-          go generate ./cmd/executorserver/version
           go build -tags nomsgpack -o executorserver.exe ./cmd/executorserver
       - name: Build shared object on Windows
         if: ${{ matrix.os == 'windows-latest' }}
@@ -160,7 +160,6 @@ jobs:
         env:
           GOARCH: ${{ matrix.GOARCH }}
         run: |
-          go generate ./cmd/executorserver/version
           go build -tags nomsgpack -o executorserver ./cmd/executorserver
           go build -o executorshell ./cmd/executorshell
       - name: Build shared object on macOS
@@ -209,6 +208,8 @@ jobs:
       -
         name: Checkout
         uses: actions/checkout@v2
+      - name: Get git tag ref
+        run: git fetch --prune --unshallow --tags
       -
         name: Docker meta
         if: ${{ matrix.os == 'ubuntu' }}

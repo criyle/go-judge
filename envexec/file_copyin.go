@@ -2,6 +2,7 @@ package envexec
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sync"
 
@@ -47,7 +48,7 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 			}
 			defer cf.Close()
 
-			_, err = cf.ReadFrom(hf)
+			_, err = io.Copy(cf, hf)
 			if err != nil {
 				t = ErrCopyInCopyContent
 				return err

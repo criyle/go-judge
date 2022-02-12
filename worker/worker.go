@@ -317,9 +317,9 @@ func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, error) {
 	}
 
 	wait := &waiter{
-		tickInterval:  w.timeLimitTickInterval,
-		timeLimit:     time.Duration(rc.CPULimit),
-		realTimeLimit: time.Duration(rc.ClockLimit),
+		tickInterval:   w.timeLimitTickInterval,
+		timeLimit:      rc.CPULimit,
+		clockTimeLimit: rc.ClockLimit,
 	}
 
 	var copyOutDir string

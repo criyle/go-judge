@@ -1,8 +1,6 @@
 package linuxcontainer
 
 import (
-	"errors"
-	"os"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
@@ -40,12 +38,13 @@ func (c *wCgroup) CPUUsage() (time.Duration, error) {
 	return time.Duration(t), err
 }
 
-func (c *wCgroup) MemoryUsage() (envexec.Size, error) {
+func (c *wCgroup) CurrentMemory() (envexec.Size, error) {
+	s, err := c.cg.MemoryUsage()
+	return envexec.Size(s), err
+}
+
+func (c *wCgroup) MaxMemory() (envexec.Size, error) {
 	s, err := c.cg.MemoryMaxUsage()
-	if err != nil && errors.Is(err, os.ErrNotExist) {
-		s, err := c.cg.MemoryUsage()
-		return envexec.Size(s), err
-	}
 	return envexec.Size(s), err
 }
 

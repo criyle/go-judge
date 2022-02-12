@@ -39,7 +39,7 @@ func (p *process) collectUsage() {
 	if t, err := p.cg.CPUUsage(); err == nil {
 		p.rt.Time = t
 	}
-	if m, err := p.cg.MemoryUsage(); err == nil && m > 0 {
+	if m, err := p.cg.MaxMemory(); err == nil && m > 0 {
 		p.rt.Memory = m
 	}
 }
@@ -60,7 +60,7 @@ func (p *process) Usage() envexec.Usage {
 	)
 	if p.cg != nil {
 		t, _ = p.cg.CPUUsage()
-		m, _ = p.cg.MemoryUsage()
+		m, _ = p.cg.CurrentMemory()
 	}
 	return envexec.Usage{
 		Time:   t,

@@ -15,7 +15,8 @@ type Cgroup interface {
 	SetCPURate(uint64) error // 1000 as 1
 
 	CPUUsage() (time.Duration, error)
-	MemoryUsage() (envexec.Size, error)
+	CurrentMemory() (envexec.Size, error)
+	MaxMemory() (envexec.Size, error)
 
 	AddProc(int) error
 	Reset() error

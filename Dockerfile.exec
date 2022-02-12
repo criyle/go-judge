@@ -8,7 +8,8 @@ RUN go mod download -x
 
 COPY ./ /go/judge
 
-RUN CGO_ENABLE=0 go build -v -tags nomsgpack -o executorserver ./cmd/executorserver 
+RUN go generate ./cmd/executorserver/version \
+    && CGO_ENABLE=0 go build -v -tags nomsgpack -o executorserver ./cmd/executorserver 
 
 FROM debian:latest
 

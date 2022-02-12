@@ -2,13 +2,16 @@ FROM golang:alpine AS build
 
 WORKDIR /go/judge 
 
+RUN apk update && apk add git
+
 COPY go.mod go.sum /go/judge/
 
 RUN go mod download -x
 
 COPY ./ /go/judge
 
-RUN CGO_ENABLE=0 go build -v -tags nomsgpack -o executorserver ./cmd/executorserver
+RUN go generate ./cmd/executorserver/version \
+    && CGO_ENABLE=0 go build -v -tags nomsgpack -o executorserver ./cmd/executorserver
 
 FROM alpine:latest
 

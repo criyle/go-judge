@@ -192,7 +192,9 @@ func FileGet(e *C.char) *C.char {
 	if err != nil {
 		return nil
 	}
-	defer r.Close()
+	if f, ok := r.(*os.File); ok {
+		defer f.Close()
+	}
 
 	c, err := io.ReadAll(r)
 	if err != nil {

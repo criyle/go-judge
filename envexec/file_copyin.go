@@ -39,7 +39,9 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 			if err != nil {
 				return fmt.Errorf("failed to copyIn %v", err)
 			}
-			defer hf.Close()
+			if f, ok := hf.(*os.File); ok {
+				defer f.Close()
+			}
 
 			cf, err := m.Open(n, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
 			if err != nil {

@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"sync"
-	"time"
 
 	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-judge/envexec"
@@ -13,7 +12,10 @@ import (
 )
 
 const (
-	metricsNamespace = "executorserver"
+	metricsNamespace     = "executorserver"
+	execSubsystem        = "exec"
+	filestoreSubsystem   = "file"
+	environmentSubsystem = "environment"
 )
 
 var (
@@ -28,86 +30,71 @@ var (
 	// 256 byte (1<<8) -> 256m (1<<28)
 	fileSizeBucket = prometheus.ExponentialBuckets(1<<8, 2, 20)
 
-	metricsSummaryQuantile = map[float64]float64{0.5: 0.05, 0.9: 0.01, 0.99: 0.001}
-
 	execErrorCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
-		Name:      "error",
+		Subsystem: execSubsystem,
+		Name:      "error_count",
 		Help:      "Number of exec query returns error",
 	})
 
 	execTimeHist = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: metricsNamespace,
+		Subsystem: execSubsystem,
 		Name:      "time_seconds",
-		Help:      "Histogram for the running time",
+		Help:      "Histogram for the command execution time",
 		Buckets:   timeBuckets,
-	}, []string{"status"})
-
-	execTimeSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace:  metricsNamespace,
-		Name:       "time",
-		Help:       "Summary for the running time",
-		Objectives: metricsSummaryQuantile,
 	}, []string{"status"})
 
 	execMemHist = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: metricsNamespace,
+		Subsystem: execSubsystem,
 		Name:      "memory_bytes",
-		Help:      "Histgram for the memory",
+		Help:      "Histgram for the command execution max memory",
 		Buckets:   memoryBucket,
-	}, []string{"status"})
-
-	execMemSummary = prometheus.NewSummaryVec(prometheus.SummaryOpts{
-		Namespace:  metricsNamespace,
-		Name:       "memory",
-		Help:       "Summary for the memory",
-		Objectives: metricsSummaryQuantile,
 	}, []string{"status"})
 
 	fsSizeHist = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: metricsNamespace,
-		Name:      "file_size_bytes",
-		Help:      "Histgram for the file size in the file store",
+		Subsystem: filestoreSubsystem,
+		Name:      "size_bytes",
+		Help:      "Histgram for the file size created in the file store",
 		Buckets:   fileSizeBucket,
 	})
 
-	fsSizeSummary = prometheus.NewSummary(prometheus.SummaryOpts{
-		Namespace:  metricsNamespace,
-		Name:       "file_size",
-		Help:       "Summary for the file size in the file store",
-		Objectives: metricsSummaryQuantile,
-	})
-
-	fsTotalCount = prometheus.NewGauge(prometheus.GaugeOpts{
+	fsCurrentTotalCount = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
-		Name:      "file_current_total",
+		Subsystem: filestoreSubsystem,
+		Name:      "current_bytes_count",
 		Help:      "Total number of current files in the file store",
 	})
 
-	fsTotalSize = prometheus.NewGauge(prometheus.GaugeOpts{
+	fsCurrentTotalSize = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
-		Name:      "file_size_current_total",
+		Subsystem: filestoreSubsystem,
+		Name:      "current_bytes_sum",
 		Help:      "Total size of current files in the file store",
 	})
 
 	envCreated = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsNamespace,
-		Name:      "environment_created",
+		Subsystem: environmentSubsystem,
+		Name:      "count",
 		Help:      "Total number of environment build by environment builder",
 	})
 
 	envInUse = prometheus.NewGauge(prometheus.GaugeOpts{
 		Namespace: metricsNamespace,
-		Name:      "environment_in_use",
+		Subsystem: environmentSubsystem,
+		Name:      "current_count",
 		Help:      "Total number of environment currently in use",
 	})
 )
 
 func init() {
 	prometheus.MustRegister(execErrorCount)
-	prometheus.MustRegister(execTimeHist, execTimeSummary)
-	prometheus.MustRegister(execMemHist, execMemSummary)
-	prometheus.MustRegister(fsSizeHist, fsSizeSummary, fsTotalSize)
+	prometheus.MustRegister(execTimeHist)
+	prometheus.MustRegister(execMemHist)
+	prometheus.MustRegister(fsSizeHist, fsCurrentTotalCount, fsCurrentTotalSize)
 	prometheus.MustRegister(envCreated, envInUse)
 }
 
@@ -117,13 +104,11 @@ func execObserve(res worker.Response) {
 	}
 	for _, r := range res.Results {
 		status := r.Status.String()
-		d := time.Duration(r.Time)
-		ob := d.Seconds()
-		mob := float64(r.Memory)
-		execTimeHist.WithLabelValues(status).Observe(ob)
-		execTimeSummary.WithLabelValues(status).Observe(ob)
-		execMemHist.WithLabelValues(status).Observe(mob)
-		execMemSummary.WithLabelValues(status).Observe(mob)
+		time := r.Time.Seconds()
+		memory := float64(r.Memory)
+
+		execTimeHist.WithLabelValues(status).Observe(time)
+		execMemHist.WithLabelValues(status).Observe(memory)
 	}
 }
 
@@ -148,22 +133,21 @@ func (m *metricsFileStore) Add(name, path string) (string, error) {
 		return "", err
 	}
 
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
 	fi, err := os.Stat(path)
 	if err != nil {
 		return id, nil
 	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	s := fi.Size()
 	m.fileSize[id] = s
 
 	sf := float64(s)
 	fsSizeHist.Observe(sf)
-	fsSizeSummary.Observe(sf)
-	fsTotalSize.Add(sf)
-	fsTotalCount.Inc()
+	fsCurrentTotalSize.Add(sf)
+	fsCurrentTotalCount.Inc()
 
 	return id, nil
 }
@@ -181,8 +165,8 @@ func (m *metricsFileStore) Remove(id string) bool {
 	delete(m.fileSize, id)
 
 	sf := float64(s)
-	fsTotalSize.Sub(sf)
-	fsTotalCount.Dec()
+	fsCurrentTotalSize.Sub(sf)
+	fsCurrentTotalCount.Dec()
 
 	return success
 }

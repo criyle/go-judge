@@ -218,12 +218,8 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r = gin.New()
-	if conf.Silent {
-		r.Use(gin.Recovery())
-	} else {
-		r.Use(ginzap.Ginzap(logger, "", false))
-		r.Use(ginzap.RecoveryWithZap(logger, true))
-	}
+	r.Use(ginzap.Ginzap(logger, "", false))
+	r.Use(ginzap.RecoveryWithZap(logger, true))
 
 	// Metrics Handle
 	if conf.EnableMetrics {

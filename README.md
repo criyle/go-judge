@@ -37,10 +37,13 @@ A REST service to run program in restricted environment and it is basically a wr
 - /file/:fileId GET downloads file from executor service (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
+- /version gets build git version (e.g. `v1.4.0`) together with runtime information (go version, os, platform)
+- /config gets some configuration (e.g. `fileStorePath`) together with some supported features
+
+Monitor HTTP endpoint (default `:5052`, specified by `-monitor-addr`)
+
 - /metrics prometheus metrics (specifies `ES_ENABLE_METRICS=1` environment variable to enable metrics)
 - /debug (specifies `ES_ENABLE_DEBUG=1` environment variable to enable go runtime debug endpoint)
-- /version gets build git version (e.g. `v0.9.4`) together with runtime information (go version, os, platform)
-- /config gets some configuration (e.g. `fileStorePath`) together with some supported features
 
 ### Command Line Arguments
 
@@ -53,6 +56,7 @@ Server:
 - `-auth-token` to add token-based authentication to REST / gRPC
 - By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`, and it also enables debug log
 - By default, the prometheus metrics endpoints are disabled, to enable, specifies `-enable-metrics`
+- Monitoring HTTP endpoint is enabled if metrics / debug is enabled, the default addr is `:5052` and can be specified by `-monitor-addr`
 
 Sandbox:
 

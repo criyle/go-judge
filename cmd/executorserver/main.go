@@ -11,6 +11,7 @@ import (
 	math_rand "math/rand"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime"
@@ -29,7 +30,6 @@ import (
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/worker"
-	ginpprof "github.com/gin-contrib/pprof"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
@@ -37,6 +37,7 @@ import (
 	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -56,50 +57,39 @@ func main() {
 	initRand()
 
 	// Init environment pool
-	fs, fsDir, fsCleanUp, err := newFilsStore(conf.Dir, conf.FileTimeout, conf.EnableMetrics)
-	if err != nil {
-		logger.Sugar().Fatalf("Create temp dir failed %v", err)
-	}
-	conf.Dir = fsDir
+	fs, fsCleanUp := newFilsStore(conf)
 	b := newEnvBuilder(conf)
 	envPool := newEnvPool(b, conf.EnableMetrics)
 	prefork(envPool, conf.PreFork)
 	work := newWorker(conf, envPool, fs)
 	work.Start()
-	logger.Sugar().Infof("Starting worker with parallelism=%d, workdir=%s, timeLimitCheckInterval=%v",
+	logger.Sugar().Infof("Started worker with parallelism=%d, workdir=%s, timeLimitCheckInterval=%v",
 		conf.Parallelism, conf.Dir, conf.TimeLimitCheckerInterval)
 
-	// Init http handle
-	r := initHTTPMux(conf, work, fs)
-	srv := http.Server{
-		Addr:    conf.HTTPAddr,
-		Handler: r,
+	servers := []initFunc{
+		cleanUpWorker(work),
+		cleanUpFs(fsCleanUp),
+		initHTTPServer(conf, work, fs),
+		initMonitorHTTPServer(conf),
+		initGRPCServer(conf, work, fs),
 	}
 
-	// Gracefully shutdown, with signal / HTTP server / gRPC server
-	sig := make(chan os.Signal, 3)
+	// Gracefully shutdown, with signal / HTTP server / gRPC server / Monitor HTTP server
+	sig := make(chan os.Signal, 1+len(servers))
 
-	go func() {
-		logger.Sugar().Info("Starting http server at ", conf.HTTPAddr)
-		logger.Sugar().Info("Http server stopped: ", srv.ListenAndServe())
-		sig <- os.Interrupt
-	}()
-
-	// Init gRPC server
-	var grpcServer *grpc.Server
-	if conf.EnableGRPC {
-		esServer := grpcexecutor.New(work, fs, conf.SrcPrefix, logger)
-		grpcServer = newGRPCServer(conf, esServer)
-
-		lis, err := net.Listen("tcp", conf.GRPCAddr)
-		if err != nil {
-			log.Fatalln(err)
+	// worker and fs clean up func
+	stops := []stopFunc{}
+	for _, s := range servers {
+		start, stop := s()
+		if start != nil {
+			go func() {
+				start()
+				sig <- os.Interrupt
+			}()
 		}
-		go func() {
-			logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr)
-			logger.Sugar().Info("gRPC server stopped: ", grpcServer.Serve(lis))
-			sig <- os.Interrupt
-		}()
+		if stop != nil {
+			stops = append(stops, stop)
+		}
 	}
 
 	// background force GC worker
@@ -116,35 +106,15 @@ func main() {
 	defer cancel()
 
 	var eg errgroup.Group
-	eg.Go(func() error {
-		work.Shutdown()
-		logger.Sugar().Info("Worker shutdown")
-		return nil
-	})
-
-	eg.Go(func() error {
-		logger.Sugar().Info("Http server shutdown")
-		return srv.Shutdown(ctx)
-	})
-
-	if grpcServer != nil {
+	for _, s := range stops {
+		s := s
 		eg.Go(func() error {
-			grpcServer.GracefulStop()
-			logger.Sugar().Info("GRPC server shutdown")
-			return nil
-		})
-	}
-
-	if fsCleanUp != nil {
-		eg.Go(func() error {
-			err := fsCleanUp()
-			logger.Sugar().Info("FileStore clean up")
-			return err
+			return s(ctx)
 		})
 	}
 
 	go func() {
-		logger.Sugar().Info("Shutdown Finished: ", eg.Wait())
+		logger.Sugar().Info("Shutdown Finished ", eg.Wait())
 		cancel()
 	}()
 	<-ctx.Done()
@@ -156,9 +126,99 @@ func loadConf() *config.Config {
 		if err == flag.ErrHelp {
 			os.Exit(0)
 		}
-		log.Fatalln("load config failed", err)
+		log.Fatalln("load config failed ", err)
 	}
 	return &conf
+}
+
+type stopFunc func(ctx context.Context) error
+type initFunc func() (start func(), cleanUp stopFunc)
+
+func cleanUpWorker(work worker.Worker) initFunc {
+	return func() (start func(), cleanUp stopFunc) {
+		return nil, func(ctx context.Context) error {
+			work.Shutdown()
+			logger.Sugar().Info("Worker shutdown")
+			return nil
+		}
+	}
+}
+
+func cleanUpFs(fsCleanUp func() error) initFunc {
+	return func() (start func(), cleanUp stopFunc) {
+		if fsCleanUp == nil {
+			return nil, nil
+		}
+		return nil, func(ctx context.Context) error {
+			err := fsCleanUp()
+			logger.Sugar().Info("FileStore cleaned up")
+			return err
+		}
+	}
+}
+
+func initHTTPServer(conf *config.Config, work worker.Worker, fs filestore.FileStore) initFunc {
+	return func() (start func(), cleanUp stopFunc) {
+		// Init http handle
+		r := initHTTPMux(conf, work, fs)
+		srv := http.Server{
+			Addr:    conf.HTTPAddr,
+			Handler: r,
+		}
+
+		return func() {
+				logger.Sugar().Info("Starting http server at ", conf.HTTPAddr)
+				logger.Sugar().Info("Http server stopped: ", srv.ListenAndServe())
+			}, func(ctx context.Context) error {
+				logger.Sugar().Info("Http server shutdown")
+				return srv.Shutdown(ctx)
+			}
+	}
+}
+
+func initMonitorHTTPServer(conf *config.Config) initFunc {
+	return func() (start func(), cleanUp stopFunc) {
+		// Init monitor HTTP server
+		mr := initMonitorHTTPMux(conf)
+		if mr == nil {
+			return nil, nil
+		}
+		msrv := http.Server{
+			Addr:    conf.MonitorAddr,
+			Handler: mr,
+		}
+		return func() {
+				logger.Sugar().Info("Starting monitoring http server at ", conf.MonitorAddr)
+				logger.Sugar().Info("Monitoring http server stopped: ", msrv.ListenAndServe())
+			}, func(ctx context.Context) error {
+				logger.Sugar().Info("Monitoring http server shutdown")
+				return msrv.Shutdown(ctx)
+			}
+	}
+}
+
+func initGRPCServer(conf *config.Config, work worker.Worker, fs filestore.FileStore) initFunc {
+	return func() (start func(), cleanUp stopFunc) {
+		if !conf.EnableGRPC {
+			return nil, nil
+		}
+		// Init gRPC server
+		esServer := grpcexecutor.New(work, fs, conf.SrcPrefix, logger)
+		grpcServer := newGRPCServer(conf, esServer)
+
+		lis, err := net.Listen("tcp", conf.GRPCAddr)
+		if err != nil {
+			logger.Sugar().Fatal("gRPC listen failed", err)
+		}
+		return func() {
+				logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr)
+				logger.Sugar().Info("gRPC server stopped: ", grpcServer.Serve(lis))
+			}, func(ctx context.Context) error {
+				grpcServer.GracefulStop()
+				logger.Sugar().Info("GRPC server shutdown")
+				return nil
+			}
+	}
 }
 
 func initLogger(conf *config.Config) {
@@ -179,7 +239,7 @@ func initLogger(conf *config.Config) {
 		logger, err = config.Build()
 	}
 	if err != nil {
-		log.Fatalln("init logger failed", err)
+		log.Fatalln("init logger failed ", err)
 	}
 }
 
@@ -187,7 +247,7 @@ func initRand() {
 	var b [8]byte
 	_, err := crypto_rand.Read(b[:])
 	if err != nil {
-		logger.Fatal("random generator init failed", zap.Error(err))
+		logger.Fatal("random generator init failed ", zap.Error(err))
 	}
 	sd := int64(binary.LittleEndian.Uint64(b[:]))
 	logger.Sugar().Infof("random seed: %d", sd)
@@ -203,7 +263,7 @@ func prefork(envPool worker.EnvironmentPool, prefork int) {
 	for i := 0; i < prefork; i++ {
 		e, err := envPool.Get()
 		if err != nil {
-			log.Fatalln("prefork environment failed", err)
+			log.Fatalln("prefork environment failed ", err)
 		}
 		m = append(m, e)
 	}
@@ -235,7 +295,7 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	// Add auth token
 	if conf.AuthToken != "" {
 		r.Use(tokenAuth(conf.AuthToken))
-		logger.Sugar().Info("Attach token auth with token:", conf.AuthToken)
+		logger.Sugar().Info("Attach token auth with token: ", conf.AuthToken)
 	}
 
 	// Rest Handle
@@ -246,15 +306,32 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	wsHandle := wsexecutor.New(work, conf.SrcPrefix, logger)
 	wsHandle.Register(r)
 
-	// pprof
-	if conf.EnableDebug {
-		ginpprof.Register(r)
-	}
 	return r
 }
 
+func initMonitorHTTPMux(conf *config.Config) http.Handler {
+	if !conf.EnableMetrics && !conf.EnableDebug {
+		return nil
+	}
+	mux := http.NewServeMux()
+	if conf.EnableMetrics {
+		mux.Handle("/metrics", promhttp.Handler())
+	}
+	if conf.EnableDebug {
+		initDebugRoute(mux)
+	}
+	return mux
+}
+
+func initDebugRoute(mux *http.ServeMux) {
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+}
+
 func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server {
-	var grpcServer *grpc.Server
 	grpc_zap.ReplaceGrpcLoggerV2(logger)
 	streamMiddleware := []grpc.StreamServerInterceptor{
 		grpc_prometheus.StreamServerInterceptor,
@@ -271,7 +348,7 @@ func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server
 		streamMiddleware = append(streamMiddleware, grpc_auth.StreamServerInterceptor(authFunc))
 		unaryMiddleware = append(unaryMiddleware, grpc_auth.UnaryServerInterceptor(authFunc))
 	}
-	grpcServer = grpc.NewServer(
+	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamMiddleware...)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryMiddleware...)),
 	)
@@ -286,7 +363,7 @@ func initGinMetrics(r *gin.Engine) {
 	p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
 		return c.FullPath()
 	}
-	p.Use(r)
+	r.Use(p.HandlerFunc())
 }
 
 func tokenAuth(token string) gin.HandlerFunc {
@@ -314,35 +391,35 @@ func grpcTokenAuth(token string) func(context.Context) (context.Context, error) 
 	}
 }
 
-func newFilsStore(dir string, fileTimeout time.Duration, enableMetrics bool) (filestore.FileStore, string, func() error, error) {
+func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 	const timeoutCheckInterval = 15 * time.Second
 	var cleanUp func() error
 
 	var fs filestore.FileStore
-	if dir == "" {
+	if conf.Dir == "" {
 		if runtime.GOOS == "linux" {
-			dir = "/dev/shm"
+			conf.Dir = "/dev/shm"
 		} else {
-			dir = os.TempDir()
+			conf.Dir = os.TempDir()
 		}
 		var err error
-		dir, err = os.MkdirTemp(dir, "executorserver")
+		conf.Dir, err = os.MkdirTemp(conf.Dir, "executorserver")
 		if err != nil {
-			return nil, "", cleanUp, err
+			logger.Sugar().Fatal("failed to create file store temp dir", err)
 		}
 		cleanUp = func() error {
-			return os.RemoveAll(dir)
+			return os.RemoveAll(conf.Dir)
 		}
 	}
-	os.MkdirAll(dir, 0755)
-	fs = filestore.NewFileLocalStore(dir)
-	if enableMetrics {
+	os.MkdirAll(conf.Dir, 0755)
+	fs = filestore.NewFileLocalStore(conf.Dir)
+	if conf.EnableDebug {
 		fs = newMetricsFileStore(fs)
 	}
-	if fileTimeout > 0 {
-		fs = filestore.NewTimeout(fs, fileTimeout, timeoutCheckInterval)
+	if conf.FileTimeout > 0 {
+		fs = filestore.NewTimeout(fs, conf.FileTimeout, timeoutCheckInterval)
 	}
-	return fs, dir, cleanUp, nil
+	return fs, cleanUp
 }
 
 func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
@@ -360,7 +437,7 @@ func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
 		Logger:             logger.Sugar(),
 	})
 	if err != nil {
-		log.Fatalln("create environment builder failed", err)
+		logger.Sugar().Fatal("create environment builder failed ", err)
 	}
 	if conf.EnableMetrics {
 		b = &metriceEnvBuilder{b}

@@ -41,6 +41,7 @@ type Config struct {
 	HTTPAddr      string `flagUsage:"specifies the http binding address" default:":5050"`
 	EnableGRPC    bool   `flagUsage:"enable gRPC endpoint"`
 	GRPCAddr      string `flagUsage:"specifies the grpc binding address" default:":5051"`
+	MonitorAddr   string `flagUsage:"specifies the metrics binding address" default:":5052"`
 	AuthToken     string `flagUsage:"bearer token auth for REST / gRPC"`
 	EnableDebug   bool   `flagUsage:"enable debug endpoint"`
 	EnableMetrics bool   `flagUsage:"enable promethus metrics endpoint"`

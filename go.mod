@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/creack/pty v1.1.17
-	github.com/criyle/go-sandbox v0.9.2
+	github.com/criyle/go-sandbox v0.9.3
 	github.com/elastic/go-seccomp-bpf v1.2.0
 	github.com/elastic/go-ucfg v0.8.4
 	github.com/gin-contrib/zap v0.0.2
@@ -18,9 +18,9 @@ require (
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/zap v1.21.0
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158
+	golang.org/x/sys v0.0.0-20220227234510-4e6760a101f9
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1
 	gopkg.in/yaml.v2 v2.4.0
@@ -47,12 +47,12 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/ugorji/go/codec v1.2.6 // indirect
+	github.com/ugorji/go/codec v1.2.7 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/multierr v1.7.0 // indirect
+	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220218161850-94dd64e39d7c // indirect
+	google.golang.org/genproto v0.0.0-20220228195345-15d65a4533f7 // indirect
 )
 
 retract (

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -22,6 +23,7 @@ type environ struct {
 	container.Environment
 	cgPool  CgroupPool
 	wd      *os.File // container work dir
+	workDir string
 	cpuset  string
 	seccomp []syscall.SockFilter
 	cpuRate bool
@@ -107,6 +109,13 @@ func (c *environ) WorkDir() *os.File {
 
 // Open opens file relative to work directory
 func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, error) {
+	if filepath.IsAbs(path) {
+		var err error
+		path, err = filepath.Rel(c.workDir, path)
+		if err != nil {
+			return nil, fmt.Errorf("openAtWorkDir: %v", err)
+		}
+	}
 	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_CLOEXEC, uint32(perm))
 	if err != nil {
 		return nil, &os.PathError{Op: "open", Path: path, Err: err}
@@ -116,6 +125,58 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 		return nil, fmt.Errorf("openAtWorkDir: failed to NewFile")
 	}
 	return f, nil
+}
+
+// MkdirAll equivelent to os.MkdirAll but in container
+func (c *environ) MkdirAll(path string, perm os.FileMode) error {
+	if path == "" || path == "." {
+		return nil
+	}
+	if filepath.IsAbs(path) {
+		r, err := filepath.Rel(c.workDir, path)
+		if err != nil {
+			return &os.PathError{Op: "mkdir", Path: path, Err: syscall.EINVAL}
+		}
+		return c.MkdirAll(r, perm)
+	}
+	// fast path
+	wd := int(c.wd.Fd())
+	var stat syscall.Stat_t
+	err := syscall.Fstatat(wd, path, &stat, 0)
+	if err == nil {
+		if stat.Mode&syscall.S_IFMT == syscall.S_IFDIR {
+			return nil
+		}
+		return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
+	}
+	// slow path
+	// Slow path: make sure parent exists and then call Mkdir for path.
+	i := len(path)
+	for i > 0 && os.IsPathSeparator(path[i-1]) { // Skip trailing path separator.
+		i--
+	}
+
+	j := i
+	for j > 0 && !os.IsPathSeparator(path[j-1]) { // Scan backward over element.
+		j--
+	}
+
+	if j > 1 {
+		// Create parent.
+		err = c.MkdirAll(path[:j-1], perm)
+		if err != nil {
+			return err
+		}
+	}
+	err = syscall.Mkdirat(wd, path, uint32(perm.Perm()))
+	if err != nil {
+		err1 := syscall.Fstatat(wd, path, &stat, 0)
+		if err1 == nil && stat.Mode&syscall.S_IFMT == syscall.S_IFDIR {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {

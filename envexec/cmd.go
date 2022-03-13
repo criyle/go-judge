@@ -84,6 +84,7 @@ type FileErrorType int
 
 const (
 	ErrCopyInOpenFile FileErrorType = iota
+	ErrCopyInCreateDir
 	ErrCopyInCreateFile
 	ErrCopyInCopyContent
 	ErrCopyOutOpen
@@ -102,6 +103,7 @@ type FileError struct {
 
 var fileErrorString = []string{
 	"CopyInOpenFile",
+	"CopyInCreateDir",
 	"CopyInCreateFile",
 	"CopyInCopyContent",
 	"CopyOutOpen",

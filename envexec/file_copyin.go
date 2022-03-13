@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 
 	"golang.org/x/sync/errgroup"
@@ -42,7 +43,11 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 			if f, ok := hf.(*os.File); ok {
 				defer f.Close()
 			}
-
+			// ensure path exists
+			if err := m.MkdirAll(filepath.Dir(n), 0777); err != nil {
+				t = ErrCopyInCreateDir
+				return fmt.Errorf("failed to create dir %v", err)
+			}
 			cf, err := m.Open(n, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
 			if err != nil {
 				t = ErrCopyInCreateFile

@@ -137,6 +137,10 @@ func (e *environment) Open(p string, flags int, perm os.FileMode) (*os.File, err
 	return os.OpenFile(path.Join(e.wdPath, p), flags, perm)
 }
 
+func (e *environment) MkdirAll(p string, perm os.FileMode) error {
+	return os.MkdirAll(path.Join(e.wdPath, p), perm)
+}
+
 func (e *environment) Destroy() error {
 	e.wd.Close()
 	return os.RemoveAll(e.wdPath)

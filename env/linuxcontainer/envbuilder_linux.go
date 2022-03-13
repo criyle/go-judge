@@ -57,6 +57,7 @@ func (b *environmentBuilder) Build() (pool.Environment, error) {
 		Environment: m,
 		cgPool:      b.cgPool,
 		wd:          wd[0],
+		workDir:     b.workDir,
 		cpuset:      b.cpuset,
 		cpuRate:     b.cpuRate,
 		seccomp:     b.seccomp,

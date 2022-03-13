@@ -59,6 +59,8 @@ type Environment interface {
 	WorkDir() *os.File // WorkDir returns opened work directory, should not close after
 	// Open open file at work dir with given relative path and flags
 	Open(path string, flags int, perm os.FileMode) (*os.File, error)
+	// Make dir creates directory inside the container
+	MkdirAll(path string, perm os.FileMode) error
 }
 
 // NewStoreFile creates a new file in storage

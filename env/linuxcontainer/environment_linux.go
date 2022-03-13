@@ -14,6 +14,7 @@ import (
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/rlimit"
 	"github.com/criyle/go-sandbox/runner"
+	"golang.org/x/sys/unix"
 )
 
 var _ envexec.Environment = &environ{}
@@ -141,8 +142,8 @@ func (c *environ) MkdirAll(path string, perm os.FileMode) error {
 	}
 	// fast path
 	wd := int(c.wd.Fd())
-	var stat syscall.Stat_t
-	err := syscall.Fstatat(wd, path, &stat, 0)
+	var stat unix.Stat_t
+	err := unix.Fstatat(wd, path, &stat, 0)
 	if err == nil {
 		if stat.Mode&syscall.S_IFMT == syscall.S_IFDIR {
 			return nil
@@ -170,7 +171,7 @@ func (c *environ) MkdirAll(path string, perm os.FileMode) error {
 	}
 	err = syscall.Mkdirat(wd, path, uint32(perm.Perm()))
 	if err != nil {
-		err1 := syscall.Fstatat(wd, path, &stat, 0)
+		err1 := unix.Fstatat(wd, path, &stat, 0)
 		if err1 == nil && stat.Mode&syscall.S_IFMT == syscall.S_IFDIR {
 			return nil
 		}

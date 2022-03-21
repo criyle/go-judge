@@ -31,7 +31,7 @@ jobs:
         os:
           - windows-latest
           - ubuntu-latest
-          - macos-latest
+          # - macos-latest
         GOARCH:
           - amd64 
         include:
@@ -41,8 +41,8 @@ jobs:
             GOARCH: "arm"
           - os: ubuntu-latest
             GOARCH: "arm64"
-          - os: macos-latest 
-            GOARCH: "arm64"
+          # - os: macos-latest 
+          #   GOARCH: "arm64"
     steps:
       - name: Set up Go 1.18
         if: ${{ matrix.os != 'macos-latest' }}

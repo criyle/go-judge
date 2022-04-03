@@ -24,31 +24,7 @@ const sandboxTemplate = `(version 1)
 (allow signal (target self))
 
 ; sysctls permitted.
-(allow sysctl-read
-  (sysctl-name "hw.activecpu")
-  (sysctl-name "hw.busfrequency_compat")
-  (sysctl-name "hw.byteorder")
-  (sysctl-name "hw.cachelinesize_compat")
-  (sysctl-name "hw.cpufrequency_compat")
-  (sysctl-name "hw.cputype")
-  (sysctl-name "hw.logicalcpu_max")
-  (sysctl-name "hw.machine")
-  (sysctl-name "hw.ncpu")
-  (sysctl-name "hw.pagesize_compat")
-  (sysctl-name "hw.physicalcpu_max")
-  (sysctl-name "hw.tbfrequency_compat")
-  (sysctl-name "hw.vectorunit")
-  (sysctl-name "kern.hostname")
-  (sysctl-name "kern.maxfilesperproc")
-  (sysctl-name "kern.osrelease")
-  (sysctl-name "kern.ostype")
-  (sysctl-name "kern.osvariant_status")
-  (sysctl-name "kern.osversion")
-  (sysctl-name "kern.usrstack64")
-  (sysctl-name "kern.version")
-  (sysctl-name "sysctl.proc_cputype")
-  (sysctl-name "kern.proc.pid.CURRENT_PID")
-)
+(allow sysctl-read)
 
 ; allow read from dir
 {{- range $dir := .ReadableDir }}

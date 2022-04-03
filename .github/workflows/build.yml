@@ -31,7 +31,7 @@ jobs:
         os:
           - windows-latest
           - ubuntu-latest
-          # - macos-latest
+          - macos-latest
         GOARCH:
           - amd64 
         include:
@@ -41,19 +41,13 @@ jobs:
             GOARCH: "arm"
           - os: ubuntu-latest
             GOARCH: "arm64"
-          # - os: macos-latest 
-          #   GOARCH: "arm64"
+          - os: macos-latest 
+            GOARCH: "arm64"
     steps:
       - name: Set up Go 1.18
-        if: ${{ matrix.os != 'macos-latest' }}
         uses: actions/setup-go@v2
         with:
           go-version: 1.18
-      - name: Set up Go 1.16
-        if: ${{ matrix.os == 'macos-latest' }}
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.16
       - name: Check out
         uses: actions/checkout@v2
       - name: Get git tag ref

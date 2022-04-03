@@ -26,6 +26,7 @@ type environment struct {
 }
 
 func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (envexec.Process, error) {
+	sTime := time.Now()
 	rLimits := rlimit.RLimits{
 		CPU:      uint64(param.Limit.Time.Truncate(time.Second)/time.Second) + 1,
 		Data:     param.Limit.Memory.Byte(),
@@ -55,7 +56,8 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 	go func() {
 		defer close(p.done)
 
-		var sTime, mTime, fTime time.Time
+		mTime := time.Now()
+
 		// handle cancel
 		ctx, cancel := context.WithCancel(c)
 		defer cancel()
@@ -80,12 +82,12 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 			if err == syscall.EINTR {
 				continue
 			}
-			fTime = time.Now()
 			if err != nil {
 				p.result.Error = err.Error()
 				p.result.Status = runner.StatusRunnerError
 				return
 			}
+			fTime := time.Now()
 			p.result = runner.Result{
 				Status:      runner.StatusNormal,
 				Time:        time.Duration(rusage.Utime.Nano()),

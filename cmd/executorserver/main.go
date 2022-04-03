@@ -55,6 +55,7 @@ func main() {
 	defer logger.Sync()
 	logger.Sugar().Infof("config loaded: %+v", conf)
 	initRand()
+	warnIfNotLinux()
 
 	// Init environment pool
 	fs, fsCleanUp := newFilsStore(conf)
@@ -118,6 +119,14 @@ func main() {
 		cancel()
 	}()
 	<-ctx.Done()
+}
+
+func warnIfNotLinux() {
+	if runtime.GOOS != "linux" {
+		logger.Sugar().Warn("Platform is ", runtime.GOOS)
+		logger.Sugar().Warn("Please notice that the primary supporting platform is Linux")
+		logger.Sugar().Warn("Windows and macOS(darwin) support are only recommended in development environment")
+	}
 }
 
 func loadConf() *config.Config {

@@ -54,7 +54,7 @@
 - 默认 gRPC 监听地址是 `:5051` ，使用 `-grpc-addr` 指定
 - 默认日志等级是 debug ，使用 `-silent` 关闭 或 使用 `-release` 开启 release 级别日志
 - 默认没有开启鉴权，使用 `-auth-token` 指定令牌鉴权
-- 默认没有开启 go 语音调试接口，使用 `-enable-debug` 开启，同时将日志层级设为 Debug
+- 默认没有开启 go 语言调试接口，使用 `-enable-debug` 开启，同时将日志层级设为 Debug
 - 默认没有开启 prometheus 监控接口，使用 `-enable-metrics` 开启
 - 在启用 go 语言调试接口或者 prometheus 监控接口的情况下，默认监控接口为 `:5052`，使用 `-monitor-addr` 指定
 

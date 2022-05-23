@@ -53,13 +53,8 @@ dockers:
     goarch: amd64
     extra_files:
       - "mount.yaml"
-  - image_templates:
-    - "criyle/executorserver:{{ .Tag }}-386"
-    use: buildx
-    goarch: "386"
-    dockerfile: "Dockerfile.goreleaser"
-    extra_files:
-      - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/amd64"
   - image_templates:
     - "criyle/executorserver:{{ .Tag }}-arm64"
     use: buildx
@@ -67,6 +62,8 @@ dockers:
     dockerfile: "Dockerfile.goreleaser"
     extra_files:
       - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/arm64"
   - image_templates:
     - "criyle/executorserver:{{ .Tag }}-arm"
     use: buildx
@@ -75,17 +72,17 @@ dockers:
     dockerfile: "Dockerfile.goreleaser"
     extra_files:
       - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/arm/v7"
 docker_manifests:
   - name_template: "criyle/executorserver:{{ .Tag }}"
     image_templates:
       - "criyle/executorserver:{{ .Tag }}-amd64"
-      - "criyle/executorserver:{{ .Tag }}-386"
       - "criyle/executorserver:{{ .Tag }}-arm64"
       - "criyle/executorserver:{{ .Tag }}-arm"
   - name_template: "criyle/executorserver:latest"
     image_templates:
       - "criyle/executorserver:{{ .Tag }}-amd64"
-      - "criyle/executorserver:{{ .Tag }}-386"
       - "criyle/executorserver:{{ .Tag }}-arm64"
       - "criyle/executorserver:{{ .Tag }}-arm"
     skip_push: auto

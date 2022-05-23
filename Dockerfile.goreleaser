@@ -1,0 +1,4 @@
+FROM ubuntu
+WORKDIR /opt/bin
+ENTRYPOINT [ "/opt/bin/executorserver" ]
+COPY executorserver mount.yaml /opt/bin/

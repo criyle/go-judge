@@ -1,3 +1,3 @@
 package version
 
-//go:generate go run genversion.go
+//go:generate bash -c "git describe --tags > version.txt"

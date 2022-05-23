@@ -52,7 +52,7 @@ Server:
 - The default binding address for the executor server is `:5050`. Can be specified with `-http-addr` flag.
 - By default gRPC endpoint is disabled, to enable gRPC endpoint, add `-enable-grpc` flag.
 - The default binding address for the gRPC executor server is `:5051`. Can be specified with `-grpc-addr` flag.
-- The default log level is debug, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
+- The default log level is info, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
 - `-auth-token` to add token-based authentication to REST / gRPC
 - By default, the GO debug endpoints are disabled, to enable, specifies `-enable-debug`, and it also enables debug log
 - By default, the prometheus metrics endpoints are disabled, to enable, specifies `-enable-metrics`

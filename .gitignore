@@ -35,3 +35,7 @@ executor_server.h
 /executorserver
 /cinit
 /tmp
+
+cmd/executorserver/version/version.txt
+
+dist/

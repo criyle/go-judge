@@ -1,0 +1,105 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+project_name: executorserver
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    - go mod download
+    # you may remove this if you don't need go generate
+    - go generate ./cmd/...
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+    goarm:
+      - "6"
+      - "7"
+    tags:
+      - nomsgpack
+    main: ./cmd/executorserver
+    binary: executorserver
+archives:
+  - replacements:
+      darwin: macOS
+    files:
+      - mount.yaml
+  - id: no_archive
+    replacements:
+      darwin: macOS
+    files:
+      - mount.yaml
+    format: binary
+nfpms:
+  - license: MIT
+    maintainer: "criyle"
+    formats:
+      - apk
+      - deb
+      - rpm
+dockers:
+  - image_templates:
+    - "criyle/executorserver:{{ .Tag }}-amd64"
+    use: buildx
+    dockerfile: "Dockerfile.goreleaser"
+    goarch: amd64
+    extra_files:
+      - "mount.yaml"
+  - image_templates:
+    - "criyle/executorserver:{{ .Tag }}-386"
+    use: buildx
+    goarch: "386"
+    dockerfile: "Dockerfile.goreleaser"
+    extra_files:
+      - "mount.yaml"
+  - image_templates:
+    - "criyle/executorserver:{{ .Tag }}-arm64"
+    use: buildx
+    goarch: "arm64"
+    dockerfile: "Dockerfile.goreleaser"
+    extra_files:
+      - "mount.yaml"
+  - image_templates:
+    - "criyle/executorserver:{{ .Tag }}-arm"
+    use: buildx
+    goarch: "arm"
+    goarm: "7"
+    dockerfile: "Dockerfile.goreleaser"
+    extra_files:
+      - "mount.yaml"
+docker_manifests:
+  - name_template: "criyle/executorserver:{{ .Tag }}"
+    image_templates:
+      - "criyle/executorserver:{{ .Tag }}-amd64"
+      - "criyle/executorserver:{{ .Tag }}-386"
+      - "criyle/executorserver:{{ .Tag }}-arm64"
+      - "criyle/executorserver:{{ .Tag }}-arm"
+  - name_template: "criyle/executorserver:latest"
+    image_templates:
+      - "criyle/executorserver:{{ .Tag }}-amd64"
+      - "criyle/executorserver:{{ .Tag }}-386"
+      - "criyle/executorserver:{{ .Tag }}-arm64"
+      - "criyle/executorserver:{{ .Tag }}-arm"
+    skip_push: auto
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+release:
+  github:
+    owner: criyle
+    name: go-judge

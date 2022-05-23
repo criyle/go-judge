@@ -3,25 +3,49 @@ on:
   push:
     branches: [master]
     tags: [v*]
+permissions:
+  contents: write
 jobs:
-  create-release:
-    name: Create release
+  goreleaser:
+    name: Goreleaser
     runs-on: ubuntu-latest
-    outputs: 
-      upload_url: ${{ steps.create_release.outputs.upload_url }} 
+    if: ${{ contains(github.ref, 'v') }}
     steps:
-      - run: echo Release ${{ github.ref }}
-      - name: Create Release
-        if: ${{ contains(github.ref, 'v') }}
-        id: create_release
-        uses: actions/create-release@v1
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      -
+        name: Fetch all tags
+        run: git fetch --force --tags
+      - 
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - 
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - 
+        name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.18
+      -
+        name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v2
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          version: latest
+          args: release --rm-dist
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with: 
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
   build:
     name: Build-${{ matrix.os }}-${{ matrix.GOARCH }}
     needs: create-release
@@ -103,16 +127,6 @@ jobs:
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.so
           path: executorserver.so
-      - name: Upload assets for linux
-        if: ${{ matrix.os == 'ubuntu-latest' && contains(github.ref, 'v') }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: executorserver
-          asset_name: executorserver-${{ matrix.GOARCH }}
-          asset_content_type: application/octet-stream
 
       - name: Build on Windows
         if: ${{ matrix.os == 'windows-latest' }}
@@ -138,16 +152,6 @@ jobs:
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.dll
           path: executorserver.dll
-      - name: Upload assets for windows
-        if: ${{ matrix.os == 'windows-latest' && contains(github.ref, 'v') }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: executorserver.exe
-          asset_name: executorserver-${{ matrix.GOARCH }}.exe
-          asset_content_type: application/octet-stream
 
       - name: Build on macOS
         if: ${{ matrix.os == 'macos-latest' }}
@@ -180,107 +184,3 @@ jobs:
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.dylib
           path: executorserver.dylib  
-      - name: Upload assets for macOS
-        if: ${{ matrix.os == 'macos-latest' && contains(github.ref, 'v') }}
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: executorserver
-          asset_name: executorserver-macOS-${{ matrix.GOARCH }}
-          asset_content_type: application/octet-stream
-  docker:
-    name: Build Docker Image - ${{ matrix.os }}
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        os:
-          - ubuntu
-          - alpine
-    steps:
-      -
-        name: Checkout
-        uses: actions/checkout@v2
-      - name: Get git tag ref
-        run: git fetch --prune --unshallow --tags
-      -
-        name: Docker meta
-        if: ${{ matrix.os == 'ubuntu' }}
-        id: docker_meta
-        uses: crazy-max/ghaction-docker-meta@v1
-        with:
-          images: criyle/executorserver # list of Docker images to use as base name for tags
-          tag-sha: true # add git short SHA as Docker tag
-          tag-semver: |
-            v{{version}}
-          tag-schedule: |
-            {{date 'YYYYMMDD'}}
-      -
-        name: Docker meta alpine
-        if: ${{ matrix.os == 'alpine' }}
-        id: docker_meta_alpine
-        uses: crazy-max/ghaction-docker-meta@v1
-        with:
-          images: criyle/executorserver # list of Docker images to use as base name for tags
-          tag-latest: false
-          tag-semver: |
-            v{{version}}-alpine
-          tag-schedule: |
-            {{date 'YYYYMMDD'}}-alpine
-      - 
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      - 
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      -
-        name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-      - 
-        name: Login to DockerHub
-        uses: docker/login-action@v1 
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      -
-        name: Build and push
-        if: ${{ matrix.os == 'ubuntu' }}
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          file: Dockerfile.exec
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/386
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-          tags: ${{ steps.docker_meta.outputs.tags }}
-          labels: ${{ steps.docker_meta.outputs.labels }}
-      -
-        name: Build and push alpine
-        if: ${{ matrix.os == 'alpine' }}
-        id: docker_build_alpine
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          file: Dockerfile.alpine
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/386
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-          tags: ${{ steps.docker_meta_alpine.outputs.tags }}
-          labels: ${{ steps.docker_meta_alpine.outputs.labels }}
-      -
-        name: Image digest
-        if: ${{ matrix.os == 'ubuntu' }}
-        run: echo ${{ steps.docker_build.outputs.digest }}
-      -
-        name: Image digest alpine
-        if: ${{ matrix.os == 'alpine' }}
-        run: echo ${{ steps.docker_build_alpine.outputs.digest }}

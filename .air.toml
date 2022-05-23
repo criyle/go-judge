@@ -5,3 +5,4 @@ cmd = "go build -o ./tmp/executorserver ./cmd/executorserver"
 full_bin = "tmp/executorserver -enable-grpc -enable-debug -enable-metrics"
 
 include_ext = ["go"]
+exclude_dir = ["dist"]

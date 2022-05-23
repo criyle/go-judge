@@ -48,7 +48,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build:
     name: Build-${{ matrix.os }}-${{ matrix.GOARCH }}
-    needs: create-release
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:

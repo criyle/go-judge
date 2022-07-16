@@ -24,12 +24,6 @@ const (
 
 // NewBuilder build a environment builder
 func NewBuilder(c Config) (pool.EnvBuilder, error) {
-	root, err := os.MkdirTemp("", "executorserver")
-	if err != nil {
-		return nil, err
-	}
-	c.Info("Created tmp dir for container root at:", root)
-
 	var (
 		mountBuilder  *mount.Builder
 		symbolicLinks []container.SymbolicLink
@@ -103,7 +97,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	c.Info("Creating container builder: hostName=", hostName, ", domainName=", domainName, ", workDir=", workDir)
 
 	b := &container.Builder{
-		Root:          root,
+		TmpRoot:       "executorserver",
 		Mounts:        m,
 		SymbolicLinks: symbolicLinks,
 		MaskPaths:     maskPaths,

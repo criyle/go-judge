@@ -50,23 +50,27 @@ type execServer struct {
 func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, error) {
 	r, si, so, err := convertPBRequest(req, e.srcPrefix)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	if len(si) > 0 || len(so) > 0 {
-		return nil, fmt.Errorf("stream in / out are not available for exec request")
+		return nil, status.Error(codes.InvalidArgument, "stream in / out are not available for exec request")
 	}
 	e.logger.Sugar().Debugf("request: %+v", r)
 	rtCh, _ := e.worker.Submit(ctx, r)
 	rt := <-rtCh
 	e.logger.Sugar().Debugf("response: %+v", rt)
 	if rt.Error != nil {
-		return nil, rt.Error
+		return nil, status.Error(codes.Internal, rt.Error.Error())
 	}
 	ret, err := model.ConvertResponse(rt, false)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return convertPBResponse(ret)
+	resp, err := convertPBResponse(ret)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	return resp, nil
 }
 
 func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileListType, error) {
@@ -77,9 +81,12 @@ func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileList
 
 func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, error) {
 	name, file := e.fs.Get(f.GetFileID())
+	if file == nil {
+		return nil, status.Errorf(codes.NotFound, "file %v not found", f.GetFileID())
+	}
 	r, err := envexec.FileToReader(file)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	if f, ok := r.(*os.File); ok {
 		defer f.Close()
@@ -87,7 +94,7 @@ func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, 
 
 	content, err := io.ReadAll(r)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	return &pb.FileContent{
 		Name:    name,
@@ -117,7 +124,7 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty, error) {
 	ok := e.fs.Remove(f.GetFileID())
 	if !ok {
-		return nil, status.Errorf(codes.InvalidArgument, "file id does not exists for %v", f.GetFileID())
+		return nil, status.Errorf(codes.NotFound, "file id does not exists for %v", f.GetFileID())
 	}
 	return &emptypb.Empty{}, nil
 }

@@ -50,7 +50,10 @@ func (p *pool) Put(env envexec.Environment) {
 	if !ok {
 		panic("invalid environment put")
 	}
-	e.Reset()
+	// If contain died after execution, don't put it into pool
+	if err := e.Reset(); err != nil {
+		return
+	}
 
 	p.mu.Lock()
 	defer p.mu.Unlock()

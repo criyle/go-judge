@@ -65,8 +65,8 @@ github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1/go.mod h1:eXthEFrGJvWH
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=
 github.com/creack/pty v1.1.18/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
-github.com/criyle/go-sandbox v0.9.9 h1:g0jXBEdl/u3p4frw6iOazabgmJngqM+2vonuUByE02Q=
-github.com/criyle/go-sandbox v0.9.9/go.mod h1:wBO0cwFhAludcUQTPsPteOjPRvOsuymrFn/efT1PUrM=
+github.com/criyle/go-sandbox v0.9.10 h1:Yej/CVspyix4OqbdAN5V0jWJTxiAbPKX2p2s0cR06gE=
+github.com/criyle/go-sandbox v0.9.10/go.mod h1:wBO0cwFhAludcUQTPsPteOjPRvOsuymrFn/efT1PUrM=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

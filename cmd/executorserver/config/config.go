@@ -53,6 +53,9 @@ type Config struct {
 	// fix for high memory usage
 	ForceGCTarget   *envexec.Size `flagUsage:"specifies force GC trigger heap size" default:"20m"`
 	ForceGCInterval time.Duration `flagUsage:"specifies force GC trigger interval" default:"5s"`
+
+	// show version and exit
+	Version bool `flagUsage:"show version and exit"`
 }
 
 // Load loads config from flag & environment variables

@@ -7,6 +7,7 @@ import (
 	crypto_rand "crypto/rand"
 	"encoding/binary"
 	"flag"
+	"fmt"
 	"log"
 	math_rand "math/rand"
 	"net"
@@ -51,6 +52,10 @@ var logger *zap.Logger
 
 func main() {
 	conf := loadConf()
+	if conf.Version {
+		fmt.Print(version.Version)
+		return
+	}
 	initLogger(conf)
 	defer logger.Sync()
 	logger.Sugar().Infof("config loaded: %+v", conf)

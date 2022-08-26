@@ -139,6 +139,8 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 criyle/executorser
 
 `/w` 的 `/tmp` 挂载 `tmpfs` 大小通过 `-tmp-fs-param` 指定，默认值为 `size=128m,nr_inodes=4k`
 
+如果在容器的根目录存在 `/.env` 文件，那么这个文件会在容器创建时被载入。文件的每一行会作为环境变量的初始值加入到运行程序当中。
+
 ### 包
 
 - envexec: 核心逻辑包，在提供的环境中运行一个或多个程序

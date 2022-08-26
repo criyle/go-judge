@@ -158,6 +158,8 @@ To customize mount points, please look at example `mount.yaml` file.
 
 `tmpfs` size for `/w` and `/tmp` is configured through `-tmp-fs-param` with default value `size=128m,nr_inodes=4k`
 
+If a file named `/.env` exists in the container rootfs, the container will load the file as environment variable line by line.
+
 ### Packages
 
 - envexec: run single / group of programs in parallel within restricted environment and resource constraints

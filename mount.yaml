@@ -70,6 +70,10 @@ mount:
   - type: bind
     source: containerPasswd.txt
     target: /etc/passwd
+  # (optional) bind a /.env to load default environment variable for the container
+  - type: bind
+    source: dotenv
+    target: /.env
 # java & ghc wants /proc/self/exe
 proc: true
 # create /dev standard io

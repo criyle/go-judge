@@ -1,0 +1,5 @@
+# /.env file should contain environment variable line by line
+# empty line or line start with # are ignored
+# double quote is not parsed and should not be used
+TESTENV=true
+

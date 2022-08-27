@@ -160,6 +160,8 @@ To customize mount points, please look at example `mount.yaml` file.
 
 If a file named `/.env` exists in the container rootfs, the container will load the file as environment variable line by line.
 
+If a bind mount is specifying a target within the previous mounted one, please ensure the target exists in the previous mount point.
+
 ### Packages
 
 - envexec: run single / group of programs in parallel within restricted environment and resource constraints

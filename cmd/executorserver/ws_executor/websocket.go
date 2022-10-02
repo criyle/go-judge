@@ -143,11 +143,11 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 		for {
 			req := new(wsRequest)
 			if err := conn.ReadJSON(req); err != nil {
-				h.logger.Sugar().Warn("ws read error:", err)
+				h.logger.Sugar().Info("ws read error:", err)
 				return
 			}
 			if err := handleRequest(baseCtx, req); err != nil {
-				h.logger.Sugar().Warn(err.Error())
+				h.logger.Sugar().Info("ws handle error:", err)
 				return
 			}
 		}
@@ -163,7 +163,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			case r := <-resultCh:
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
-					h.logger.Sugar().Warn("ws write error:", err)
+					h.logger.Sugar().Info("ws write error:", err)
 					return
 				}
 			case <-ticker.C:

@@ -147,6 +147,12 @@ func ConvertResponse(r worker.Response, mmap bool) (ret Response, err error) {
 				}
 			}
 		}
+		// if no mmap required, close all files
+		if !mmap {
+			for _, r := range ret.Results {
+				r.Close()
+			}
+		}
 	}()
 
 	ret = Response{

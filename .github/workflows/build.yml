@@ -68,15 +68,15 @@ jobs:
             GOARCH: "arm64"
     steps:
       - name: Set up Go 1.19
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: 1.19
       - name: Check out
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Get git tag ref
         run: git fetch --prune --unshallow --tags
       - name: Restore Cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -104,25 +104,25 @@ jobs:
           go build -buildmode=c-shared -o executorserver.so ./cmd/ffi
       - name: Upload executorserver on linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}
           path: executorserver
       - name: Upload executorshell on linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorShell-${{ matrix.GOARCH }}
           path: executorshell
       - name: Upload cinit on linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: cinit-${{ matrix.GOARCH }}
           path: cinit
       - name: Upload executorserver.so on linux
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.GOARCH == 'amd64' }} 
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.so
           path: executorserver.so
@@ -141,13 +141,13 @@ jobs:
           go build -buildmode=c-shared -o executorserver.dll ./cmd/ffi
       - name: Upload executorserver.exe on Windows
         if: ${{ matrix.os == 'windows-latest' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.exe
           path: executorserver.exe
       - name: Upload executorserver.dll on Windows
         if: ${{ matrix.os == 'windows-latest' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.dll
           path: executorserver.dll
@@ -167,19 +167,19 @@ jobs:
           go build -buildmode=c-shared -o executorserver.dylib ./cmd/ffi
       - name: Upload executorserver on macOS
         if: ${{ matrix.os == 'macos-latest' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorServer-MacOS-${{ matrix.GOARCH }}
           path: executorserver
       - name: Upload executorshell on macOS
         if: ${{ matrix.os == 'macos-latest' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorShell-MacOS-${{ matrix.GOARCH }}
           path: executorshell
       - name: Upload executorserver.dylib on macOS
         if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ExecutorServer-${{ matrix.GOARCH }}.dylib
           path: executorserver.dylib  

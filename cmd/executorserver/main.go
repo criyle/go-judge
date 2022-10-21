@@ -6,6 +6,7 @@ import (
 	"context"
 	crypto_rand "crypto/rand"
 	"encoding/binary"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -182,7 +183,11 @@ func initHTTPServer(conf *config.Config, work worker.Worker, fs filestore.FileSt
 
 		return func() {
 				logger.Sugar().Info("Starting http server at ", conf.HTTPAddr)
-				logger.Sugar().Info("Http server stopped: ", srv.ListenAndServe())
+				if err := srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
+					logger.Sugar().Info("Http server stopped: ", err)
+				} else {
+					logger.Sugar().Error("Http server stopped: ", err)
+				}
 			}, func(ctx context.Context) error {
 				logger.Sugar().Info("Http server shutdown")
 				return srv.Shutdown(ctx)
@@ -220,11 +225,12 @@ func initGRPCServer(conf *config.Config, work worker.Worker, fs filestore.FileSt
 		esServer := grpcexecutor.New(work, fs, conf.SrcPrefix, logger)
 		grpcServer := newGRPCServer(conf, esServer)
 
-		lis, err := net.Listen("tcp", conf.GRPCAddr)
-		if err != nil {
-			logger.Sugar().Fatal("gRPC listen failed", err)
-		}
 		return func() {
+				lis, err := net.Listen("tcp", conf.GRPCAddr)
+				if err != nil {
+					logger.Sugar().Error("gRPC listen failed", err)
+					return
+				}
 				logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr)
 				logger.Sugar().Info("gRPC server stopped: ", grpcServer.Serve(lis))
 			}, func(ctx context.Context) error {

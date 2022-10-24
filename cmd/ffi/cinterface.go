@@ -58,29 +58,11 @@ func newFilsStore(dir string) (filestore.FileStore, error) {
 
 // Init initialize the sandbox environment
 //export Init
-func Init(
-	cInitPath *C.char,
-	parallelism C.int,
-	tmpFsParam *C.char,
-	dir *C.char,
-	netShare C.int,
-	mountConf *C.char,
-	srcPrefix_ *C.char,
-	cgroupPrefix *C.char,
-	cpuSet *C.char,
-	credStart C.int,
-) {
-	ip := initParameter{
-		CInitPath:    C.GoString(cInitPath),
-		Parallelism:  int(parallelism),
-		TmpFsParam:   C.GoString(tmpFsParam),
-		Dir:          C.GoString(dir),
-		NetShare:     netShare != 0,
-		MountConf:    C.GoString(mountConf),
-		SrcPrefix:    C.GoString(srcPrefix_),
-		CgroupPrefix: C.GoString(cgroupPrefix),
-		CPUSet:       C.GoString(cpuSet),
-		CredStart:    int(credStart),
+func Init(i *C.char) C.int {
+	is := C.GoString(i)
+	var ip initParameter
+	if err := json.NewDecoder(bytes.NewBufferString(is)).Decode(&ip); err != nil {
+		return -1
 	}
 
 	if ip.Parallelism <= 0 {
@@ -125,6 +107,8 @@ func Init(
 		TimeLimitTickInterval: 100 * time.Millisecond,
 	})
 	work.Start()
+
+	return 0
 }
 
 // Exec runs command inside container runner

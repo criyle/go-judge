@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime"
 	"time"
+	"unsafe"
 
 	"github.com/criyle/go-judge/cmd/executorserver/model"
 	"github.com/criyle/go-judge/env"
@@ -40,7 +41,7 @@ var (
 	srcPrefix string
 )
 
-func newFilsStore(dir string) filestore.FileStore {
+func newFilsStore(dir string) (filestore.FileStore, error) {
 	if dir == "" {
 		if runtime.GOOS == "linux" {
 			dir = "/dev/shm"
@@ -49,20 +50,40 @@ func newFilsStore(dir string) filestore.FileStore {
 		}
 		dir, _ = os.MkdirTemp(dir, "executorserver")
 	}
-	os.MkdirAll(dir, 0755)
-	return filestore.NewFileLocalStore(dir)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, err
+	}
+	return filestore.NewFileLocalStore(dir), nil
 }
 
 // Init initialize the sandbox environment
 //export Init
-func Init(i *C.char) C.int {
-	is := C.GoString(i)
-	var ip initParameter
-	if err := json.NewDecoder(bytes.NewBufferString(is)).Decode(&ip); err != nil {
-		return -1
+func Init(
+	cInitPath *C.char,
+	parallelism C.int,
+	tmpFsParam *C.char,
+	dir *C.char,
+	netShare C.int,
+	mountConf *C.char,
+	srcPrefix_ *C.char,
+	cgroupPrefix *C.char,
+	cpuSet *C.char,
+	credStart C.int,
+) {
+	ip := initParameter{
+		CInitPath:    C.GoString(cInitPath),
+		Parallelism:  int(parallelism),
+		TmpFsParam:   C.GoString(tmpFsParam),
+		Dir:          C.GoString(dir),
+		NetShare:     netShare != 0,
+		MountConf:    C.GoString(mountConf),
+		SrcPrefix:    C.GoString(srcPrefix_),
+		CgroupPrefix: C.GoString(cgroupPrefix),
+		CPUSet:       C.GoString(cpuSet),
+		CredStart:    int(credStart),
 	}
 
-	if ip.Parallelism == 0 {
+	if ip.Parallelism <= 0 {
 		ip.Parallelism = 4
 	}
 
@@ -76,7 +97,11 @@ func Init(i *C.char) C.int {
 
 	srcPrefix = ip.SrcPrefix
 
-	fs = newFilsStore(ip.Dir)
+	var err error
+	fs, err = newFilsStore(ip.Dir)
+	if err != nil {
+		log.Fatalln("file store create failed", err)
+	}
 
 	b, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  ip.CInitPath,
@@ -100,11 +125,11 @@ func Init(i *C.char) C.int {
 		TimeLimitTickInterval: 100 * time.Millisecond,
 	})
 	work.Start()
-
-	return 0
 }
 
 // Exec runs command inside container runner
+//
+// Remember to free the return char pointer value
 //export Exec
 func Exec(e *C.char) *C.char {
 	es := C.GoString(e)
@@ -130,31 +155,33 @@ func Exec(e *C.char) *C.char {
 	return C.CString(buf.String())
 }
 
-// FileList get the list of files in the file store
+// FileList get the list of files in the file store.
+//
+// Remember to free the 2-d char array `ids` and `names`
 //export FileList
-func FileList() *C.char {
-	ids := fs.List()
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(ids); err != nil {
-		return nil
+func FileList(ids ***C.char, names ***C.char) C.size_t {
+	res := fs.List()
+	idsWrap := C.malloc(C.size_t(len(res)) * C.size_t(unsafe.Sizeof(uintptr(0))))
+	namesWrap := C.malloc(C.size_t(len(res)) * C.size_t(unsafe.Sizeof(uintptr(0))))
+	pIDsWrap := (*[1<<30 - 1]*C.char)(idsWrap)
+	pNamesWrap := (*[1<<30 - 1]*C.char)(namesWrap)
+	idx := 0
+	for id, name := range res {
+		pIDsWrap[idx] = C.CString(id)
+		pNamesWrap[idx] = C.CString(name)
+		idx++
 	}
-	return C.CString(buf.String())
+	*ids = (**C.char)(idsWrap)
+	*names = (**C.char)(namesWrap)
+	return C.size_t(len(res))
 }
 
 // FileAdd adds file to the file store
+//
+// Remember to free the return char pointer value
 //export FileAdd
-func FileAdd(e *C.char) *C.char {
-	type fileAdd struct {
-		Name    string `json:"name"`
-		Content string `json:"content"`
-	}
-	es := C.GoString(e)
-
-	var fa fileAdd
-	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&fa); err != nil {
-		return nil
-	}
+func FileAdd(content *C.char, contentLen C.int, name *C.char) *C.char {
+	sContent := C.GoBytes(unsafe.Pointer(content), contentLen)
 
 	f, err := fs.New()
 	if err != nil {
@@ -162,35 +189,34 @@ func FileAdd(e *C.char) *C.char {
 	}
 	defer f.Close()
 
-	if _, err := f.Write([]byte(fa.Content)); err != nil {
+	if _, err := f.Write(sContent); err != nil {
 		return nil
 	}
-	id, err := fs.Add(fa.Name, f.Name())
+	id, err := fs.Add(C.GoString(name), f.Name())
 	if err != nil {
 		return nil
 	}
 	return C.CString(id)
 }
 
-// FileGet gets file from file store by id
+// FileGet gets file from file store by id.
+// If the return value is a positive number or zero, the value represents the length of the file.
+// Otherwise, if the return value is negative, the following error occurred:
+//
+// - `-1`: The file does not exist.
+// - `-2`: go-judge internal error.
+//
+// Remember to free `out`.
 //export FileGet
-func FileGet(e *C.char) *C.char {
-	type fileGet struct {
-		ID string `json:"id"`
-	}
+func FileGet(e *C.char, out **C.char) C.int {
 	es := C.GoString(e)
-
-	var f fileGet
-	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&f); err != nil {
-		return nil
-	}
-	_, file := fs.Get(f.ID)
+	_, file := fs.Get(es)
 	if file == nil {
-		return nil
+		return -1
 	}
 	r, err := envexec.FileToReader(file)
 	if err != nil {
-		return nil
+		return -2
 	}
 	if f, ok := r.(*os.File); ok {
 		defer f.Close()
@@ -198,32 +224,24 @@ func FileGet(e *C.char) *C.char {
 
 	c, err := io.ReadAll(r)
 	if err != nil {
-		return nil
+		return -2
 	}
-	return C.CString(string(c))
+	*out = (*C.char)(C.CBytes(c))
+	return (C.int)(len(c))
 }
 
-// FileDelete deletes file from file store by id
+// FileDelete deletes file from file store by id, returns 0 if failed.
 //export FileDelete
-func FileDelete(e *C.char) *C.char {
-	type fileDelete struct {
-		ID string `json:"id"`
-	}
+func FileDelete(e *C.char) C.int {
 	es := C.GoString(e)
-
-	var f fileDelete
-	if err := json.NewDecoder(bytes.NewBufferString(es)).Decode(&f); err != nil {
-		return nil
-	}
-	ok := fs.Remove(f.ID)
+	ok := fs.Remove(es)
 	if !ok {
-		return nil
+		return 0
 	}
-	return C.CString("")
+	return 1
 }
 
-type nopLogger struct {
-}
+type nopLogger struct{}
 
 func (nopLogger) Debug(args ...interface{}) {
 }

@@ -180,6 +180,23 @@ func (c *environ) MkdirAll(path string, perm os.FileMode) error {
 	return nil
 }
 
+func (c *environ) Symlink(oldName, newName string) error {
+	var err error
+	if filepath.IsAbs(newName) {
+		newName, err = filepath.Rel(c.workDir, newName)
+		if err != nil {
+			return &os.PathError{Op: "symlink", Path: newName, Err: syscall.EINVAL}
+		}
+	}
+	if filepath.IsAbs(oldName) {
+		oldName, err = filepath.Rel(c.workDir, oldName)
+		if err != nil {
+			return &os.PathError{Op: "symlink", Path: oldName, Err: syscall.EINVAL}
+		}
+	}
+	return unix.Symlinkat(oldName, int(c.wd.Fd()), newName)
+}
+
 func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
 	cpuSet := limit.CPUSet
 	if cpuSet == "" {

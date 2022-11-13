@@ -19,6 +19,7 @@ type CmdFile struct {
 	Name    *string `json:"name"`
 	Max     *int64  `json:"max"`
 	Pipe    bool    `json:"pipe"`
+	Symlink *string `json:"symlink"`
 }
 
 // Cmd defines command and limits to start a program using in envexec
@@ -269,7 +270,12 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 	}
 	if c.CopyIn != nil {
 		w.CopyIn = make(map[string]worker.CmdFile)
+		w.Symlinks = make(map[string]string)
 		for k, f := range c.CopyIn {
+			if f.Symlink != nil {
+				w.Symlinks[k] = *f.Symlink
+				continue
+			}
 			cf, err := convertCmdFile(&f, srcPrefix)
 			if err != nil {
 				return w, err

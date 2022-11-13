@@ -61,6 +61,8 @@ type Environment interface {
 	Open(path string, flags int, perm os.FileMode) (*os.File, error)
 	// Make dir creates directory inside the container
 	MkdirAll(path string, perm os.FileMode) error
+	// Make symbolic link for a file / directory
+	Symlink(oldName, newName string) error
 }
 
 // NewStoreFile creates a new file in storage

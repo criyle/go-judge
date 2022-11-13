@@ -143,6 +143,10 @@ func (e *environment) MkdirAll(p string, perm os.FileMode) error {
 	return os.MkdirAll(path.Join(e.wdPath, p), perm)
 }
 
+func (e *environment) Symlink(oldName, newName string) error {
+	return os.Symlink(oldName, path.Join(e.wdPath, newName))
+}
+
 func (e *environment) Destroy() error {
 	e.wd.Close()
 	return os.RemoveAll(e.wdPath)

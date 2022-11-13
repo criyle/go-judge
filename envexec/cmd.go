@@ -22,6 +22,9 @@ type Cmd struct {
 	// file contents to copyin before exec
 	CopyIn map[string]File
 
+	// symbolic link to be created before exec
+	SymLinks map[string]string
+
 	// exec argument, environment
 	Args []string
 	Env  []string
@@ -93,6 +96,7 @@ const (
 	ErrCopyOutCreateFile
 	ErrCopyOutCopyContent
 	ErrCollectSizeExceeded
+	ErrSymlink
 )
 
 type FileError struct {

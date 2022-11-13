@@ -87,6 +87,7 @@ message Request {
     bool strictMemoryLimit = 16;
 
     map<string, File> copyIn = 8;
+    map<string, string> symlinks = 18;
 
     repeated CmdCopyOutFile copyOut = 9;
     repeated CmdCopyOutFile copyOutCached = 10;
@@ -131,6 +132,8 @@ message Response {
       CopyOutCopyContent = 7;
 
       CollectSizeExceeded = 8;
+
+      Symlink = 9;
     }
     string name = 1;
     ErrorType type = 2;

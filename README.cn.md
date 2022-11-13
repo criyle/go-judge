@@ -163,6 +163,8 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 criyle/executorser
 ```bash
 echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
 sysctl -p
+# 重启生效
+reboot
 ```
 
 #### 内存使用
@@ -230,12 +232,16 @@ interface Collector {
     pipe?: boolean; // 通过管道收集（默认值为false文件收集）
 }
 
+interface Symlink {
+    symlink: string; // 符号连接目标 (v1.6.0+)
+}
+
 interface Cmd {
     args: string[]; // 程序命令行参数
     env?: string[]; // 程序环境变量
 
     // 指定 标准输入、标准输出和标准错误的文件
-    files?: (LocalFile | MemoryFile | PreparedFile | Collector | null)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector)[];
     tty?: boolean; // 开启 TTY （需要保证标准输出和标准错误为同一文件）同时需要指定 TERM 环境变量 （例如 TERM=xterm）
 
     // 资源限制
@@ -249,7 +255,7 @@ interface Cmd {
     strictMemoryLimit?: boolean; // 开启严格内存限制 （仅 Linux，设置 rlimit 内存限制）
 
     // 在执行程序之前复制进容器的文件列表
-    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
+    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile | Symlink};
 
     // 在执行程序后从容器文件系统中复制出来的文件列表
     // 在文件名之后加入 '?' 来使文件变为可选，可选文件不存在的情况不会触发 FileError

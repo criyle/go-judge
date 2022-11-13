@@ -65,3 +65,16 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 	}
 	return fileError, g.Wait()
 }
+
+func symlink(m Environment, symlinks map[string]string) (*FileError, error) {
+	for k, v := range symlinks {
+		if err := m.Symlink(v, k); err != nil {
+			return &FileError{
+				Name:    k,
+				Type:    ErrSymlink,
+				Message: err.Error(),
+			}, err
+		}
+	}
+	return nil, nil
+}

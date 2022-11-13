@@ -32,7 +32,8 @@ type Cmd struct {
 	CPUSetLimit       string
 	StrictMemoryLimit bool
 
-	CopyIn map[string]CmdFile
+	CopyIn   map[string]CmdFile
+	Symlinks map[string]string
 
 	CopyOut       []CmdCopyOutFile
 	CopyOutCached []CmdCopyOutFile

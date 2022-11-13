@@ -513,6 +513,7 @@ func handleVersion(c *gin.Context) {
 		"os":              runtime.GOOS,
 		"copyOutOptional": true,
 		"pipeProxy":       true,
+		"symlink":         true,
 	})
 }
 
@@ -521,6 +522,7 @@ func generateHandleConfig(conf *config.Config) func(*gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"copyOutOptional": true,
 			"pipeProxy":       true,
+			"symlink":         true,
 			"fileStorePath":   conf.Dir,
 		})
 	}

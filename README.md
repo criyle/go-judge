@@ -204,6 +204,8 @@ By default, user namespace is disabled and it can be enabled following [stack ov
 ```bash
 echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
 sysctl -p
+# reboot make the config effective
+reboot
 ```
 
 #### Memory Usage
@@ -271,12 +273,16 @@ interface Collector {
     pipe?: boolean; // collect over pipe or not (default false)
 }
 
+interface Symlink {
+    symlink: string; // symlink destination (v1.6.0+)
+}
+
 interface Cmd {
     args: string[]; // command line argument
     env?: string[]; // environment
 
     // specifies file input / pipe collector for program file descriptors
-    files?: (LocalFile | MemoryFile | PreparedFile | Collector | null)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector)[];
     tty?: boolean; // enables tty on the input and output pipes (should have just one input & one output)
     // Notice: must have TERM environment variables (e.g. TERM=xterm)
 
@@ -292,7 +298,7 @@ interface Cmd {
     strictMemoryLimit?: boolean; // Linux only: use stricter memory limit (+ rlimit_data when cgroup enabled)
 
     // copy the correspond file to the container dst path
-    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile};
+    copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile | Symlink};
 
     // copy out specifies files need to be copied out from the container after execution
     // append '?' after file name will make the file optional and do not cause FileError when missing

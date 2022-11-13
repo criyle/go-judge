@@ -18,6 +18,14 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 		closeFiles(fds...)
 		return result, nil
 	}
+	// symlink
+	if fe, err := symlink(m, c.SymLinks); err != nil {
+		result.Status = StatusFileError
+		result.Error = err.Error()
+		result.FileError = []FileError{*fe}
+		closeFiles(fds...)
+		return result, nil
+	}
 
 	// run cmd and wait for result
 	rt := runSingleWait(pc, m, c, fds)

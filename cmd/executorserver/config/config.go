@@ -30,7 +30,7 @@ type Config struct {
 	TimeLimitCheckerInterval time.Duration `flagUsage:"specifies time limit checker interval" default:"100ms"`
 	ExtraMemoryLimit         *envexec.Size `flagUsage:"specifies extra memory buffer for check memory limit" default:"16k"`
 	OutputLimit              *envexec.Size `flagUsage:"specifies POSIX rlimit for output for each command" default:"256m"`
-	CopyOutLimit             *envexec.Size `flagUsage:"specifies default file copy out max" default:"64m"`
+	CopyOutLimit             *envexec.Size `flagUsage:"specifies default file copy out max" default:"256m"`
 	OpenFileLimit            int           `flagUsage:"specifies max open file count" default:"256"`
 	Cpuset                   string        `flagUsage:"control the usage of cpuset for all containerd process"`
 	EnableCPURate            bool          `flagUsage:"enable cpu cgroup rate control"`

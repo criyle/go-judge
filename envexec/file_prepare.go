@@ -9,6 +9,13 @@ import (
 	"github.com/creack/pty"
 )
 
+var closedChan chan struct{}
+
+func init() {
+	closedChan = make(chan struct{})
+	close(closedChan)
+}
+
 // prepare Files for tty input / output
 func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
 	var wg sync.WaitGroup
@@ -77,7 +84,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			if err != nil {
 				return nil, nil, fmt.Errorf("filed to create store file %v", err)
 			}
-			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name})
+			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name, true})
 
 			wg.Add(1)
 			go func() {
@@ -121,6 +128,10 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 	defer func() {
 		if err != nil {
 			closeFiles(files...)
+			for _, p := range pipeToCollect {
+				<-p.done
+				p.buffer.Close()
+			}
 		}
 	}()
 	// record the same file to avoid multiple file open
@@ -170,7 +181,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 				cf[t.Name] = b.W
 
 				files[j] = b.W
-				pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name})
+				pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name, true})
 			} else {
 				f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
 				if err != nil {
@@ -178,7 +189,13 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 				}
 				cf[t.Name] = f
 
+				buffer, err := c.Environment.Open(t.Name, os.O_RDWR, 0777)
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to open created container file %v", err)
+				}
+
 				files[j] = f
+				pipeToCollect = append(pipeToCollect, pipeCollector{closedChan, buffer, t.Limit, t.Name, false})
 			}
 
 		case *FileWriter:

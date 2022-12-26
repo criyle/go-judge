@@ -13,10 +13,11 @@ type pipeBuffer struct {
 }
 
 type pipeCollector struct {
-	done   <-chan struct{}
-	buffer *os.File
-	limit  Size
-	name   string
+	done    <-chan struct{}
+	buffer  *os.File
+	limit   Size
+	name    string
+	storage bool
 }
 
 func newPipe(writer io.Writer, limit Size) (<-chan struct{}, *os.File, error) {

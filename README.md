@@ -38,7 +38,7 @@ A REST service to run program in restricted environment and it is basically a wr
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
 - /version gets build git version (e.g. `v1.4.0`) together with runtime information (go version, os, platform)
-- /config gets some configuration (e.g. `fileStorePath`) together with some supported features
+- /config gets some configuration (e.g. `fileStorePath`, `runnerConfig`) together with some supported features
 
 Monitor HTTP endpoint (default `:5052`, specified by `-monitor-addr`)
 

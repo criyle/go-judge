@@ -9,6 +9,6 @@ import (
 	"github.com/criyle/go-judge/env/pool"
 )
 
-func NewBuilder(c Config) (pool.EnvBuilder, error) {
-	return nil, errors.New("environment is not support on this platform" + runtime.GOOS)
+func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
+	return nil, nil, errors.New("environment is not support on this platform" + runtime.GOOS)
 }

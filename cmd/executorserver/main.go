@@ -65,7 +65,7 @@ func main() {
 
 	// Init environment pool
 	fs, fsCleanUp := newFilsStore(conf)
-	b := newEnvBuilder(conf)
+	b, builderParam := newEnvBuilder(conf)
 	envPool := newEnvPool(b, conf.EnableMetrics)
 	prefork(envPool, conf.PreFork)
 	work := newWorker(conf, envPool, fs)
@@ -76,7 +76,7 @@ func main() {
 	servers := []initFunc{
 		cleanUpWorker(work),
 		cleanUpFs(fsCleanUp),
-		initHTTPServer(conf, work, fs),
+		initHTTPServer(conf, work, fs, builderParam),
 		initMonitorHTTPServer(conf),
 		initGRPCServer(conf, work, fs),
 	}
@@ -172,10 +172,10 @@ func cleanUpFs(fsCleanUp func() error) initFunc {
 	}
 }
 
-func initHTTPServer(conf *config.Config, work worker.Worker, fs filestore.FileStore) initFunc {
+func initHTTPServer(conf *config.Config, work worker.Worker, fs filestore.FileStore, builderParam map[string]any) initFunc {
 	return func() (start func(), cleanUp stopFunc) {
 		// Init http handle
-		r := initHTTPMux(conf, work, fs)
+		r := initHTTPMux(conf, work, fs, builderParam)
 		srv := http.Server{
 			Addr:    conf.HTTPAddr,
 			Handler: r,
@@ -292,7 +292,7 @@ func prefork(envPool worker.EnvironmentPool, prefork int) {
 	}
 }
 
-func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore) http.Handler {
+func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore, builderParam map[string]any) http.Handler {
 	var r *gin.Engine
 	if conf.Release {
 		gin.SetMode(gin.ReleaseMode)
@@ -307,10 +307,10 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	}
 
 	// Version handle
-	r.GET("/version", handleVersion)
+	r.GET("/version", generateHandleVersion(conf, builderParam))
 
 	// Config handle
-	r.GET("/config", generateHandleConfig(conf))
+	r.GET("/config", generateHandleConfig(conf, builderParam))
 
 	// Add auth token
 	if conf.AuthToken != "" {
@@ -442,8 +442,8 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 	return fs, cleanUp
 }
 
-func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
-	b, err := env.NewBuilder(env.Config{
+func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
+	b, param, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  conf.ContainerInitPath,
 		MountConf:          conf.MountConf,
 		TmpFsParam:         conf.TmpFsParam,
@@ -462,7 +462,7 @@ func newEnvBuilder(conf *config.Config) pool.EnvBuilder {
 	if conf.EnableMetrics {
 		b = &metriceEnvBuilder{b}
 	}
-	return b
+	return b, param
 }
 
 func newEnvPool(b pool.EnvBuilder, enableMetrics bool) worker.EnvironmentPool {
@@ -505,25 +505,28 @@ func newForceGCWorker(conf *config.Config) {
 	}()
 }
 
-func handleVersion(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"buildVersion":    version.Version,
-		"goVersion":       runtime.Version(),
-		"platform":        runtime.GOARCH,
-		"os":              runtime.GOOS,
-		"copyOutOptional": true,
-		"pipeProxy":       true,
-		"symlink":         true,
-	})
+func generateHandleVersion(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
+	return func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"buildVersion":    version.Version,
+			"goVersion":       runtime.Version(),
+			"platform":        runtime.GOARCH,
+			"os":              runtime.GOOS,
+			"copyOutOptional": true,
+			"pipeProxy":       true,
+			"symlink":         true,
+		})
+	}
 }
 
-func generateHandleConfig(conf *config.Config) func(*gin.Context) {
+func generateHandleConfig(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"copyOutOptional": true,
 			"pipeProxy":       true,
 			"symlink":         true,
 			"fileStorePath":   conf.Dir,
+			"runnerConfig":    builderParam,
 		})
 	}
 }

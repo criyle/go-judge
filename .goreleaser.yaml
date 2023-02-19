@@ -28,16 +28,24 @@ builds:
     main: ./cmd/executorserver
     binary: executorserver
 archives:
-  - replacements:
-      darwin: macOS
-    files:
+  - files:
       - mount.yaml
+    rlcp: true
+    name_template: >- 
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else }}{{ .Os }}{{ end }}_{{ .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
   - id: no_archive
-    replacements:
-      darwin: macOS
     files:
       - mount.yaml
     format: binary
+    rlcp: true
+    name_template: >- 
+      {{ .ProjectName }}_{{ .Version }}_
+      {{- if eq .Os "darwin" }}macOS
+      {{- else }}{{ .Os }}{{ end }}_{{ .Arch }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
 nfpms:
   - license: MIT
     maintainer: "criyle"

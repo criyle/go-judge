@@ -6,11 +6,11 @@ import (
 )
 
 // NewBuilder build a environment builder
-func NewBuilder(c Config) (pool.EnvBuilder, error) {
+func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	b, err := winc.NewBuilder("")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	c.Info("created winc builder")
-	return b, nil
+	return b, map[string]any{}, nil
 }

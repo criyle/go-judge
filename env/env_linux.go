@@ -23,7 +23,7 @@ const (
 )
 
 // NewBuilder build a environment builder
-func NewBuilder(c Config) (pool.EnvBuilder, error) {
+func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	var (
 		mountBuilder  *mount.Builder
 		symbolicLinks []container.SymbolicLink
@@ -32,14 +32,14 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	mc, err := readMountConfig(c.MountConf)
 	if err != nil {
 		if !os.IsNotExist(err) {
-			return nil, err
+			return nil, nil, err
 		}
 		c.Info("Mount.yaml(", c.MountConf, ") does not exists, use the default container mount")
 		mountBuilder = getDefaultMount(c.TmpFsParam)
 	} else {
 		mountBuilder, err = parseMountConfig(mc)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	if mc != nil && len(mc.SymLinks) > 0 {
@@ -60,7 +60,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 
 	seccomp, err := readSeccompConf(c.SeccompConf)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load seccomp config: %v", err)
+		return nil, nil, fmt.Errorf("failed to load seccomp config: %v", err)
 	}
 	if seccomp != nil {
 		c.Info("Load seccomp filter: ", c.SeccompConf)
@@ -124,7 +124,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	}
 	cgb, err = cgb.FilterByEnv()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	c.Info("Test created cgroup builder with: ", cgb)
 	if cg, err := cgb.Random(""); err != nil {
@@ -139,14 +139,28 @@ func NewBuilder(c Config) (pool.EnvBuilder, error) {
 	if cgb != nil {
 		cgroupPool = linuxcontainer.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
 	}
+	cgroupType := int(t)
+	if cgb == nil {
+		cgroupType = 0
+	}
 	return linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
-		Builder:    b,
-		CgroupPool: cgroupPool,
-		WorkDir:    workDir,
-		Cpuset:     c.Cpuset,
-		CPURate:    c.EnableCPURate,
-		Seccomp:    seccomp,
-	}), nil
+			Builder:    b,
+			CgroupPool: cgroupPool,
+			WorkDir:    workDir,
+			Cpuset:     c.Cpuset,
+			CPURate:    c.EnableCPURate,
+			Seccomp:    seccomp,
+		}), map[string]any{
+			"cgroupType":   cgroupType,
+			"mount":        m,
+			"symbolicLink": symbolicLinks,
+			"maskedPaths":  maskPaths,
+			"hostName":     hostName,
+			"domainName":   domainName,
+			"workDir":      workDir,
+			"uid":          cUID,
+			"gid":          cGID,
+		}, nil
 }
 
 type credGen struct {

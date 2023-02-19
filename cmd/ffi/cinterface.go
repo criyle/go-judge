@@ -57,6 +57,7 @@ func newFilsStore(dir string) (filestore.FileStore, error) {
 }
 
 // Init initialize the sandbox environment
+//
 //export Init
 func Init(i *C.char) C.int {
 	is := C.GoString(i)
@@ -85,7 +86,7 @@ func Init(i *C.char) C.int {
 		log.Fatalln("file store create failed", err)
 	}
 
-	b, err := env.NewBuilder(env.Config{
+	b, _, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  ip.CInitPath,
 		MountConf:          ip.MountConf,
 		TmpFsParam:         ip.TmpFsParam,
@@ -114,6 +115,7 @@ func Init(i *C.char) C.int {
 // Exec runs command inside container runner
 //
 // Remember to free the return char pointer value
+//
 //export Exec
 func Exec(e *C.char) *C.char {
 	es := C.GoString(e)
@@ -142,6 +144,7 @@ func Exec(e *C.char) *C.char {
 // FileList get the list of files in the file store.
 //
 // Remember to free the 2-d char array `ids` and `names`
+//
 //export FileList
 func FileList(ids ***C.char, names ***C.char) C.size_t {
 	res := fs.List()
@@ -163,6 +166,7 @@ func FileList(ids ***C.char, names ***C.char) C.size_t {
 // FileAdd adds file to the file store
 //
 // Remember to free the return char pointer value
+//
 //export FileAdd
 func FileAdd(content *C.char, contentLen C.int, name *C.char) *C.char {
 	sContent := C.GoBytes(unsafe.Pointer(content), contentLen)
@@ -191,6 +195,7 @@ func FileAdd(content *C.char, contentLen C.int, name *C.char) *C.char {
 // - `-2`: go-judge internal error.
 //
 // Remember to free `out`.
+//
 //export FileGet
 func FileGet(e *C.char, out **C.char) C.int {
 	es := C.GoString(e)
@@ -215,6 +220,7 @@ func FileGet(e *C.char, out **C.char) C.int {
 }
 
 // FileDelete deletes file from file store by id, returns 0 if failed.
+//
 //export FileDelete
 func FileDelete(e *C.char) C.int {
 	es := C.GoString(e)

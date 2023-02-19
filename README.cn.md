@@ -38,7 +38,7 @@
 - /file/:fileId DELETE 删除文件 ID 指定的文件
 - /ws /run 接口的 WebSocket 版
 - /version 得到本程序编译版本和 go 语言运行时版本
-- /config 得到本程序部分运行参数
+- /config 得到本程序部分运行参数，包括沙箱详细参数
 
 监控端口（默认监听 `:5052`）
 

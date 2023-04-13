@@ -344,9 +344,10 @@ func pipeProxy(p Pipe, out1 *os.File, in2 *os.File, buffer *os.File) *pipeCollec
 	}()
 
 	return &pipeCollector{
-		done:   done,
-		buffer: buffer,
-		limit:  p.Limit,
-		name:   p.Name,
+		done:    done,
+		buffer:  buffer,
+		limit:   p.Limit,
+		name:    p.Name,
+		storage: true,
 	}
 }

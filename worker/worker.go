@@ -180,7 +180,7 @@ func (w *worker) workDoCmd(ctx context.Context, req *Request) Response {
 }
 
 func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
-	c, err := w.prepareCmd(rc)
+	c, err := w.prepareCmd(rc, make(map[string]bool))
 	if err != nil {
 		rt.Error = err
 		return
@@ -213,8 +213,9 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Response) {
 	var rts []Result
 	cs := make([]*envexec.Cmd, 0, len(rc))
-	for _, cc := range rc {
-		c, err := w.prepareCmd(cc)
+	pipeFileNames := preparePipeNames(pm, len(rc))
+	for i, cc := range rc {
+		c, err := w.prepareCmd(cc, pipeFileNames[i])
 		if err != nil {
 			rt.Error = err
 			return
@@ -294,8 +295,8 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	return res
 }
 
-func (w *worker) prepareCmd(rc Cmd) (*envexec.Cmd, error) {
-	files, pipeFileName, err := w.prepareCmdFiles(rc.Files)
+func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool) (*envexec.Cmd, error) {
+	files, err := w.prepareCmdFiles(rc.Files, pipeFileName)
 	if err != nil {
 		return nil, err
 	}
@@ -386,9 +387,8 @@ func (w *worker) prepareCopyIn(cf map[string]CmdFile) (map[string]envexec.File, 
 	return rt, nil
 }
 
-func (w *worker) prepareCmdFiles(files []CmdFile) ([]envexec.File, map[string]bool, error) {
+func (w *worker) prepareCmdFiles(files []CmdFile, pipeFileName map[string]bool) ([]envexec.File, error) {
 	rt := make([]envexec.File, 0, len(files))
-	pipeFileName := make(map[string]bool)
 	for _, f := range files {
 		if f == nil {
 			rt = append(rt, nil)
@@ -396,12 +396,25 @@ func (w *worker) prepareCmdFiles(files []CmdFile) ([]envexec.File, map[string]bo
 		}
 		cf, err := f.EnvFile(w.fs)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		rt = append(rt, cf)
 		if t, ok := cf.(*envexec.FileCollector); ok {
 			pipeFileName[t.Name] = true
 		}
 	}
-	return rt, pipeFileName, nil
+	return rt, nil
+}
+
+func preparePipeNames(pm []PipeMap, l int) []map[string]bool {
+	rt := make([]map[string]bool, l)
+	for i := range rt {
+		rt[i] = make(map[string]bool)
+	}
+	for _, p := range pm {
+		if p.Proxy && p.In.Index >= 0 && p.In.Index < l {
+			rt[p.In.Index][p.Name] = true
+		}
+	}
+	return rt
 }

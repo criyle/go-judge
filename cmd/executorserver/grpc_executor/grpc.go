@@ -88,9 +88,7 @@ func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, 
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	if f, ok := r.(*os.File); ok {
-		defer f.Close()
-	}
+	defer r.Close()
 
 	content, err := io.ReadAll(r)
 	if err != nil {

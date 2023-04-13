@@ -207,9 +207,7 @@ func FileGet(e *C.char, out **C.char) C.int {
 	if err != nil {
 		return -2
 	}
-	if f, ok := r.(*os.File); ok {
-		defer f.Close()
-	}
+	defer r.Close()
 
 	c, err := io.ReadAll(r)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"embed"
 	"io"
 	"runtime/debug"
+	"strings"
 )
 
 //go:embed version.*
@@ -27,5 +28,5 @@ func init() {
 	if err != nil {
 		return
 	}
-	Version = string(s)
+	Version = strings.TrimSpace(string(s))
 }

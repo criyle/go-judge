@@ -40,9 +40,8 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 			if err != nil {
 				return fmt.Errorf("failed to copyIn %v", err)
 			}
-			if f, ok := hf.(*os.File); ok {
-				defer f.Close()
-			}
+			defer hf.Close()
+
 			// ensure path exists
 			if err := m.MkdirAll(filepath.Dir(n), 0777); err != nil {
 				t = ErrCopyInCreateDir

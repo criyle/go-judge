@@ -5,7 +5,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"os"
 	"path"
 
 	"github.com/criyle/go-judge/envexec"
@@ -73,9 +72,7 @@ func (f *fileHandle) fileIDGet(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	if f, ok := r.(*os.File); ok {
-		defer f.Close()
-	}
+	defer r.Close()
 
 	content, err := io.ReadAll(r)
 	if err != nil {

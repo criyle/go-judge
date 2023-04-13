@@ -84,15 +84,14 @@ func NewFileOpened(f *os.File) File {
 }
 
 // FileToReader get a Reader from underlying file
-// if the return value is *os.File, the file need to be closed
-// by caller
-func FileToReader(f File) (io.Reader, error) {
+// the reader need to be closed by caller explicitly
+func FileToReader(f File) (io.ReadCloser, error) {
 	switch f := f.(type) {
 	case *FileOpened:
 		return f.File, nil
 
 	case *FileReader:
-		return f.Reader, nil
+		return io.NopCloser(f.Reader), nil
 
 	case *FileInput:
 		file, err := os.Open(f.Path)

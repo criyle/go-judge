@@ -19,7 +19,7 @@ type Register interface {
 }
 
 // New creates new REST API handler
-func New(worker worker.Worker, fs filestore.FileStore, srcPrefix string, logger *zap.Logger) Register {
+func New(worker worker.Worker, fs filestore.FileStore, srcPrefix []string, logger *zap.Logger) Register {
 	return &handle{
 		worker:     worker,
 		fileHandle: fileHandle{fs: fs},
@@ -31,7 +31,7 @@ func New(worker worker.Worker, fs filestore.FileStore, srcPrefix string, logger 
 type handle struct {
 	worker worker.Worker
 	fileHandle
-	srcPrefix string
+	srcPrefix []string
 	logger    *zap.Logger
 }
 

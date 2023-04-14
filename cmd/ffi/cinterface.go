@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"strings"
 	"time"
 	"unsafe"
 
@@ -38,7 +39,7 @@ var (
 	fs   filestore.FileStore
 	work worker.Worker
 
-	srcPrefix string
+	srcPrefix []string
 )
 
 func newFilsStore(dir string) (filestore.FileStore, error) {
@@ -78,7 +79,7 @@ func Init(i *C.char) C.int {
 		ip.MountConf = "mount.yaml"
 	}
 
-	srcPrefix = ip.SrcPrefix
+	srcPrefix = strings.Split(ip.SrcPrefix, ",")
 
 	var err error
 	fs, err = newFilsStore(ip.Dir)

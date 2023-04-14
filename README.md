@@ -63,7 +63,7 @@ Sandbox:
 - The default concurrency equal to number of CPU, Can be specified with `-parallelism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
 - The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
-- `-src-prefix` to restrict `src` copyIn path (need to be absolute path)
+- `-src-prefix` to restrict `src` copyIn path split by comma (need to be absolute path) (example: `/bin,/usr`)
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
 - `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)

@@ -20,7 +20,7 @@ type Register interface {
 }
 
 // New creates new websocket handle
-func New(worker worker.Worker, srcPrefix string, logger *zap.Logger) Register {
+func New(worker worker.Worker, srcPrefix []string, logger *zap.Logger) Register {
 	return &wsHandle{
 		worker:    worker,
 		srcPrefix: srcPrefix,
@@ -42,7 +42,7 @@ const (
 
 type wsHandle struct {
 	worker    worker.Worker
-	srcPrefix string
+	srcPrefix []string
 	logger    *zap.Logger
 }
 

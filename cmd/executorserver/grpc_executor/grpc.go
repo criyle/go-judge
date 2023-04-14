@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -30,7 +27,7 @@ var buffPool = sync.Pool{
 }
 
 // New creates grpc executor server
-func New(worker worker.Worker, fs filestore.FileStore, srcPrefix string, logger *zap.Logger) pb.ExecutorServer {
+func New(worker worker.Worker, fs filestore.FileStore, srcPrefix []string, logger *zap.Logger) pb.ExecutorServer {
 	return &execServer{
 		worker:    worker,
 		fs:        fs,
@@ -43,7 +40,7 @@ type execServer struct {
 	pb.UnimplementedExecutorServer
 	worker    worker.Worker
 	fs        filestore.FileStore
-	srcPrefix string
+	srcPrefix []string
 	logger    *zap.Logger
 }
 
@@ -169,7 +166,7 @@ func convertPBFileError(fe []envexec.FileError) []*pb.Response_FileError {
 	return rt
 }
 
-func convertPBRequest(r *pb.Request, srcPrefix string) (req *worker.Request, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
+func convertPBRequest(r *pb.Request, srcPrefix []string) (req *worker.Request, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
 	defer func() {
 		if err != nil {
 			for _, fi := range streamIn {
@@ -219,7 +216,7 @@ func convertPBPipeMap(p *pb.Request_PipeMap) worker.PipeMap {
 	}
 }
 
-func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
+func convertPBCmd(c *pb.Request_CmdType, srcPrefix []string) (cm worker.Cmd, streamIn []*fileStreamIn, streamOut []*fileStreamOut, err error) {
 	defer func() {
 		if err != nil {
 			for _, fi := range streamIn {
@@ -284,13 +281,13 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix string) (cm worker.Cmd, strea
 	return cm, streamIn, streamOut, nil
 }
 
-func convertPBFile(c *pb.Request_File, srcPrefix string) (worker.CmdFile, error) {
+func convertPBFile(c *pb.Request_File, srcPrefix []string) (worker.CmdFile, error) {
 	switch c := c.File.(type) {
 	case nil:
 		return nil, nil
 	case *pb.Request_File_Local:
-		if srcPrefix != "" {
-			ok, err := checkPathPrefix(c.Local.GetSrc(), srcPrefix)
+		if len(srcPrefix) > 0 {
+			ok, err := model.CheckPathPrefixes(c.Local.GetSrc(), srcPrefix)
 			if err != nil {
 				return nil, err
 			}
@@ -307,17 +304,6 @@ func convertPBFile(c *pb.Request_File, srcPrefix string) (worker.CmdFile, error)
 		return &worker.Collector{Name: c.Pipe.GetName(), Max: envexec.Size(c.Pipe.GetMax()), Pipe: c.Pipe.GetPipe()}, nil
 	}
 	return nil, fmt.Errorf("request file type not supported yet %v", c)
-}
-
-func checkPathPrefix(path, prefix string) (bool, error) {
-	if filepath.IsAbs(path) {
-		return strings.HasPrefix(filepath.Clean(path), prefix), nil
-	}
-	wd, err := os.Getwd()
-	if err != nil {
-		return false, err
-	}
-	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
 }
 
 func convertCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []worker.CmdCopyOutFile {

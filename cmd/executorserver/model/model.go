@@ -175,7 +175,7 @@ func ConvertResponse(r worker.Response, mmap bool) (ret Response, err error) {
 }
 
 // ConvertRequest converts json request into worker request
-func ConvertRequest(r *Request, srcPrefix string) (*worker.Request, error) {
+func ConvertRequest(r *Request, srcPrefix []string) (*worker.Request, error) {
 	req := &worker.Request{
 		RequestID:   r.RequestID,
 		Cmd:         make([]worker.Cmd, 0, len(r.Cmd)),
@@ -238,7 +238,7 @@ func convertPipe(p PipeMap) worker.PipeMap {
 	}
 }
 
-func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
+func convertCmd(c Cmd, srcPrefix []string) (worker.Cmd, error) {
 	clockLimit := c.ClockLimit
 	if c.RealCPULimit > 0 {
 		clockLimit = c.RealCPULimit
@@ -286,13 +286,13 @@ func convertCmd(c Cmd, srcPrefix string) (worker.Cmd, error) {
 	return w, nil
 }
 
-func convertCmdFile(f *CmdFile, srcPrefix string) (worker.CmdFile, error) {
+func convertCmdFile(f *CmdFile, srcPrefix []string) (worker.CmdFile, error) {
 	switch {
 	case f == nil:
 		return nil, nil
 	case f.Src != nil:
-		if srcPrefix != "" {
-			ok, err := checkPathPrefix(*f.Src, srcPrefix)
+		if len(srcPrefix) != 0 {
+			ok, err := CheckPathPrefixes(*f.Src, srcPrefix)
 			if err != nil {
 				return nil, err
 			}
@@ -310,6 +310,19 @@ func convertCmdFile(f *CmdFile, srcPrefix string) (worker.CmdFile, error) {
 	default:
 		return nil, fmt.Errorf("file is not valid for cmd")
 	}
+}
+
+func CheckPathPrefixes(path string, prefixes []string) (bool, error) {
+	for _, p := range prefixes {
+		ok, err := checkPathPrefix(path, p)
+		if err != nil {
+			return false, err
+		}
+		if ok {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func checkPathPrefix(path, prefix string) (bool, error) {

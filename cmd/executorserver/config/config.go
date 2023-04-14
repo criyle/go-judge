@@ -23,8 +23,8 @@ type Config struct {
 	ContainerCredStart int    `flagUsage:"control the start uid&gid for container (0 uses unprivileged root)" default:"0"`
 
 	// file store
-	SrcPrefix string `flagUsage:"specifies directory prefix for source type copyin"`
-	Dir       string `flagUsage:"specifies directory to store file upload / download (in memory by default)"`
+	SrcPrefix []string `flagUsage:"specifies directory prefix for source type copyin (example: -src-prefix=/home,/usr)"`
+	Dir       string   `flagUsage:"specifies directory to store file upload / download (in memory by default)"`
 
 	// runner limit
 	TimeLimitCheckerInterval time.Duration `flagUsage:"specifies time limit checker interval" default:"100ms"`

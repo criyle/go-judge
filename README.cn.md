@@ -63,7 +63,7 @@
 - 默认同时运行任务数为和 CPU 数量相同，使用 `-parallelism` 指定
 - 默认文件存储在内存里，使用 `-dir` 指定本地目录为文件存储
 - 默认 cgroup 的前缀为 `executor_server` ，使用 `-cgroup-prefix` 指定
-- 默认没有磁盘文件复制限制，使用 `-src-prefix` 限制 copyIn 操作文件目录前缀（需要绝对路径）
+- 默认没有磁盘文件复制限制，使用 `-src-prefix` 限制 copyIn 操作文件目录前缀，使用逗号 `,` 分隔（需要绝对路径）（例如：`/bin,/usr`）
 - 默认时间和内存使用检查周期为 100 毫秒(`100ms`)，使用 `-time-limit-checker-interval` 指定
 - 默认最大输出限制为 `256MiB`，使用 `-output-limit` 指定
 - 默认最大打开文件描述符为 `256`，使用 `-open-file-limit` 指定

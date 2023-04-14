@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"log"
 	math_rand "math/rand"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -182,8 +181,13 @@ func initHTTPServer(conf *config.Config, work worker.Worker, fs filestore.FileSt
 		}
 
 		return func() {
-				logger.Sugar().Info("Starting http server at ", conf.HTTPAddr)
-				if err := srv.ListenAndServe(); errors.Is(err, http.ErrServerClosed) {
+				lis, err := newListener(conf.HTTPAddr)
+				if err != nil {
+					logger.Sugar().Error("Http server listen failed: ", err)
+					return
+				}
+				logger.Sugar().Info("Starting http server at ", conf.HTTPAddr, " with listener ", printListener(lis))
+				if err := srv.Serve(lis); errors.Is(err, http.ErrServerClosed) {
 					logger.Sugar().Info("Http server stopped: ", err)
 				} else {
 					logger.Sugar().Error("Http server stopped: ", err)
@@ -207,8 +211,13 @@ func initMonitorHTTPServer(conf *config.Config) initFunc {
 			Handler: mr,
 		}
 		return func() {
-				logger.Sugar().Info("Starting monitoring http server at ", conf.MonitorAddr)
-				logger.Sugar().Info("Monitoring http server stopped: ", msrv.ListenAndServe())
+				lis, err := newListener(conf.MonitorAddr)
+				if err != nil {
+					logger.Sugar().Error("Monitoring http listen failed: ", err)
+					return
+				}
+				logger.Sugar().Info("Starting monitoring http server at ", conf.MonitorAddr, " with listener ", printListener(lis))
+				logger.Sugar().Info("Monitoring http server stopped: ", msrv.Serve(lis))
 			}, func(ctx context.Context) error {
 				logger.Sugar().Info("Monitoring http server shutdown")
 				return msrv.Shutdown(ctx)
@@ -226,12 +235,12 @@ func initGRPCServer(conf *config.Config, work worker.Worker, fs filestore.FileSt
 		grpcServer := newGRPCServer(conf, esServer)
 
 		return func() {
-				lis, err := net.Listen("tcp", conf.GRPCAddr)
+				lis, err := newListener(conf.GRPCAddr)
 				if err != nil {
-					logger.Sugar().Error("gRPC listen failed", err)
+					logger.Sugar().Error("gRPC listen failed: ", err)
 					return
 				}
-				logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr)
+				logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr, " with listener ", printListener(lis))
 				logger.Sugar().Info("gRPC server stopped: ", grpcServer.Serve(lis))
 			}, func(ctx context.Context) error {
 				grpcServer.GracefulStop()

@@ -38,10 +38,10 @@ type Config struct {
 	FileTimeout              time.Duration `flagUsage:"specified timeout for filestore files"`
 
 	// server config
-	HTTPAddr      string `flagUsage:"specifies the http binding address" default:":5050"`
+	HTTPAddr      string `flagUsage:"specifies the http binding address"`
 	EnableGRPC    bool   `flagUsage:"enable gRPC endpoint"`
-	GRPCAddr      string `flagUsage:"specifies the grpc binding address" default:":5051"`
-	MonitorAddr   string `flagUsage:"specifies the metrics binding address" default:":5052"`
+	GRPCAddr      string `flagUsage:"specifies the grpc binding address"`
+	MonitorAddr   string `flagUsage:"specifies the metrics binding address"`
 	AuthToken     string `flagUsage:"bearer token auth for REST / gRPC"`
 	EnableDebug   bool   `flagUsage:"enable debug endpoint"`
 	EnableMetrics bool   `flagUsage:"enable promethus metrics endpoint"`
@@ -73,6 +73,13 @@ func (c *Config) Load() error {
 	)
 	if os.Getpid() == 1 {
 		c.Release = true
+		c.HTTPAddr = ":5050"
+		c.GRPCAddr = ":5051"
+		c.MonitorAddr = ":5052"
+	} else {
+		c.HTTPAddr = "127.0.0.1:5050"
+		c.GRPCAddr = "127.0.0.1:5051"
+		c.MonitorAddr = "127.0.0.1:5052"
 	}
 	if c.Parallelism <= 0 {
 		c.Parallelism = runtime.NumCPU()

@@ -210,7 +210,7 @@ reboot
 
 #### Memory Usage
 
-The controller will consume `20M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max.
+The controller will consume `20M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max. Notice that the cached file stores in the shared memory (`/dev/shm`) of the host, so please ensure enough size allocated.
 
 For example, when concurrency = 4, the executor itself can consume as much as `60 + (20+32) * 4M = 268M` + 4 * total copy out + total max memory of requests.
 

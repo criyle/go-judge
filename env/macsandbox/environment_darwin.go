@@ -106,6 +106,7 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 			case wstatus.Exited():
 				if status := wstatus.ExitStatus(); status != 0 {
 					p.result.Status = runner.StatusNonzeroExitStatus
+					p.result.ExitStatus = status
 					return
 				}
 				return

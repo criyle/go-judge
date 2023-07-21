@@ -9,7 +9,6 @@ jobs:
   goreleaser:
     name: Goreleaser
     runs-on: ubuntu-latest
-    if: ${{ contains(github.ref, 'v') }}
     steps:
       -
         name: Checkout
@@ -39,6 +38,7 @@ jobs:
       -
         name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
+        if: ${{ contains(github.ref, 'v') }}
         with:
           # either 'goreleaser' (default) or 'goreleaser-pro'
           distribution: goreleaser
@@ -46,6 +46,15 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      -
+        name: Test GoReleaser
+        uses: goreleaser/goreleaser-action@v3
+        if: ${{ ! contains(github.ref, 'v') }}
+        with:
+          # either 'goreleaser' (default) or 'goreleaser-pro'
+          distribution: goreleaser
+          version: latest
+          args: release --snapshot --clean
   build:
     name: Build-${{ matrix.os }}-${{ matrix.GOARCH }}
     runs-on: ${{ matrix.os }}
@@ -64,6 +73,8 @@ jobs:
             GOARCH: "arm"
           - os: ubuntu-latest
             GOARCH: "arm64"
+          - os: ubuntu-latest
+            GOARCH: "riscv64"
           - os: macos-latest 
             GOARCH: "arm64"
     steps:

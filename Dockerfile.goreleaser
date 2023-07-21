@@ -1,4 +1,4 @@
-FROM ubuntu
+FROM debian:latest
 WORKDIR /opt
 ENTRYPOINT [ "/opt/executorserver" ]
 COPY executorserver mount.yaml /opt/

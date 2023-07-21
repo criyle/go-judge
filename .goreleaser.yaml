@@ -20,6 +20,7 @@ builds:
       - amd64
       - arm
       - arm64
+      - riscv64
     goarm:
       - "6"
       - "7"
@@ -82,17 +83,29 @@ dockers:
       - "mount.yaml"
     build_flag_templates:
       - "--platform=linux/arm/v7"
+  # Debian is not supporting riscv64 on stable branch, skip it first
+  # - image_templates:
+  #   - "criyle/executorserver:{{ .Tag }}-riscv64"
+  #   use: buildx
+  #   dockerfile: "Dockerfile.goreleaser"
+  #   goarch: riscv64
+  #   extra_files:
+  #     - "mount.yaml"
+  #   build_flag_templates:
+  #     - "--platform=linux/riscv64"
 docker_manifests:
   - name_template: "criyle/executorserver:{{ .Tag }}"
     image_templates:
       - "criyle/executorserver:{{ .Tag }}-amd64"
       - "criyle/executorserver:{{ .Tag }}-arm64"
       - "criyle/executorserver:{{ .Tag }}-arm"
+      # - "criyle/executorserver:{{ .Tag }}-riscv64"
   - name_template: "criyle/executorserver:latest"
     image_templates:
       - "criyle/executorserver:{{ .Tag }}-amd64"
       - "criyle/executorserver:{{ .Tag }}-arm64"
       - "criyle/executorserver:{{ .Tag }}-arm"
+      # - "criyle/executorserver:{{ .Tag }}-riscv64"
     skip_push: auto
 checksum:
   name_template: "checksums.txt"

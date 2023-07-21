@@ -31,7 +31,6 @@ builds:
 archives:
   - files:
       - mount.yaml
-    rlcp: true
     name_template: >- 
       {{ .ProjectName }}_{{ .Version }}_
       {{- if eq .Os "darwin" }}macOS
@@ -41,7 +40,6 @@ archives:
     files:
       - mount.yaml
     format: binary
-    rlcp: true
     name_template: >- 
       {{ .ProjectName }}_{{ .Version }}_
       {{- if eq .Os "darwin" }}macOS

@@ -14,25 +14,26 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
-	github.com/prometheus/client_golang v1.15.1
+	github.com/prometheus/client_golang v1.16.0
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.9.0
-	golang.org/x/net v0.10.0
-	golang.org/x/sync v0.2.0
-	golang.org/x/sys v0.8.0
-	google.golang.org/grpc v1.55.0
-	google.golang.org/protobuf v1.30.0
+	golang.org/x/crypto v0.11.0
+	golang.org/x/net v0.12.0
+	golang.org/x/sync v0.3.0
+	golang.org/x/sys v0.10.0
+	google.golang.org/grpc v1.56.2
+	google.golang.org/protobuf v1.31.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
-	cloud.google.com/go/compute v1.19.0 // indirect
+	cloud.google.com/go/compute v1.22.0 // indirect
 	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bytedance/sonic v1.9.1 // indirect
+	github.com/bytedance/sonic v1.10.0-rc // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
-	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
+	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
+	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
@@ -48,10 +49,10 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
+	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
-	github.com/prometheus/procfs v0.10.1 // indirect
+	github.com/prometheus/procfs v0.11.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
@@ -59,10 +60,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.16.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
-	golang.org/x/text v0.9.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
+	golang.org/x/arch v0.4.0 // indirect
+	golang.org/x/term v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20230720185612-659f7aaaa771 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

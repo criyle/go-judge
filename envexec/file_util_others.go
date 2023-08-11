@@ -65,8 +65,9 @@ func copyDirFile(src, dst, name string) error {
 	if err != nil {
 		return err
 	}
+
 	// check regular file
-	if stat.Mode()|os.ModeType != 0 {
+	if stat.Mode()&os.ModeType != 0 {
 		return fmt.Errorf("File(%s) is not a regular file", name)
 	}
 

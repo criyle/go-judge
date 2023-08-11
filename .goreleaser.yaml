@@ -21,6 +21,10 @@ builds:
       - arm
       - arm64
       - riscv64
+      - loong64
+      # - mips64le
+      - ppc64le
+      - s390x
     goarm:
       - "6"
       - "7"
@@ -81,6 +85,24 @@ dockers:
       - "mount.yaml"
     build_flag_templates:
       - "--platform=linux/arm/v7"
+  - image_templates:
+    - "criyle/executorserver:{{ .Tag }}-ppc64le"
+    use: buildx
+    dockerfile: "Dockerfile.goreleaser"
+    goarch: ppc64le
+    extra_files:
+      - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/ppc64le"
+  - image_templates:
+      - "criyle/executorserver:{{ .Tag }}-s390x"
+    use: buildx
+    dockerfile: "Dockerfile.goreleaser"
+    goarch: s390x
+    extra_files:
+      - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/s390x"
   # Debian is not supporting riscv64 on stable branch, skip it first
   # - image_templates:
   #   - "criyle/executorserver:{{ .Tag }}-riscv64"
@@ -97,12 +119,16 @@ docker_manifests:
       - "criyle/executorserver:{{ .Tag }}-amd64"
       - "criyle/executorserver:{{ .Tag }}-arm64"
       - "criyle/executorserver:{{ .Tag }}-arm"
+      - "criyle/executorserver:{{ .Tag }}-ppc64le"
+      - "criyle/executorserver:{{ .Tag }}-s390x"
       # - "criyle/executorserver:{{ .Tag }}-riscv64"
   - name_template: "criyle/executorserver:latest"
     image_templates:
       - "criyle/executorserver:{{ .Tag }}-amd64"
       - "criyle/executorserver:{{ .Tag }}-arm64"
       - "criyle/executorserver:{{ .Tag }}-arm"
+      - "criyle/executorserver:{{ .Tag }}-ppc64le"
+      - "criyle/executorserver:{{ .Tag }}-s390x"
       # - "criyle/executorserver:{{ .Tag }}-riscv64"
     skip_push: auto
 checksum:

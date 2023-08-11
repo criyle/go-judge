@@ -722,7 +722,7 @@ If a bind mount is specifying a target within the previous mounted one, please e
 
 #### cgroup v2 support
 
-The cgroup v2 is supported by `executorserver` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1.
+The cgroup v2 is supported by `executorserver` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, for kernel < 5.19, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1. For kernel >= 5.19, `memory.peak` is being used.
 
 When running in containers, the `executorserver` will migrate all processed into `/init` hierarchy to enable nesting support.
 

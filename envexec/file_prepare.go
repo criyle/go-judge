@@ -82,7 +82,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			done := make(chan struct{})
 			buf, err := newStoreFile()
 			if err != nil {
-				return nil, nil, fmt.Errorf("filed to create store file %v", err)
+				return nil, nil, fmt.Errorf("failed to create store file %v", err)
 			}
 			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name, true})
 
@@ -185,7 +185,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			} else {
 				f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
 				if err != nil {
-					return nil, nil, fmt.Errorf("filed to create container file %v", err)
+					return nil, nil, fmt.Errorf("failed to create container file %v", err)
 				}
 				cf[t.Name] = f
 

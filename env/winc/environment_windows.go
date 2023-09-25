@@ -285,11 +285,17 @@ func (e *Environment) Symlink(oldName, newName string) error {
 
 // Destroy destroys the environment
 func (e *Environment) Destroy() error {
+	// error is ignorable for destroy operation
+	os.RemoveAll(e.root)
+	os.RemoveAll(e.tmp)
 	return e.wd.Close()
 }
 
 // Reset remove all files in root directory
 func (e *Environment) Reset() error {
+	if err := removeContents(e.tmp); err != nil {
+		return err
+	}
 	return removeContents(e.root)
 }
 

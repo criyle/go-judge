@@ -79,7 +79,7 @@ mount:
   - type: bind
     source: dotenv
     target: /.env
-    readonly: true
+    #readonly: true
 # java & ghc wants /proc/self/exe
 proc: true
 # create /dev standard io

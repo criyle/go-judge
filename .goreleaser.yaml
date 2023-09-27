@@ -22,7 +22,7 @@ builds:
       - arm64
       - riscv64
       - loong64
-      # - mips64le
+      - mips64le
       - ppc64le
       - s390x
     goarm:
@@ -56,6 +56,9 @@ nfpms:
       - apk
       - deb
       - rpm
+# nix:
+#   - name: go-judge
+#     license: "mit"
 dockers:
   - image_templates:
     - "criyle/executorserver:{{ .Tag }}-amd64"

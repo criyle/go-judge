@@ -19,18 +19,16 @@ type Cmd struct {
 	Args  []string
 	Env   []string
 	Files []CmdFile
-	TTY   bool
 
-	CPULimit          time.Duration
-	ClockLimit        time.Duration
-	MemoryLimit       Size
-	StackLimit        Size
-	OutputLimit       Size
-	ProcLimit         uint64
-	OpenFileLimit     uint64
-	CPURateLimit      uint64
-	CPUSetLimit       string
-	StrictMemoryLimit bool
+	CPULimit      time.Duration
+	ClockLimit    time.Duration
+	MemoryLimit   Size
+	StackLimit    Size
+	OutputLimit   Size
+	ProcLimit     uint64
+	OpenFileLimit uint64
+	CPURateLimit  uint64
+	CPUSetLimit   string
 
 	CopyIn   map[string]CmdFile
 	Symlinks map[string]string
@@ -39,6 +37,10 @@ type Cmd struct {
 	CopyOutCached []CmdCopyOutFile
 	CopyOutMax    uint64
 	CopyOutDir    string
+
+	TTY               bool
+	StrictMemoryLimit bool
+	AddressSpaceLimit bool
 }
 
 // Request defines single worker request

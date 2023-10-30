@@ -27,17 +27,15 @@ type Cmd struct {
 	Args  []string   `json:"args"`
 	Env   []string   `json:"env,omitempty"`
 	Files []*CmdFile `json:"files,omitempty"`
-	TTY   bool       `json:"tty,omitempty"`
 
-	CPULimit          uint64 `json:"cpuLimit"`
-	RealCPULimit      uint64 `json:"realCpuLimit"`
-	ClockLimit        uint64 `json:"clockLimit"`
-	MemoryLimit       uint64 `json:"memoryLimit"`
-	StackLimit        uint64 `json:"stackLimit"`
-	ProcLimit         uint64 `json:"procLimit"`
-	CPURateLimit      uint64 `json:"cpuRateLimit"`
-	CPUSetLimit       string `json:"cpuSetLimit"`
-	StrictMemoryLimit bool   `json:"strictMemoryLimit"`
+	CPULimit     uint64 `json:"cpuLimit"`
+	RealCPULimit uint64 `json:"realCpuLimit"`
+	ClockLimit   uint64 `json:"clockLimit"`
+	MemoryLimit  uint64 `json:"memoryLimit"`
+	StackLimit   uint64 `json:"stackLimit"`
+	ProcLimit    uint64 `json:"procLimit"`
+	CPURateLimit uint64 `json:"cpuRateLimit"`
+	CPUSetLimit  string `json:"cpuSetLimit"`
 
 	CopyIn map[string]CmdFile `json:"copyIn"`
 
@@ -45,6 +43,10 @@ type Cmd struct {
 	CopyOutCached []string `json:"copyOutCached"`
 	CopyOutMax    uint64   `json:"copyOutMax"`
 	CopyOutDir    string   `json:"copyOutDir"`
+
+	TTY               bool `json:"tty,omitempty"`
+	StrictMemoryLimit bool `json:"strictMemoryLimit"`
+	AddressSpaceLimit bool `json:"addressSpaceLimit"`
 }
 
 // PipeIndex defines indexing for a pipe fd
@@ -256,6 +258,7 @@ func convertCmd(c Cmd, srcPrefix []string) (worker.Cmd, error) {
 		CPURateLimit:      c.CPURateLimit,
 		CPUSetLimit:       c.CPUSetLimit,
 		StrictMemoryLimit: c.StrictMemoryLimit,
+		AddressSpaceLimit: c.AddressSpaceLimit,
 		CopyOut:           convertCopyOut(c.CopyOut),
 		CopyOutCached:     convertCopyOut(c.CopyOutCached),
 		CopyOutMax:        c.CopyOutMax,

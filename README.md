@@ -75,6 +75,7 @@ interface Cmd {
     cpuRateLimit?: number; // limit cpu usage (1000 equals 1 cpu)
     cpuSetLimit?: string; // Linux only: set the cpuSet for cgroup
     strictMemoryLimit?: boolean; // Linux only: use stricter memory limit (+ rlimit_data when cgroup enabled)
+    addressSpaceLimit?: boolean; // Linux only: use (+ rlimit_address_space limit) 
 
     // copy the correspond file to the container dst path
     copyIn?: {[dst:string]:LocalFile | MemoryFile | PreparedFile | Symlink};

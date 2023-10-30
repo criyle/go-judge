@@ -70,6 +70,9 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	if limit.StrictMemory || c.cgPool == nil {
 		rLimits.Data = limit.Memory.Byte()
 	}
+	if limit.AddressSpace {
+		rLimits.AddressSpace = limit.Memory.Byte()
+	}
 
 	// wait for sync or error before turn (avoid file close before pass to child process)
 	syncDone := make(chan struct{})

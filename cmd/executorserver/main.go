@@ -517,13 +517,14 @@ func newForceGCWorker(conf *config.Config) {
 func generateHandleVersion(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"buildVersion":    version.Version,
-			"goVersion":       runtime.Version(),
-			"platform":        runtime.GOARCH,
-			"os":              runtime.GOOS,
-			"copyOutOptional": true,
-			"pipeProxy":       true,
-			"symlink":         true,
+			"buildVersion":      version.Version,
+			"goVersion":         runtime.Version(),
+			"platform":          runtime.GOARCH,
+			"os":                runtime.GOOS,
+			"copyOutOptional":   true,
+			"pipeProxy":         true,
+			"symlink":           true,
+			"addressSpaceLimit": true,
 		})
 	}
 }
@@ -531,11 +532,12 @@ func generateHandleVersion(conf *config.Config, builderParam map[string]any) fun
 func generateHandleConfig(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
-			"copyOutOptional": true,
-			"pipeProxy":       true,
-			"symlink":         true,
-			"fileStorePath":   conf.Dir,
-			"runnerConfig":    builderParam,
+			"copyOutOptional":   true,
+			"pipeProxy":         true,
+			"symlink":           true,
+			"addressSpaceLimit": true,
+			"fileStorePath":     conf.Dir,
+			"runnerConfig":      builderParam,
 		})
 	}
 }

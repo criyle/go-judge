@@ -123,6 +123,7 @@ func runSingleExecve(ctx context.Context, m Environment, c *Cmd, fds []*os.File)
 			OpenFile:     c.OpenFileLimit,
 			CPUSet:       c.CPUSetLimit,
 			StrictMemory: c.StrictMemoryLimit,
+			AddressSpace: c.AddressSpaceLimit,
 		},
 	}
 	return m.Execve(ctx, execParam)

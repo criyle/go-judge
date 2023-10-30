@@ -34,16 +34,15 @@ type Cmd struct {
 	TTY   bool // use pty as input / output
 
 	// resource limits
-	TimeLimit         time.Duration
-	MemoryLimit       Size
-	StackLimit        Size
-	ExtraMemoryLimit  Size
-	OutputLimit       Size
-	ProcLimit         uint64
-	OpenFileLimit     uint64
-	CPURateLimit      uint64
-	StrictMemoryLimit bool
-	CPUSetLimit       string
+	TimeLimit        time.Duration
+	MemoryLimit      Size
+	StackLimit       Size
+	ExtraMemoryLimit Size
+	OutputLimit      Size
+	ProcLimit        uint64
+	OpenFileLimit    uint64
+	CPURateLimit     uint64
+	CPUSetLimit      string
 
 	// Waiter is called after cmd starts and it should return
 	// once time limit exceeded.
@@ -56,6 +55,10 @@ type Cmd struct {
 
 	// CopyOutDir specifies a dir to dump all /w contnet
 	CopyOutDir string
+
+	// additional memory option
+	AddressSpaceLimit bool
+	StrictMemoryLimit bool
 }
 
 // CmdCopyOutFile defines the file to be copy out after cmd execution

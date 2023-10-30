@@ -85,6 +85,7 @@ message Request {
     uint64 cpuRateLimit = 15;
     string cpuSetLimit = 17;
     bool strictMemoryLimit = 16;
+    bool addressSpaceLimit = 19;
 
     map<string, File> copyIn = 8;
     map<string, string> symlinks = 18;

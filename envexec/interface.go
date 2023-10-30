@@ -38,6 +38,7 @@ type Limit struct {
 	OpenFile     uint64        // Number of open files
 	CPUSet       string        // CPU set limit
 	StrictMemory bool          // Use stricter memory limit (e.g. rlimit)
+	AddressSpace bool          // rlimit address space
 }
 
 // Usage defines the peak process resource usage

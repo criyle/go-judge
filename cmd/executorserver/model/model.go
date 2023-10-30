@@ -46,6 +46,7 @@ type Cmd struct {
 
 	TTY               bool `json:"tty,omitempty"`
 	StrictMemoryLimit bool `json:"strictMemoryLimit"`
+	DataSegmentLimit  bool `json:"dataSegmentLimit"`
 	AddressSpaceLimit bool `json:"addressSpaceLimit"`
 }
 
@@ -257,7 +258,7 @@ func convertCmd(c Cmd, srcPrefix []string) (worker.Cmd, error) {
 		ProcLimit:         c.ProcLimit,
 		CPURateLimit:      c.CPURateLimit,
 		CPUSetLimit:       c.CPUSetLimit,
-		StrictMemoryLimit: c.StrictMemoryLimit,
+		DataSegmentLimit:  c.DataSegmentLimit || c.StrictMemoryLimit,
 		AddressSpaceLimit: c.AddressSpaceLimit,
 		CopyOut:           convertCopyOut(c.CopyOut),
 		CopyOutCached:     convertCopyOut(c.CopyOutCached),

@@ -58,7 +58,7 @@ type Cmd struct {
 
 	// additional memory option
 	AddressSpaceLimit bool
-	StrictMemoryLimit bool
+	DataSegmentLimit  bool
 }
 
 // CmdCopyOutFile defines the file to be copy out after cmd execution

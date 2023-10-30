@@ -122,7 +122,7 @@ func runSingleExecve(ctx context.Context, m Environment, c *Cmd, fds []*os.File)
 			Rate:         c.CPURateLimit,
 			OpenFile:     c.OpenFileLimit,
 			CPUSet:       c.CPUSetLimit,
-			StrictMemory: c.StrictMemoryLimit,
+			DataSegment:  c.DataSegmentLimit,
 			AddressSpace: c.AddressSpaceLimit,
 		},
 	}

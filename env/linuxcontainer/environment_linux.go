@@ -67,7 +67,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		DisableCore: true,
 	}
 
-	if limit.StrictMemory || c.cgPool == nil {
+	if limit.DataSegment || c.cgPool == nil {
 		rLimits.Data = limit.Memory.Byte()
 	}
 	if limit.AddressSpace {

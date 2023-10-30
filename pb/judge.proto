@@ -84,7 +84,7 @@ message Request {
     uint64 procLimit = 7;
     uint64 cpuRateLimit = 15;
     string cpuSetLimit = 17;
-    bool strictMemoryLimit = 16;
+    bool dataSegmentLimit = 16;
     bool addressSpaceLimit = 19;
 
     map<string, File> copyIn = 8;

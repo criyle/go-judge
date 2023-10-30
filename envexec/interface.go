@@ -37,7 +37,7 @@ type Limit struct {
 	Rate         uint64        // CPU Rate limit
 	OpenFile     uint64        // Number of open files
 	CPUSet       string        // CPU set limit
-	StrictMemory bool          // Use stricter memory limit (e.g. rlimit)
+	DataSegment  bool          // Use stricter memory limit (e.g. rlimit)
 	AddressSpace bool          // rlimit address space
 }
 

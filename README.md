@@ -74,7 +74,8 @@ interface Cmd {
     procLimit?: number;
     cpuRateLimit?: number; // limit cpu usage (1000 equals 1 cpu)
     cpuSetLimit?: string; // Linux only: set the cpuSet for cgroup
-    strictMemoryLimit?: boolean; // Linux only: use stricter memory limit (+ rlimit_data when cgroup enabled)
+    strictMemoryLimit?: boolean; // deprecated: use dataSegmentLimit instead (still working)
+    dataSegmentLimit?: boolean; // Linux only: use (+ rlimit_data limit) enable by default if cgroup not enabled
     addressSpaceLimit?: boolean; // Linux only: use (+ rlimit_address_space limit) 
 
     // copy the correspond file to the container dst path
@@ -375,7 +376,6 @@ Plese use PostMan or similar tools to send request to `http://localhost:5050/run
         "cpuLimit": 10000000000,
         "memoryLimit": 104857600,
         "procLimit": 50,
-        "strictMemoryLimit": false,
         "copyIn": {
             "a": {
                 "fileId": "5LWIZAA45JHX4Y4Z"

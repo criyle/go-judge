@@ -39,7 +39,7 @@ type Cmd struct {
 	CopyOutDir    string
 
 	TTY               bool
-	StrictMemoryLimit bool
+	DataSegmentLimit  bool
 	AddressSpaceLimit bool
 }
 

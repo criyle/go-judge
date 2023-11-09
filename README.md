@@ -333,8 +333,7 @@ Plese use PostMan or similar tools to send request to `http://localhost:5050/run
             }
         },
         "copyOut": ["stdout", "stderr"],
-        "copyOutCached": ["a.cc", "a"],
-        "copyOutDir": "1"
+        "copyOutCached": ["a.cc", "a"]
     }]
 }
 ```
@@ -602,7 +601,7 @@ Sandbox:
 
 - The default concurrency equal to number of CPU, Can be specified with `-parallelism` flag.
 - The default file store is in memory, local cache can be specified with `-dir` flag.
-- The default CGroup prefix is `executor_server`, Can be specified with `-cgroup-prefix` flag.
+- The default CGroup prefix is `gojudge`, Can be specified with `-cgroup-prefix` flag.
 - `-src-prefix` to restrict `src` copyIn path split by comma (need to be absolute path) (example: `/bin,/usr`)
 - `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
@@ -632,7 +631,9 @@ Environment variable will be override by command line arguments if they both pre
 
 Build by your own `docker build -t executorserver -f Dockerfile.exec .`
 
-The `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/executor_server`, `/sys/fs/cgroup/memory/executor_server`, `/sys/fs/cgroup/pids/executor_server` and make execution user readable or use `sudo` to run it.
+For cgroup v1, the `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/executor_server`, `/sys/fs/cgroup/memory/executor_server`, `/sys/fs/cgroup/pids/executor_server` and make execution user readable or use `sudo` to run it.
+
+For cgroup v2, systemd dbus will be used to create a transient scope for cgroup integration.
 
 #### Build Shared object
 
@@ -725,7 +726,9 @@ If a bind mount is specifying a target within the previous mounted one, please e
 
 The cgroup v2 is supported by `executorserver` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, for kernel < 5.19, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1. For kernel >= 5.19, `memory.peak` is being used.
 
-When running in containers, the `executorserver` will migrate all processed into `/init` hierarchy to enable nesting support.
+When running in containers, the `executorserver` will migrate all processed into `/api` hierarchy to enable nesting support.
+
+When running in Linux distributions powered by `systemd`, the `executorserver` will contact `systemd` via `dbus` to create a transient scope as cgroup root.
 
 #### CentOS 7
 

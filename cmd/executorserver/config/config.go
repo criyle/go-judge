@@ -19,7 +19,7 @@ type Config struct {
 	MountConf          string `flagUsage:"specifies mount configuration file" default:"mount.yaml"`
 	SeccompConf        string `flagUsage:"specifies seccomp filter" default:"seccomp.yaml"`
 	Parallelism        int    `flagUsage:"control the # of concurrency execution (default equal to number of cpu)"`
-	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"executor_server"`
+	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"gojudge"`
 	ContainerCredStart int    `flagUsage:"control the start uid&gid for container (0 uses unprivileged root)" default:"0"`
 
 	// file store

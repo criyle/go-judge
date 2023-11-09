@@ -1,17 +1,20 @@
 package env
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync/atomic"
 	"syscall"
 
+	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/criyle/go-judge/env/linuxcontainer"
 	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
 	"github.com/criyle/go-sandbox/pkg/mount"
+	ddbus "github.com/godbus/dbus/v5"
 	"golang.org/x/sys/unix"
 )
 
@@ -111,35 +114,17 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,
 	}
-	t := cgroup.DetectType()
-	if t == cgroup.CgroupTypeV2 {
-		c.Info("Enable cgroup v2 nesting support")
-		if err := cgroup.EnableV2Nesting(); err != nil {
-			c.Warn("Enable cgroup v2 failed", err)
-		}
-	}
-	cgb := cgroup.NewBuilder(c.CgroupPrefix).WithType(t).WithCPUAcct().WithMemory().WithPids().WithCPUSet()
-	if c.EnableCPURate {
-		cgb = cgb.WithCPU()
-	}
-	cgb, err = cgb.FilterByEnv()
+	cgb, err := newCgroup(c)
 	if err != nil {
+		c.Error("Failed to create cgroup ", c.CgroupPrefix, " ", err)
 		return nil, nil, err
-	}
-	c.Info("Test created cgroup builder with: ", cgb)
-	if cg, err := cgb.Random(""); err != nil {
-		c.Warn("Tested created cgroup with error: ", err)
-		c.Warn("Failed back to rlimit / rusage mode")
-		cgb = nil
-	} else {
-		cg.Destroy()
 	}
 
 	var cgroupPool linuxcontainer.CgroupPool
 	if cgb != nil {
 		cgroupPool = linuxcontainer.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
 	}
-	cgroupType := int(t)
+	cgroupType := int(cgroup.DetectedCgroupType)
 	if cgb == nil {
 		cgroupType = 0
 	}
@@ -161,6 +146,99 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 			"uid":          cUID,
 			"gid":          cGID,
 		}, nil
+}
+
+func newCgroup(c Config) (cgroup.Cgroup, error) {
+	prefix := c.CgroupPrefix
+	t := cgroup.DetectedCgroupType
+	ct, err := cgroup.GetAvailableController()
+	if err != nil {
+		c.Error("Failed to get available controllers", err)
+		return nil, err
+	}
+	if t == cgroup.CgroupTypeV2 {
+		// Check if running on a systemd enabled system
+		c.Info("Running with cgroup v2, connecting systemd dbus to create cgroup")
+		var conn *dbus.Conn
+		if os.Getuid() == 0 {
+			conn, err = dbus.NewSystemConnectionContext(context.TODO())
+		} else {
+			conn, err = dbus.NewUserConnectionContext(context.TODO())
+		}
+		if err != nil {
+			c.Info("Connecting to systemd dbus failed:", err)
+			c.Info("Assuming running in container, enable cgroup v2 nesting support and take control of the whole cgroupfs")
+			prefix = ""
+		} else {
+			defer conn.Close()
+
+			scopeName := c.CgroupPrefix + ".scope"
+			c.Info("Connected to systemd bus, attempting to create transient unit: ", scopeName)
+
+			properties := []dbus.Property{
+				dbus.PropDescription("go judge - a high performance sandbox service base on container technologies"),
+				dbus.PropWants(scopeName),
+				dbus.PropPids(uint32(os.Getpid())),
+				newSystemdProperty("Delegate", true),
+			}
+			ch := make(chan string, 1)
+			if _, err := conn.StartTransientUnitContext(context.TODO(), scopeName, "replace", properties, ch); err != nil {
+				c.Error("Failed to start transient unit ", err)
+				return nil, err
+			}
+			s := <-ch
+			if s != "done" {
+				c.Error("Starting transient unit returns ", s)
+				return nil, err
+			}
+			scopeName, err := cgroup.GetCurrentCgroupPrefix()
+			if err != nil {
+				return nil, err
+			}
+			c.Info("Current cgroup is ", scopeName)
+			prefix = scopeName
+			ct, err = cgroup.GetAvailableControllerWithPrefix(prefix)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	cgb, err := cgroup.New(prefix, ct)
+	if err != nil {
+		if os.Getuid() == 0 {
+			c.Error("Failed to create cgroup ", prefix, " ", err)
+			return nil, err
+		}
+		c.Warn("Not running in root and have no permission on cgroup, falling back to rlimit / rusage mode")
+		return nil, nil
+	}
+	// Create api and migrate current process into it
+	c.Info("Creating nesting api cgroup ", cgb)
+	if _, err = cgb.Nest("api"); err != nil {
+		// Only allow to fall back to rlimit mode when not running with root
+		if os.Getuid() != 0 {
+			c.Warn("Creating api cgroup with error: ", err)
+			c.Warn("As running in non-root mode, falling back back to rlimit / rusage mode")
+			cgb.Destroy()
+			return nil, nil
+		}
+	}
+
+	c.Info("Creating containers cgroup")
+	cg, err := cgb.New("containers")
+	if err != nil {
+		c.Warn("Creating containers cgroup with error: ", err)
+		c.Warn("Falling back to rlimit / rusage mode")
+		cgb = nil
+	}
+	return cg, nil
+}
+
+func newSystemdProperty(name string, units interface{}) dbus.Property {
+	return dbus.Property{
+		Name:  name,
+		Value: ddbus.MakeVariant(units),
+	}
 }
 
 type credGen struct {

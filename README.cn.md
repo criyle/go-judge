@@ -420,7 +420,7 @@ interface WSResult {
 
 - 默认同时运行任务数为和 CPU 数量相同，使用 `-parallelism` 指定
 - 默认文件存储在内存里，使用 `-dir` 指定本地目录为文件存储
-- 默认 cgroup 的前缀为 `executor_server` ，使用 `-cgroup-prefix` 指定
+- 默认 cgroup 的前缀为 `gojudge` ，使用 `-cgroup-prefix` 指定
 - 默认没有磁盘文件复制限制，使用 `-src-prefix` 限制 copyIn 操作文件目录前缀，使用逗号 `,` 分隔（需要绝对路径）（例如：`/bin,/usr`）
 - 默认时间和内存使用检查周期为 100 毫秒(`100ms`)，使用 `-time-limit-checker-interval` 指定
 - 默认最大输出限制为 `256MiB`，使用 `-output-limit` 指定
@@ -502,7 +502,9 @@ interface WSResult {
 
 `executorserver` 目前已经支持 cgroup v2 鉴于越来越多的 Linux 发行版默认启用 cgroup v2 而不是 v1 （比如 Ubuntu 21.10+，Fedora 31+）。然而，对于内核版本小于 5.19 的版本，因为 cgroup v2 在内存控制器里面缺少 `memory.max_usage_in_bytes`，内存使用量计数会转而采用 `maxrss` 指标。这项指标会显示的比使用 cgroup v1 时候要稍多，在运行使用内存较少的程序时比较明显。对于内核版本大于或等于 5.19 的版本，`memory.peak` 会被采用。
 
-同时，如果本程序在容器中运行，容器中的进程会被移到 `/init` cgroup v2 控制器中来开启 cgroup v2 嵌套支持。
+同时，如果本程序在容器中运行，容器中的进程会被移到 `/api` cgroup v2 控制器中来开启 cgroup v2 嵌套支持。
+
+在 `systemd` 为 `init` 的发行版中运行时，`executorserver` 会使用 `dbus` 通知 `systemd` 来创建一个临时 `scope` 作为 `cgroup` 的根。
 
 #### CentOS 7
 

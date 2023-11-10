@@ -9,7 +9,7 @@ import (
 	"github.com/koding/multiconfig"
 )
 
-// Config defines executor server configuration
+// Config defines go judge server configuration
 type Config struct {
 	// container
 	ContainerInitPath  string `flagUsage:"container init path"`

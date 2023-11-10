@@ -24,10 +24,9 @@ LICENSE
 README.md
 
 node_modules
-/cinit
 
 # not release yet
 package*.json
 
 example.js
-executor_server.h
+/go-judge*

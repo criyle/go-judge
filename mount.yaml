@@ -108,9 +108,9 @@ maskPath:
 # container work directory
 workDir: /w
 # container host name
-hostName: executor_server
+hostName: go_judge
 # container domain name
-domainName: executor_server
+domainName: go_judge
 # container user uid
 uid: 1536
 # container user gid

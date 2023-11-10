@@ -116,7 +116,6 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	}
 	cgb, err := newCgroup(c)
 	if err != nil {
-		c.Error("Failed to create cgroup ", c.CgroupPrefix, " ", err)
 		return nil, nil, err
 	}
 

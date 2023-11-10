@@ -106,7 +106,7 @@ jobs:
         run: |
           go build -v -tags nomsgpack -o go-judge ./cmd/go-judge
           go build -v -o go-judge-shell ./cmd/go-judge-shell
-          go build -o cinit ./cmd/cinit
+          go build -o go-judge-init ./cmd/go-judge-init
       - name: Build shared objects on Linux
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.GOARCH == 'amd64' }} 
         env:
@@ -125,12 +125,12 @@ jobs:
         with:
           name: go-judge-shell-${{ matrix.GOARCH }}
           path: go-judge-shell
-      - name: Upload cinit on linux
+      - name: Upload go-judge-init on linux
         if: ${{ matrix.os == 'ubuntu-latest' }} 
         uses: actions/upload-artifact@v3
         with:
-          name: cinit-${{ matrix.GOARCH }}
-          path: cinit
+          name: go-judge-init-${{ matrix.GOARCH }}
+          path: go-judge-init
       - name: Upload go-judge.so on linux
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.GOARCH == 'amd64' }} 
         uses: actions/upload-artifact@v3

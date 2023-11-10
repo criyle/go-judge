@@ -32,10 +32,10 @@ executor_server.h
 /executor_server
 /executorproxy
 /executorshell
-/executorserver
+/go-judge
 /cinit
 /tmp
 
-cmd/executorserver/version/version.txt
+cmd/go-judge/version/version.txt
 
 dist/

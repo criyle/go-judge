@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/criyle/go-judge/cmd/executorserver/model"
+	"github.com/criyle/go-judge/cmd/go-judge/model"
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/pb"

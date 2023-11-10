@@ -10,15 +10,15 @@ RUN go mod download -x
 
 COPY ./ /go/judge
 
-RUN go generate ./cmd/executorserver/version \
-    && CGO_ENABLE=0 go build -v -tags nomsgpack -o executorserver ./cmd/executorserver
+RUN go generate ./cmd/go-judge/version \
+    && CGO_ENABLE=0 go build -v -tags nomsgpack -o go-judge ./cmd/go-judge
 
 FROM alpine:latest
 
 WORKDIR /opt
 
-COPY --from=build /go/judge/executorserver /go/judge/mount.yaml /opt/
+COPY --from=build /go/judge/go-judge /go/judge/mount.yaml /opt/
 
 EXPOSE 5050/tcp 5051/tcp
 
-ENTRYPOINT ["./executorserver"]
+ENTRYPOINT ["./go-judge"]

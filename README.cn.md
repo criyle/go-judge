@@ -10,12 +10,12 @@
 
 ### 安装和运行
 
-下载对应平台预编译二进制文件 `executorserver` [Release](https://github.com/criyle/go-judge/releases) 并在终端开启
+下载对应平台预编译二进制文件 `go-judge` [Release](https://github.com/criyle/go-judge/releases) 并在终端开启
 
 或者使用 docker
 
 ```bash
-docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=executorserver criyle/executorserver
+docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge criyle/go-judge
 ```
 
 ### REST API 接口
@@ -175,7 +175,7 @@ interface WSResult {
 
 <details><summary>单个c++文件编译运行</summary>
 
-这个例子需要安装 `g++`。如果在 docker 环境中运行，请在容器中（`docker exec -it executorserver /bin/bash`）执行 `apt update && apt install g++`
+这个例子需要安装 `g++`。如果在 docker 环境中运行，请在容器中（`docker exec -it go-judge /bin/bash`）执行 `apt update && apt install g++`
 
 需要注意，在生产环境中 `copyOutCached` 产生的文件在使用完之后需要使用（`DELETE /file/:id`）删除避免内存泄露
 
@@ -441,19 +441,19 @@ interface WSResult {
 
 ### 环境变量
 
-所有命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `executorserver --help` 查看所有环境变量
+所有命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `go-judge --help` 查看所有环境变量
 
 #### 编译 docker
 
-终端中运行 `docker build -t executorserver -f Dockerfile.exec .`
+终端中运行 `docker build -t go-judge -f Dockerfile.exec .`
 
 沙箱服务需要特权级别 docker 来创建子容器和提供 cgroup 资源限制。
 
 ### 编译沙箱终端
 
-编译 `go build ./cmd/executorshell`
+编译 `go build ./cmd/go-judge-shell`
 
-运行 `./executorshell`，需要打开 gRPC 接口来使用。提供一个沙箱内的终端环境。
+运行 `./go-judge-shell`，需要打开 gRPC 接口来使用。提供一个沙箱内的终端环境。
 
 ### /run 接口返回状态
 
@@ -500,11 +500,11 @@ interface WSResult {
 
 #### cgroup v2
 
-`executorserver` 目前已经支持 cgroup v2 鉴于越来越多的 Linux 发行版默认启用 cgroup v2 而不是 v1 （比如 Ubuntu 21.10+，Fedora 31+）。然而，对于内核版本小于 5.19 的版本，因为 cgroup v2 在内存控制器里面缺少 `memory.max_usage_in_bytes`，内存使用量计数会转而采用 `maxrss` 指标。这项指标会显示的比使用 cgroup v1 时候要稍多，在运行使用内存较少的程序时比较明显。对于内核版本大于或等于 5.19 的版本，`memory.peak` 会被采用。
+`go-judge` 目前已经支持 cgroup v2 鉴于越来越多的 Linux 发行版默认启用 cgroup v2 而不是 v1 （比如 Ubuntu 21.10+，Fedora 31+）。然而，对于内核版本小于 5.19 的版本，因为 cgroup v2 在内存控制器里面缺少 `memory.max_usage_in_bytes`，内存使用量计数会转而采用 `maxrss` 指标。这项指标会显示的比使用 cgroup v1 时候要稍多，在运行使用内存较少的程序时比较明显。对于内核版本大于或等于 5.19 的版本，`memory.peak` 会被采用。
 
 同时，如果本程序在容器中运行，容器中的进程会被移到 `/api` cgroup v2 控制器中来开启 cgroup v2 嵌套支持。
 
-在 `systemd` 为 `init` 的发行版中运行时，`executorserver` 会使用 `dbus` 通知 `systemd` 来创建一个临时 `scope` 作为 `cgroup` 的根。
+在 `systemd` 为 `init` 的发行版中运行时，`go-judge` 会使用 `dbus` 通知 `systemd` 来创建一个临时 `scope` 作为 `cgroup` 的根。
 
 #### CentOS 7
 

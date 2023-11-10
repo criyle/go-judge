@@ -1,4 +1,4 @@
-// Command executorserver will starts a http server that receives command to run
+// Command go-judge will starts a http server that receives command to run
 // programs inside a sandbox.
 package main
 
@@ -20,11 +20,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/criyle/go-judge/cmd/executorserver/config"
-	grpcexecutor "github.com/criyle/go-judge/cmd/executorserver/grpc_executor"
-	restexecutor "github.com/criyle/go-judge/cmd/executorserver/rest_executor"
-	"github.com/criyle/go-judge/cmd/executorserver/version"
-	wsexecutor "github.com/criyle/go-judge/cmd/executorserver/ws_executor"
+	"github.com/criyle/go-judge/cmd/go-judge/config"
+	grpcexecutor "github.com/criyle/go-judge/cmd/go-judge/grpc_executor"
+	restexecutor "github.com/criyle/go-judge/cmd/go-judge/rest_executor"
+	"github.com/criyle/go-judge/cmd/go-judge/version"
+	wsexecutor "github.com/criyle/go-judge/cmd/go-judge/ws_executor"
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-judge/envexec"
@@ -432,7 +432,7 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 			conf.Dir = os.TempDir()
 		}
 		var err error
-		conf.Dir, err = os.MkdirTemp(conf.Dir, "executorserver")
+		conf.Dir, err = os.MkdirTemp(conf.Dir, "go-judge")
 		if err != nil {
 			logger.Sugar().Fatal("failed to create file store temp dir", err)
 		}

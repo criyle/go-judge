@@ -6,7 +6,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/criyle/go-judge/cmd/executorserver/model"
+	"github.com/criyle/go-judge/cmd/go-judge/model"
 	"github.com/criyle/go-judge/pb"
 	"github.com/criyle/go-judge/worker"
 	"go.uber.org/zap"

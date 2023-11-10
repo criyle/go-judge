@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	metricsNamespace     = "executorserver"
+	metricsNamespace     = "go_judge"
 	execSubsystem        = "exec"
 	filestoreSubsystem   = "file"
 	environmentSubsystem = "environment"

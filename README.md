@@ -10,12 +10,12 @@ Fast, Simple, Secure
 
 ### Install & Run
 
-Download compiled executable `executorserver` for your platform from [Release](https://github.com/criyle/go-judge/releases) and run.
+Download compiled executable `go-judge` for your platform from [Release](https://github.com/criyle/go-judge/releases) and run.
 
 Or, by docker
 
 ```bash
-docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=executorserver criyle/executorserver
+docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge criyle/go-judge
 ```
 
 ### REST API
@@ -24,8 +24,8 @@ A REST service to run program in restricted environment (Listening on `localhost
 
 - **/run POST execute program in the restricted environment (examples below)**
 - /file GET list all cached file id to original name map
-- /file POST prepare a file in the executor service (in memory), returns fileId (can be referenced in /run parameter)
-- /file/:fileId GET downloads file from executor service (in memory), returns file content
+- /file POST prepare a file in the go judge (in memory), returns fileId (can be referenced in /run parameter)
+- /file/:fileId GET downloads file from go judge (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
 - /version gets build git version (e.g. `v1.4.0`) together with runtime information (go version, os, platform)
@@ -84,7 +84,7 @@ interface Cmd {
     // copy out specifies files need to be copied out from the container after execution
     // append '?' after file name will make the file optional and do not cause FileError when missing
     copyOut?: string[];
-    // similar to copyOut but stores file in executor service and returns fileId, later download through /file/:fileId
+    // similar to copyOut but stores file in go judge and returns fileId, later download through /file/:fileId
     copyOutCached?: string[];
     // specifies the directory to dump container /w content
     copyOutDir: string
@@ -181,7 +181,7 @@ interface WSResult {
 ```javascript
 var ffi = require('ffi-napi');
 
-var executor_server = ffi.Library('./executor_server', {
+var go_judge = ffi.Library('./go_judge', {
     'Init': ['int', ['string']],
     'Exec': ['string', ['string']],
     'FileList': ['string', []],
@@ -190,14 +190,14 @@ var executor_server = ffi.Library('./executor_server', {
     'FileDelete': ['string', ['string']]
 });
 
-if (executor_server.Init(JSON.stringify({
+if (go_judge.Init(JSON.stringify({
     cinitPath: "/judge/cinit",
     parallelism: 4,
 }))) {
-    console.log("Failed to init executor server");
+    console.log("Failed to init go judge");
 }
 
-const result = JSON.parse(executor_server.Exec(JSON.stringify({
+const result = JSON.parse(go_judge.Exec(JSON.stringify({
     "cmd": [{
         "args": ["/bin/cat", "test.txt"],
         "env": ["PATH=/usr/bin:/bin"],
@@ -223,7 +223,7 @@ const result = JSON.parse(executor_server.Exec(JSON.stringify({
 console.log(result);
 
 // Async
-executor_server.Exec.async(JSON.stringify({
+go_judge.Exec.async(JSON.stringify({
     "cmd": [{
         "args": ["/bin/cat", "test.txt"],
         "env": ["PATH=/usr/bin:/bin"],
@@ -251,22 +251,22 @@ executor_server.Exec.async(JSON.stringify({
 });
 
 const fileAdd = (param) => new Promise((resolve, reject) => {
-    executor_server.FileAdd.async(JSON.stringify(param), (err, res) => {
+    go_judge.FileAdd.async(JSON.stringify(param), (err, res) => {
         if (err != null) { reject(err); } else { resolve(res); }
     });
 });
 const fileList = () => new Promise((resolve, reject) => {
-    executor_server.FileList.async((err, res) => {
+    go_judge.FileList.async((err, res) => {
         if (err != null && res == null) { reject(err); } else { resolve(JSON.parse(res)); }
     });
 });
 const fileGet = (param) => new Promise((resolve, reject) => {
-    executor_server.FileGet.async(JSON.stringify(param), (err, res) => {
+    go_judge.FileGet.async(JSON.stringify(param), (err, res) => {
         if (err != null && res == null) { reject(err); } else { resolve(res); }
     });
 });
 const fileDelete = (param) => new Promise((resolve, reject) => {
-    executor_server.FileDelete.async(JSON.stringify(param), (err, res) => {
+    go_judge.FileDelete.async(JSON.stringify(param), (err, res) => {
         if (err != null && res == null) { reject(err); } else { resolve(res); }
     });
 });
@@ -576,7 +576,7 @@ Plese use PostMan or similar tools to send request to `http://localhost:5050/run
 +----------------------------------------------------------------------------------+
 | Transport Layer (HTTP / WebSocket / FFI / ...)                                   |
 +----------------------------------------------------------------------------------+
-| Executor Worker (Environment Pool w/ Environment Builder )                       |
+| Sandbox Worker (Environment Pool w/ Environment Builder )                        |
 +-----------------------------------------------------------+----------------------+
 | EnvExec                                                   | File Store           |
 +--------------------+----------------+---------------------+---------------+------+
@@ -588,9 +588,9 @@ Plese use PostMan or similar tools to send request to `http://localhost:5050/run
 
 Server:
 
-- The default binding address for the executor server is `localhost:5050`. Can be specified with `-http-addr` flag.
+- The default binding address for the go judge is `localhost:5050`. Can be specified with `-http-addr` flag.
 - By default gRPC endpoint is disabled, to enable gRPC endpoint, add `-enable-grpc` flag.
-- The default binding address for the gRPC executor server is `localhost:5051`. Can be specified with `-grpc-addr` flag.
+- The default binding address for the gRPC go judge is `localhost:5051`. Can be specified with `-grpc-addr` flag.
 - The default log level is info, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
 - `-auth-token` to add token-based authentication to REST / gRPC
 - By default, the GO debug endpoints (`localhost:5052/debug`) are disabled, to enable, specifies `-enable-debug`, and it also enables debug log
@@ -625,13 +625,13 @@ Sandbox:
 
 ### Environment Variables
 
-Environment variable will be override by command line arguments if they both present and all command line arguments have its correspond environment variable (e.g. `ES_HTTP_ADDR`). Run `executorserver --help` to see all the environment variable configurations.
+Environment variable will be override by command line arguments if they both present and all command line arguments have its correspond environment variable (e.g. `ES_HTTP_ADDR`). Run `go-judge --help` to see all the environment variable configurations.
 
-#### Build Executor Server
+#### Build go judge
 
-Build by your own `docker build -t executorserver -f Dockerfile.exec .`
+Build by your own `docker build -t go-judge -f Dockerfile.exec .`
 
-For cgroup v1, the `executorserver` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/executor_server`, `/sys/fs/cgroup/memory/executor_server`, `/sys/fs/cgroup/pids/executor_server` and make execution user readable or use `sudo` to run it.
+For cgroup v1, the `go-judge` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/go_judge`, `/sys/fs/cgroup/memory/go_judge`, `/sys/fs/cgroup/pids/go_judge` and make execution user readable or use `sudo` to run it.
 
 For cgroup v2, systemd dbus will be used to create a transient scope for cgroup integration.
 
@@ -641,23 +641,23 @@ Build container init `cinit`:
 
 `go build -o cinit ./cmd/cinit`
 
-Build `executor_server.so`:
+Build `go_judge.so`:
 
-`go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
+`go build -buildmode=c-shared -o go_judge.so ./cmd/ffi/`
 
 For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported yet):
 
-### Build Executor Proxy
+### Build gRPC Proxy
 
-Build `go build ./cmd/executorproxy`
+Build `go build ./cmd/go-judge-proxy`
 
-Run `./executorproxy`, connect to gRPC endpoint expose as a REST endpoint.
+Run `./go-judge-proxy`, connect to gRPC endpoint expose as a REST endpoint.
 
-### Build Executor Shell
+### Build go judge Shell
 
-Build `go build ./cmd/executorshell`
+Build `go build ./cmd/go-judge-shell`
 
-Run `./executorshell`, connect to gRPC endpoint with interactive shell.
+Run `./go-judge-shell`, connect to gRPC endpoint with interactive shell.
 
 ### Return Status
 
@@ -700,9 +700,9 @@ If a bind mount is specifying a target within the previous mounted one, please e
 
 ### Windows Support
 
-- Build `executorserver` by: `go build ./cmd/executorserver/`
-- Build `executor_server.dll`: (need to install `gcc` as well) `go build -buildmode=c-shared -o executor_server.so ./cmd/ffi/`
-- Run: `./executorserver`
+- Build `go-judge` by: `go build ./cmd/go-judge/`
+- Build `go_judge.dll`: (need to install `gcc` as well) `go build -buildmode=c-shared -o go_judge.so ./cmd/ffi/`
+- Run: `./go-judge`
 
 #### Windows Security
 
@@ -712,9 +712,9 @@ If a bind mount is specifying a target within the previous mounted one, please e
 
 ### MacOS Support
 
-- Build `executorserver` by: `go build ./cmd/executorserver/`
-- Build `executor_server.dylib`: (need to install `XCode`) `go build -buildmode=c-shared -o executor_server.dylib ./cmd/ffi/`
-- Run: `./executorserver`
+- Build `go-judge` by: `go build ./cmd/go-judge/`
+- Build `go_judge.dylib`: (need to install `XCode`) `go build -buildmode=c-shared -o go_judge.dylib ./cmd/ffi/`
+- Run: `./go-judge`
 
 #### MacOS Security
 
@@ -724,11 +724,11 @@ If a bind mount is specifying a target within the previous mounted one, please e
 
 #### cgroup v2 support
 
-The cgroup v2 is supported by `executorserver` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, for kernel < 5.19, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1. For kernel >= 5.19, `memory.peak` is being used.
+The cgroup v2 is supported by `go-judge` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, for kernel < 5.19, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1. For kernel >= 5.19, `memory.peak` is being used.
 
-When running in containers, the `executorserver` will migrate all processed into `/api` hierarchy to enable nesting support.
+When running in containers, the `go-judge` will migrate all processed into `/api` hierarchy to enable nesting support.
 
-When running in Linux distributions powered by `systemd`, the `executorserver` will contact `systemd` via `dbus` to create a transient scope as cgroup root.
+When running in Linux distributions powered by `systemd`, the `go-judge` will contact `systemd` via `dbus` to create a transient scope as cgroup root.
 
 #### CentOS 7
 
@@ -745,7 +745,7 @@ reboot
 
 The controller will consume `20M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max. Notice that the cached file stores in the shared memory (`/dev/shm`) of the host, so please ensure enough size allocated.
 
-For example, when concurrency = 4, the executor itself can consume as much as `60 + (20+32) * 4M = 268M` + 4 * total copy out + total max memory of requests.
+For example, when concurrency = 4, the container itself can consume as much as `60 + (20+32) * 4M = 268M` + 4 * total copy out + total max memory of requests.
 
 Due to limitation of GO runtime, the memory will not return to OS automatically, which could lead to OOM killer. The background worker was introduced to checks heap usage and invokes GC when necessary.
 
@@ -756,7 +756,7 @@ Due to limitation of GO runtime, the memory will not return to OS automatically,
 
 By `wrk` with `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.
 
-However, these results are not the real use cases since the running time depends on the actual program specifies in the request. Normally, the executor server consumes ~1ms more compare to running without sandbox.
+However, these results are not the real use cases since the running time depends on the actual program specifies in the request. Normally, the go judge consumes ~1ms more compare to running without sandbox.
 
 ```lua
 wrk.method = "POST"

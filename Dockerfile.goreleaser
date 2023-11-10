@@ -1,4 +1,4 @@
 FROM debian:latest
 WORKDIR /opt
-ENTRYPOINT [ "/opt/executorserver" ]
-COPY executorserver mount.yaml /opt/
+ENTRYPOINT [ "/opt/go-judge" ]
+COPY go-judge mount.yaml /opt/

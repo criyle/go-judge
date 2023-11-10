@@ -1,6 +1,6 @@
 # This is an example .goreleaser.yml file with some sensible defaults.
 # Make sure to check the documentation at https://goreleaser.com
-project_name: executorserver
+project_name: go-judge
 before:
   hooks:
     # You may remove this if you don't use go modules.
@@ -30,8 +30,8 @@ builds:
       - "7"
     tags:
       - nomsgpack
-    main: ./cmd/executorserver
-    binary: executorserver
+    main: ./cmd/go-judge
+    binary: go-judge
 archives:
   - files:
       - mount.yaml
@@ -61,7 +61,7 @@ nfpms:
 #     license: "mit"
 dockers:
   - image_templates:
-    - "criyle/executorserver:{{ .Tag }}-amd64"
+    - "criyle/go-judge:{{ .Tag }}-amd64"
     use: buildx
     dockerfile: "Dockerfile.goreleaser"
     goarch: amd64
@@ -70,7 +70,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/amd64"
   - image_templates:
-    - "criyle/executorserver:{{ .Tag }}-arm64"
+    - "criyle/go-judge:{{ .Tag }}-arm64"
     use: buildx
     goarch: "arm64"
     dockerfile: "Dockerfile.goreleaser"
@@ -79,7 +79,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm64"
   - image_templates:
-    - "criyle/executorserver:{{ .Tag }}-arm"
+    - "criyle/go-judge:{{ .Tag }}-arm"
     use: buildx
     goarch: "arm"
     goarm: "7"
@@ -89,7 +89,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm/v7"
   - image_templates:
-    - "criyle/executorserver:{{ .Tag }}-ppc64le"
+    - "criyle/go-judge:{{ .Tag }}-ppc64le"
     use: buildx
     dockerfile: "Dockerfile.goreleaser"
     goarch: ppc64le
@@ -98,7 +98,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/ppc64le"
   - image_templates:
-      - "criyle/executorserver:{{ .Tag }}-s390x"
+      - "criyle/go-judge:{{ .Tag }}-s390x"
     use: buildx
     dockerfile: "Dockerfile.goreleaser"
     goarch: s390x
@@ -108,7 +108,7 @@ dockers:
       - "--platform=linux/s390x"
   # Debian is not supporting riscv64 on stable branch, skip it first
   # - image_templates:
-  #   - "criyle/executorserver:{{ .Tag }}-riscv64"
+  #   - "criyle/go-judge:{{ .Tag }}-riscv64"
   #   use: buildx
   #   dockerfile: "Dockerfile.goreleaser"
   #   goarch: riscv64
@@ -117,22 +117,22 @@ dockers:
   #   build_flag_templates:
   #     - "--platform=linux/riscv64"
 docker_manifests:
-  - name_template: "criyle/executorserver:{{ .Tag }}"
+  - name_template: "criyle/go-judge:{{ .Tag }}"
     image_templates:
-      - "criyle/executorserver:{{ .Tag }}-amd64"
-      - "criyle/executorserver:{{ .Tag }}-arm64"
-      - "criyle/executorserver:{{ .Tag }}-arm"
-      - "criyle/executorserver:{{ .Tag }}-ppc64le"
-      - "criyle/executorserver:{{ .Tag }}-s390x"
-      # - "criyle/executorserver:{{ .Tag }}-riscv64"
-  - name_template: "criyle/executorserver:latest"
+      - "criyle/go-judge:{{ .Tag }}-amd64"
+      - "criyle/go-judge:{{ .Tag }}-arm64"
+      - "criyle/go-judge:{{ .Tag }}-arm"
+      - "criyle/go-judge:{{ .Tag }}-ppc64le"
+      - "criyle/go-judge:{{ .Tag }}-s390x"
+      # - "criyle/go-judge:{{ .Tag }}-riscv64"
+  - name_template: "criyle/go-judge:latest"
     image_templates:
-      - "criyle/executorserver:{{ .Tag }}-amd64"
-      - "criyle/executorserver:{{ .Tag }}-arm64"
-      - "criyle/executorserver:{{ .Tag }}-arm"
-      - "criyle/executorserver:{{ .Tag }}-ppc64le"
-      - "criyle/executorserver:{{ .Tag }}-s390x"
-      # - "criyle/executorserver:{{ .Tag }}-riscv64"
+      - "criyle/go-judge:{{ .Tag }}-amd64"
+      - "criyle/go-judge:{{ .Tag }}-arm64"
+      - "criyle/go-judge:{{ .Tag }}-arm"
+      - "criyle/go-judge:{{ .Tag }}-ppc64le"
+      - "criyle/go-judge:{{ .Tag }}-s390x"
+      # - "criyle/go-judge:{{ .Tag }}-riscv64"
     skip_push: auto
 checksum:
   name_template: "checksums.txt"

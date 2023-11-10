@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/criyle/go-judge/cmd/executorserver/model"
+	"github.com/criyle/go-judge/cmd/go-judge/model"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"

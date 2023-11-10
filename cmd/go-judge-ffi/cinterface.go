@@ -14,7 +14,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/criyle/go-judge/cmd/executorserver/model"
+	"github.com/criyle/go-judge/cmd/go-judge/model"
 	"github.com/criyle/go-judge/env"
 	"github.com/criyle/go-judge/env/pool"
 	"github.com/criyle/go-judge/envexec"
@@ -49,7 +49,7 @@ func newFilsStore(dir string) (filestore.FileStore, error) {
 		} else {
 			dir = os.TempDir()
 		}
-		dir, _ = os.MkdirTemp(dir, "executorserver")
+		dir, _ = os.MkdirTemp(dir, "go-judge")
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err

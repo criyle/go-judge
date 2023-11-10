@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/criyle/go-judge/cmd/executorserver/model"
+	"github.com/criyle/go-judge/cmd/go-judge/model"
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"

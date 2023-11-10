@@ -100,7 +100,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	c.Info("Creating container builder: hostName=", hostName, ", domainName=", domainName, ", workDir=", workDir)
 
 	b := &container.Builder{
-		TmpRoot:       "executorserver",
+		TmpRoot:       "go-judge",
 		Mounts:        m,
 		SymbolicLinks: symbolicLinks,
 		MaskPaths:     maskPaths,

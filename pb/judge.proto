@@ -188,10 +188,13 @@ message StreamRequest {
     uint32 y = 5;
   }
 
+  message Cancel {}
+
   oneof request {
     Request execRequest = 1;
     Input execInput = 2;
     Resize execResize = 3;
+    Cancel execCancel = 4;
   }
 }
 

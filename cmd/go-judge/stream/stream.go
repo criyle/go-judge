@@ -26,7 +26,7 @@ type StreamRequest struct {
 	Request *model.Request
 	Resize  *ResizeRequest
 	Input   *InputRequest
-	Cancel  *bool
+	Cancel  *struct{}
 }
 
 type StreamResponse struct {

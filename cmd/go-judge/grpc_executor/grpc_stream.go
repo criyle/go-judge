@@ -55,6 +55,8 @@ func (sw *streamWrapper) Recv() (*stream.StreamRequest, error) {
 			X:    int(i.ExecResize.X),
 			Y:    int(i.ExecResize.Y),
 		}}, nil
+	case *pb.StreamRequest_ExecCancel:
+		return &stream.StreamRequest{Cancel: &struct{}{}}, nil
 	}
 	return nil, errors.ErrUnsupported
 }

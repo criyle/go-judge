@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/pb"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -107,11 +107,11 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 	}
 
 	// Set stdin in raw mode.
-	oldState, err := terminal.MakeRaw(int(os.Stdin.Fd()))
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = terminal.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
+	defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
 
 	// pump msg
 	sendCh := make(chan *pb.StreamRequest, 64)
@@ -127,6 +127,7 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 	}()
 
 	// pump stdin
+	forceQuit := false
 	go func() {
 		buf := make([]byte, 4096)
 		for {
@@ -142,6 +143,17 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 				}
 				continue
 			}
+			if n == 1 && buf[0] == 3 {
+				if forceQuit {
+					sendCh <- &pb.StreamRequest{
+						Request: &pb.StreamRequest_ExecCancel{},
+					}
+				}
+				forceQuit = true
+			} else {
+				forceQuit = false
+			}
+
 			if err != nil {
 				log.Println("stdin", err)
 				return

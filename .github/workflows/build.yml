@@ -32,7 +32,7 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: '1.21'
       -
@@ -78,12 +78,12 @@ jobs:
           - os: macos-latest 
             GOARCH: "arm64"
     steps:
-      - name: Set up Go 1.21
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.21'
       - name: Check out
         uses: actions/checkout@v4
+      - name: Set up Go 1.21
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
       - name: Get git tag ref
         run: git fetch --prune --unshallow --tags
       - name: Restore Cache

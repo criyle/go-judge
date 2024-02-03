@@ -50,7 +50,7 @@ func (p *pool) Put(env envexec.Environment) {
 	if !ok {
 		panic("invalid environment put")
 	}
-	// If contain died after execution, don't put it into pool and destory it
+	// If contain died after execution, don't put it into pool and destroy it
 	if err := e.Reset(); err != nil {
 		e.Destroy()
 		return

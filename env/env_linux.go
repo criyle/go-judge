@@ -182,13 +182,11 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 			}
 			ch := make(chan string, 1)
 			if _, err := conn.StartTransientUnitContext(context.TODO(), scopeName, "replace", properties, ch); err != nil {
-				c.Error("Failed to start transient unit ", err)
-				return nil, err
+				return nil, fmt.Errorf("failed to start transient unit: %w", err)
 			}
 			s := <-ch
 			if s != "done" {
-				c.Error("Starting transient unit returns ", s)
-				return nil, err
+				return nil, fmt.Errorf("starting transient unit returns error: %w", err)
 			}
 			scopeName, err := cgroup.GetCurrentCgroupPrefix()
 			if err != nil {

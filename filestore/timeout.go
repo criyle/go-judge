@@ -74,13 +74,13 @@ func (t *Timeout) Swap(i, j int) {
 	t.idToIndex[t.files[j].id] = j
 }
 
-func (t *Timeout) Push(x interface{}) {
+func (t *Timeout) Push(x any) {
 	e := x.(timeoutFile)
 	t.files = append(t.files, e)
 	t.idToIndex[e.id] = len(t.files) - 1
 }
 
-func (t *Timeout) Pop() interface{} {
+func (t *Timeout) Pop() any {
 	e := t.files[len(t.files)-1]
 	t.files = t.files[:len(t.files)-1]
 	delete(t.idToIndex, e.id)

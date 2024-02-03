@@ -231,7 +231,7 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 	return cg, nil
 }
 
-func newSystemdProperty(name string, units interface{}) dbus.Property {
+func newSystemdProperty(name string, units any) dbus.Property {
 	return dbus.Property{
 		Name:  name,
 		Value: ddbus.MakeVariant(units),

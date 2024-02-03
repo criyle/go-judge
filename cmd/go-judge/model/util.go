@@ -3,6 +3,7 @@ package model
 import (
 	"io"
 	"os"
+	"unsafe"
 )
 
 func fileToByteGeneric(f *os.File) ([]byte, error) {
@@ -22,4 +23,8 @@ func fileToByteGeneric(f *os.File) ([]byte, error) {
 		return nil, err
 	}
 	return c, nil
+}
+
+func strToBytes(s string) []byte {
+	return unsafe.Slice(unsafe.StringData(s), len(s))
 }

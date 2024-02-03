@@ -1,200 +1,172 @@
 package grpcexecutor
 
 import (
-	"context"
-	"fmt"
-	"io"
-	"sync"
+	"errors"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
+	"github.com/criyle/go-judge/cmd/go-judge/stream"
 	"github.com/criyle/go-judge/pb"
-	"github.com/criyle/go-judge/worker"
-	"go.uber.org/zap"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
-	msg, err := es.Recv()
-	if err != nil {
-		return status.Error(codes.InvalidArgument, err.Error())
-	}
-	req := msg.GetExecRequest()
-	if req == nil {
-		return status.Error(codes.InvalidArgument, "the first stream request must be exec request")
-	}
-	rq, streamIn, streamOut, err := convertPBRequest(req, e.srcPrefix)
-	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "convert exec request: %v", err)
-	}
-	e.logger.Sugar().Debugf("request: %+v", rq)
-	defer func() {
-		for _, fi := range streamIn {
-			fi.Close()
-		}
-		for _, fi := range streamOut {
-			fi.Close()
-		}
-	}()
+var _ stream.Stream = &streamWrapper{}
 
-	ctx, cancel := context.WithCancel(es.Context())
-	defer cancel()
-	errCh := make(chan error, 1)
-	var wg sync.WaitGroup
-
-	// stream in
-	if len(streamIn) > 0 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := streamInput(ctx, es, streamIn); err != nil {
-				writeErrCh(errCh, err)
-			}
-		}()
-	}
-
-	// stream out
-	outCh := make(chan *pb.StreamResponse_ExecOutput, len(streamOut))
-	if len(streamOut) > 0 {
-		wg.Add(len(streamOut))
-		for _, so := range streamOut {
-			so := so
-			go func() {
-				defer wg.Done()
-				if err := streamOutput(ctx, outCh, so); err != nil {
-					writeErrCh(errCh, err)
-				}
-			}()
-		}
-	}
-
-	rtCh := e.worker.Execute(es.Context(), rq)
-	err = execStreamLoop(es, errCh, outCh, rtCh, e.logger)
-
-	// Ensure all goroutine are exited
-	cancel()
-	wg.Wait()
-	return err
+type streamWrapper struct {
+	es pb.Executor_ExecStreamServer
 }
 
-func execStreamLoop(es pb.Executor_ExecStreamServer, errCh chan error, outCh chan *pb.StreamResponse_ExecOutput, rtCh <-chan worker.Response, logger *zap.Logger) error {
-	for {
-		select {
-		case <-es.Context().Done():
-			if err := es.Context().Err(); err != nil {
-				return status.Errorf(codes.Canceled, "context finished: %v", err)
-			}
-			return nil
-
-		case err := <-errCh:
-			return status.Errorf(codes.Aborted, "stream in/out: %v", err)
-
-		case o := <-outCh:
-			err := es.Send(&pb.StreamResponse{
-				Response: o,
-			})
-			if err != nil {
-				return status.Errorf(codes.Aborted, "output: %v", err)
-			}
-			buffPool.Put(o.ExecOutput.Content[:cap(o.ExecOutput.Content)])
-
-		case rt := <-rtCh:
-			logger.Sugar().Debugf("response: %+v", rt)
-			ret, err := model.ConvertResponse(rt, false)
-			if err != nil {
-				return status.Errorf(codes.Aborted, "response: %v", err)
-			}
-
-			resp, err := convertPBResponse(ret)
-			if err != nil {
-				return status.Errorf(codes.Aborted, "response: %v", err)
-			}
-			return es.Send(&pb.StreamResponse{
-				Response: &pb.StreamResponse_ExecResponse{
-					ExecResponse: resp,
-				},
-			})
-		}
-	}
-}
-
-func streamOutput(ctx context.Context, outCh chan<- *pb.StreamResponse_ExecOutput, so *fileStreamOut) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		buf := buffPool.Get().([]byte)
-		n, err := so.Read(buf)
+func (sw *streamWrapper) Send(r stream.StreamResponse) error {
+	res := &pb.StreamResponse{}
+	switch {
+	case r.Response != nil:
+		resp, err := convertPBResponse(*r.Response)
 		if err != nil {
-			return nil
+			return status.Errorf(codes.Aborted, "response: %v", err)
 		}
-		outCh <- &pb.StreamResponse_ExecOutput{
-			ExecOutput: &pb.StreamResponse_Output{
-				Name:    so.Name(),
-				Content: buf[:n],
+		res.Response = &pb.StreamResponse_ExecResponse{ExecResponse: resp}
+	case r.Output != nil:
+		res.Response = &pb.StreamResponse_ExecOutput{ExecOutput: &pb.StreamResponse_Output{
+			Name:    r.Output.Name,
+			Content: r.Output.Content,
+		}}
+	}
+	return sw.es.Send(res)
+}
+
+func (sw *streamWrapper) Recv() (*stream.StreamRequest, error) {
+	req, err := sw.es.Recv()
+	if err != nil {
+		return nil, err
+	}
+	switch i := req.Request.(type) {
+	case *pb.StreamRequest_ExecRequest:
+		return &stream.StreamRequest{Request: convertPBStreamRequest(i.ExecRequest)}, nil
+	case *pb.StreamRequest_ExecInput:
+		return &stream.StreamRequest{Input: &stream.InputRequest{
+			Name:    i.ExecInput.Name,
+			Content: i.ExecInput.Content,
+		}}, nil
+	case *pb.StreamRequest_ExecResize:
+		return &stream.StreamRequest{Resize: &stream.ResizeRequest{
+			Name: i.ExecResize.Name,
+			Rows: int(i.ExecResize.Rows),
+			Cols: int(i.ExecResize.Cols),
+			X:    int(i.ExecResize.X),
+			Y:    int(i.ExecResize.Y),
+		}}, nil
+	}
+	return nil, errors.ErrUnsupported
+}
+
+func convertPBStreamRequest(req *pb.Request) *model.Request {
+	ret := &model.Request{
+		RequestID: req.RequestID,
+	}
+	for _, cmd := range req.Cmd {
+		ret.Cmd = append(ret.Cmd, model.Cmd{
+			Args:              cmd.Args,
+			Env:               cmd.Env,
+			TTY:               cmd.Tty,
+			Files:             convertPBStreamFiles(cmd.Files),
+			CPULimit:          cmd.CpuTimeLimit,
+			ClockLimit:        cmd.ClockTimeLimit,
+			MemoryLimit:       cmd.MemoryLimit,
+			StackLimit:        cmd.StackLimit,
+			ProcLimit:         cmd.ProcLimit,
+			CPURateLimit:      cmd.CpuRateLimit,
+			CPUSetLimit:       cmd.CpuSetLimit,
+			DataSegmentLimit:  cmd.DataSegmentLimit,
+			AddressSpaceLimit: cmd.AddressSpaceLimit,
+			CopyIn:            convertPBStreamCopyIn(cmd),
+			CopyOut:           convertStreamCopyOut(cmd.CopyOut),
+			CopyOutCached:     convertStreamCopyOut(cmd.CopyOutCached),
+			CopyOutMax:        cmd.CopyOutMax,
+			CopyOutDir:        cmd.CopyOutDir,
+		})
+	}
+	for _, p := range req.PipeMapping {
+		ret.PipeMapping = append(ret.PipeMapping, model.PipeMap{
+			In: model.PipeIndex{
+				Index: int(p.In.Index),
+				Fd:    int(p.In.Fd),
 			},
-		}
+			Out: model.PipeIndex{
+				Index: int(p.Out.Index),
+				Fd:    int(p.Out.Fd),
+			},
+			Max:   int64(p.Max),
+			Name:  p.Name,
+			Proxy: p.Proxy,
+		})
 	}
+	return ret
 }
 
-func streamInput(ctx context.Context, es pb.Executor_ExecStreamServer, streamIn []*fileStreamIn) error {
-	inf := make(map[string]*fileStreamIn)
-	for _, f := range streamIn {
-		inf[f.Name()] = f
-	}
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-
-		in, err := es.Recv()
-		if err == io.EOF {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		switch i := in.Request.(type) {
-		case *pb.StreamRequest_ExecInput:
-			f, ok := inf[i.ExecInput.GetName()]
-			if !ok {
-				return fmt.Errorf("input %s not exists", i.ExecInput.GetName())
-			}
-			_, err = f.Write(i.ExecInput.Content)
-			if err == io.EOF {
-				return nil
-			}
-			if err != nil {
-				return fmt.Errorf("write to input %s with err %w", i.ExecInput.GetName(), err)
-			}
-
-		case *pb.StreamRequest_ExecResize:
-			f, ok := inf[i.ExecResize.GetName()]
-			if !ok {
-				return fmt.Errorf("input %s not exists", i.ExecResize.GetName())
-			}
-			tty := f.GetTTY()
-			if tty == nil {
-				return fmt.Errorf("input %s does not have TTY", i.ExecResize.GetName())
-			}
-			if err = setWinsize(tty, i); err != nil {
-				return fmt.Errorf("resize to input %s with err %w", i.ExecResize.GetName(), err)
-			}
-
-		default:
-			return fmt.Errorf("the following request must be input request")
+func convertPBStreamFiles(files []*pb.Request_File) []*model.CmdFile {
+	var rt []*model.CmdFile
+	for _, f := range files {
+		if f == nil {
+			rt = append(rt, nil)
+		} else {
+			m := convertPBStreamFile(f)
+			rt = append(rt, &m)
 		}
 	}
+	return rt
 }
 
-func writeErrCh(ch chan error, err error) {
-	select {
-	case ch <- err:
-	default:
+func convertPBStreamCopyIn(cmd *pb.Request_CmdType) map[string]model.CmdFile {
+	rt := make(map[string]model.CmdFile, len(cmd.CopyIn)+len(cmd.Symlinks))
+	for k, i := range cmd.CopyIn {
+		if i.File == nil {
+			continue
+		}
+		rt[k] = convertPBStreamFile(i)
 	}
+	for k, v := range cmd.Symlinks {
+		rt[k] = model.CmdFile{Symlink: &v}
+	}
+	return rt
+}
+
+func convertPBStreamFile(i *pb.Request_File) model.CmdFile {
+	switch c := i.File.(type) {
+	case *pb.Request_File_Local:
+		return model.CmdFile{Src: &c.Local.Src}
+	case *pb.Request_File_Memory:
+		s := byteArrayToString(c.Memory.Content)
+		return model.CmdFile{Content: &s}
+	case *pb.Request_File_Cached:
+		return model.CmdFile{FileID: &c.Cached.FileID}
+	case *pb.Request_File_Pipe:
+		return model.CmdFile{Name: &c.Pipe.Name, Max: &c.Pipe.Max, Pipe: c.Pipe.Pipe}
+	case *pb.Request_File_StreamIn:
+		return model.CmdFile{StreamIn: &c.StreamIn.Name}
+	case *pb.Request_File_StreamOut:
+		return model.CmdFile{StreamOut: &c.StreamOut.Name}
+	}
+	return model.CmdFile{}
+}
+
+func convertStreamCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []string {
+	rt := make([]string, 0, len(copyOut))
+	for _, n := range copyOut {
+		name := n.Name
+		if n.Optional {
+			name += "?"
+		}
+		rt = append(rt, name)
+	}
+	return rt
+}
+
+func (e *execServer) ExecStream(es pb.Executor_ExecStreamServer) error {
+	w := &streamWrapper{
+		es: es,
+	}
+	if err := stream.Start(es.Context(), w, e.worker, e.srcPrefix, e.logger); err != nil {
+		return status.Error(codes.Internal, err.Error())
+	}
+	return nil
 }

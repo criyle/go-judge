@@ -232,14 +232,14 @@ func FileDelete(e *C.char) C.int {
 
 type nopLogger struct{}
 
-func (nopLogger) Debug(args ...interface{}) {
+func (nopLogger) Debug(args ...any) {
 }
 
-func (nopLogger) Info(args ...interface{}) {
+func (nopLogger) Info(args ...any) {
 }
 
-func (nopLogger) Warn(args ...interface{}) {
+func (nopLogger) Warn(args ...any) {
 }
 
-func (nopLogger) Error(args ...interface{}) {
+func (nopLogger) Error(args ...any) {
 }

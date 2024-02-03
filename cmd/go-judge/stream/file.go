@@ -1,4 +1,4 @@
-package grpcexecutor
+package stream
 
 import (
 	"fmt"

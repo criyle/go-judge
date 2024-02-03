@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	srvAddr = flag.String("srvaddr", "localhost:5051", "GRPC server addr")
+	srvAddr = flag.String("srv-addr", "localhost:5051", "GRPC server addr")
 )
 
 const (

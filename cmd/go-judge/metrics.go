@@ -49,7 +49,7 @@ var (
 		Namespace: metricsNamespace,
 		Subsystem: execSubsystem,
 		Name:      "memory_bytes",
-		Help:      "Histgram for the command execution max memory",
+		Help:      "Histogram for the command execution max memory",
 		Buckets:   memoryBucket,
 	}, []string{"status"})
 
@@ -57,7 +57,7 @@ var (
 		Namespace: metricsNamespace,
 		Subsystem: filestoreSubsystem,
 		Name:      "size_bytes",
-		Help:      "Histgram for the file size created in the file store",
+		Help:      "Histogram for the file size created in the file store",
 		Buckets:   fileSizeBucket,
 	})
 
@@ -171,13 +171,13 @@ func (m *metricsFileStore) Remove(id string) bool {
 	return success
 }
 
-var _ pool.EnvBuilder = &metriceEnvBuilder{}
+var _ pool.EnvBuilder = &metricsEnvBuilder{}
 
-type metriceEnvBuilder struct {
+type metricsEnvBuilder struct {
 	pool.EnvBuilder
 }
 
-func (b *metriceEnvBuilder) Build() (pool.Environment, error) {
+func (b *metricsEnvBuilder) Build() (pool.Environment, error) {
 	e, err := b.EnvBuilder.Build()
 	if err != nil {
 		return nil, err

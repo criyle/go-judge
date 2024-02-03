@@ -4,13 +4,10 @@ package main
 
 import (
 	"context"
-	crypto_rand "crypto/rand"
-	"encoding/binary"
 	"errors"
 	"flag"
 	"fmt"
 	"log"
-	math_rand "math/rand"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -53,13 +50,12 @@ var logger *zap.Logger
 func main() {
 	conf := loadConf()
 	if conf.Version {
-		fmt.Print(version.Version)
+		fmt.Println(version.Version)
 		return
 	}
 	initLogger(conf)
 	defer logger.Sync()
 	logger.Sugar().Infof("config loaded: %+v", conf)
-	initRand()
 	warnIfNotLinux()
 
 	// Init environment pool
@@ -69,7 +65,7 @@ func main() {
 	prefork(envPool, conf.PreFork)
 	work := newWorker(conf, envPool, fs)
 	work.Start()
-	logger.Sugar().Infof("Started worker with parallelism=%d, workdir=%s, timeLimitCheckInterval=%v",
+	logger.Sugar().Infof("Started worker with parallelism=%d, workDir=%s, timeLimitCheckInterval=%v",
 		conf.Parallelism, conf.Dir, conf.TimeLimitCheckerInterval)
 
 	servers := []initFunc{
@@ -272,17 +268,6 @@ func initLogger(conf *config.Config) {
 	}
 }
 
-func initRand() {
-	var b [8]byte
-	_, err := crypto_rand.Read(b[:])
-	if err != nil {
-		logger.Fatal("random generator init failed ", zap.Error(err))
-	}
-	sd := int64(binary.LittleEndian.Uint64(b[:]))
-	logger.Sugar().Infof("random seed: %d", sd)
-	math_rand.Seed(sd)
-}
-
 func prefork(envPool worker.EnvironmentPool, prefork int) {
 	if prefork <= 0 {
 		return
@@ -469,7 +454,7 @@ func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 		logger.Sugar().Fatal("create environment builder failed ", err)
 	}
 	if conf.EnableMetrics {
-		b = &metriceEnvBuilder{b}
+		b = &metricsEnvBuilder{b}
 	}
 	return b, param
 }

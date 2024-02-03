@@ -34,7 +34,7 @@ type Pipe struct {
 	// Name defines copy out entry name if it is not empty and proxy is enabled
 	Name string
 
-	// Limit defines maximun bytes copy out from proxy and proxy will still
+	// Limit defines maximum bytes copy out from proxy and proxy will still
 	// copy data after limit exceeded
 	Limit Size
 

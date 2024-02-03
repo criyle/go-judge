@@ -27,14 +27,14 @@ func (p *process) Result() envexec.RunnerResult {
 }
 
 func (p *process) Usage() envexec.Usage {
-	t, m, _ := getJobOjbectUsage(p.hJob)
+	t, m, _ := getJobObjectUsage(p.hJob)
 	return envexec.Usage{
 		Time:   t,
 		Memory: m,
 	}
 }
 
-func getJobOjbectUsage(hJob windows.Handle) (time.Duration, envexec.Size, error) {
+func getJobObjectUsage(hJob windows.Handle) (time.Duration, envexec.Size, error) {
 	basicInfo := new(JOBOBJECT_BASIC_ACCOUNTING_INFORMATION)
 	if _, err := QueryInformationJobObject(hJob, JobObjectBasicAccountingInformation,
 		uintptr(unsafe.Pointer(basicInfo)), uint32(unsafe.Sizeof(*basicInfo)), nil); err != nil {

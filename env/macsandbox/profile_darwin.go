@@ -52,7 +52,7 @@ type Profile struct {
 	Network                  bool
 }
 
-// DefaultProfile defines the minimun default profile to run programs
+// DefaultProfile defines the minimum default profile to run programs
 var DefaultProfile = Profile{
 	ReadableDir: []string{"/usr/lib"},
 }

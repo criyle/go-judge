@@ -14,7 +14,7 @@ var (
 	_ heap.Interface = &Timeout{}
 )
 
-// Timeout is a file system with a maximun TTL
+// Timeout is a file system with a maximum TTL
 type Timeout struct {
 	mu sync.Mutex
 	FileStore
@@ -28,7 +28,7 @@ type timeoutFile struct {
 	time time.Time
 }
 
-// NewTimeout creates a timeout file system with maximun TTL for a file
+// NewTimeout creates a timeout file system with maximum TTL for a file
 func NewTimeout(fs FileStore, timeout time.Duration, checkInterval time.Duration) FileStore {
 	t := &Timeout{
 		FileStore: fs,

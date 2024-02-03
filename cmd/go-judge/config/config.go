@@ -32,7 +32,7 @@ type Config struct {
 	OutputLimit              *envexec.Size `flagUsage:"specifies POSIX rlimit for output for each command" default:"256m"`
 	CopyOutLimit             *envexec.Size `flagUsage:"specifies default file copy out max" default:"256m"`
 	OpenFileLimit            int           `flagUsage:"specifies max open file count" default:"256"`
-	Cpuset                   string        `flagUsage:"control the usage of cpuset for all containerd process"`
+	Cpuset                   string        `flagUsage:"control the usage of cpuset for all container process"`
 	EnableCPURate            bool          `flagUsage:"enable cpu cgroup rate control"`
 	CPUCfsPeriod             time.Duration `flagUsage:"set cpu.cfs_period" default:"100ms"`
 	FileTimeout              time.Duration `flagUsage:"specified timeout for filestore files"`
@@ -44,7 +44,7 @@ type Config struct {
 	MonitorAddr   string `flagUsage:"specifies the metrics binding address"`
 	AuthToken     string `flagUsage:"bearer token auth for REST / gRPC"`
 	EnableDebug   bool   `flagUsage:"enable debug endpoint"`
-	EnableMetrics bool   `flagUsage:"enable promethus metrics endpoint"`
+	EnableMetrics bool   `flagUsage:"enable prometheus metrics endpoint"`
 
 	// logger config
 	Release bool `flagUsage:"release level of logs"`

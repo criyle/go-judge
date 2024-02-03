@@ -306,7 +306,7 @@ Output:
 
 </details>
 
-Plese use PostMan or similar tools to send request to `http://localhost:5050/run`
+Please use PostMan or similar tools to send request to `http://localhost:5050/run`
 
 <details><summary>Single (this example require `apt install g++` inside the container)</summary>
 
@@ -613,7 +613,7 @@ Sandbox:
   - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
 - `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control (Linux only)
   - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
-- `-seccomp-conf` specifies `seecomp` filter setting to load when running program (need build tag `seccomp`) (Linux only)
+- `-seccomp-conf` specifies `seccomp` filter setting to load when running program (need build tag `seccomp`) (Linux only)
   - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
   - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
   - the program killed by seccomp filter will have status `Dangerous Syscall`
@@ -707,7 +707,7 @@ If a bind mount is specifying a target within the previous mounted one, please e
 #### Windows Security
 
 - Resources are limited by [JobObject](https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects)
-- Privillege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
+- Privilege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
 - Low Mandatory Level directory is created for read / write
 
 ### MacOS Support

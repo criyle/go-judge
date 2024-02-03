@@ -53,7 +53,7 @@ type Cmd struct {
 	CopyOut    []CmdCopyOutFile
 	CopyOutMax Size // file size limit
 
-	// CopyOutDir specifies a dir to dump all /w contnet
+	// CopyOutDir specifies a dir to dump all /w content
 	CopyOutDir string
 
 	// additional memory option

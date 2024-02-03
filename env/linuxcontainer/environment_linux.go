@@ -30,7 +30,7 @@ type environ struct {
 	cpuRate bool
 }
 
-// Destroy destories the environment
+// Destroy destroys the environment
 func (c *environ) Destroy() error {
 	return c.Environment.Destroy()
 }
@@ -131,7 +131,7 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 	return f, nil
 }
 
-// MkdirAll equivelent to os.MkdirAll but in container
+// MkdirAll equivalent to os.MkdirAll but in container
 func (c *environ) MkdirAll(path string, perm os.FileMode) error {
 	if path == "" || path == "." {
 		return nil

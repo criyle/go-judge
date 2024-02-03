@@ -67,6 +67,15 @@ func (f *fileHandle) fileIDGet(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
+	typ := mime.TypeByExtension(path.Ext(name))
+	c.Header("Content-Type", typ)
+
+	fi, ok := file.(*envexec.FileInput) // fast path
+	if ok {
+		c.FileAttachment(fi.Path, name)
+		return
+	}
+
 	r, err := envexec.FileToReader(file)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -79,8 +88,6 @@ func (f *fileHandle) fileIDGet(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
-	typ := mime.TypeByExtension(path.Ext(name))
 	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", name))
 	c.Data(http.StatusOK, typ, content)
 }

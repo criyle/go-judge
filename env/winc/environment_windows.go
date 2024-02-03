@@ -251,7 +251,7 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 		result.ExitStatus = int(exitCode)
 
 		// collect usage
-		t, m, err := getJobOjbectUsage(hJob)
+		t, m, err := getJobObjectUsage(hJob)
 		if err != nil {
 			procSet.result = runner.Result{Status: runner.StatusRunnerError, Error: err.Error()}
 			return

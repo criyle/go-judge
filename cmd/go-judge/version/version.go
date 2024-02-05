@@ -10,6 +10,7 @@ import (
 //go:embed version.*
 var versions embed.FS
 
+// Version defines the version of go-judge
 var Version string = "unable to get version"
 
 func init() {

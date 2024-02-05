@@ -11,9 +11,10 @@ import (
 
 	"github.com/criyle/go-judge/pb"
 	"github.com/gin-gonic/gin"
-	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -28,7 +29,12 @@ type execProxy struct {
 
 func (p *execProxy) Exec(c *gin.Context) {
 	req := new(pb.Request)
-	if err := jsonpb.Unmarshal(c.Request.Body, req); err != nil {
+	b, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	if err := protojson.Unmarshal(b, req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
@@ -125,7 +131,7 @@ func (p *execProxy) FileDelete(c *gin.Context) {
 func main() {
 	flag.Parse()
 	token := os.Getenv("TOKEN")
-	opts := []grpc.DialOption{grpc.WithInsecure()}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if token != "" {
 		opts = append(opts, grpc.WithPerRPCCredentials(newTokenAuth(token)))
 	}

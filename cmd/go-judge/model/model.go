@@ -118,6 +118,7 @@ type Response struct {
 	mmap bool
 }
 
+// Close need to be called when mmap specified to be true
 func (r *Response) Close() {
 	if !r.mmap {
 		return
@@ -127,6 +128,7 @@ func (r *Response) Close() {
 	}
 }
 
+// Close need to be called when mmap specified to be true
 func (r *Result) Close() {
 	// remove temporary files
 	for _, f := range r.files {
@@ -318,6 +320,7 @@ func convertCmdFile(f *CmdFile, srcPrefix []string) (worker.CmdFile, error) {
 	}
 }
 
+// CheckPathPrefixes ensure path is allowed by prefixes
 func CheckPathPrefixes(path string, prefixes []string) (bool, error) {
 	for _, p := range prefixes {
 		ok, err := checkPathPrefix(path, p)

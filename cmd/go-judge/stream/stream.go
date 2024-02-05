@@ -17,23 +17,28 @@ const (
 	minBuffLen = 4 << 10
 )
 
+// Stream defines the transport layer for the stream execution that
+// stream input and output interactively
 type Stream interface {
-	Send(StreamResponse) error
-	Recv() (*StreamRequest, error)
+	Send(Response) error
+	Recv() (*Request, error)
 }
 
-type StreamRequest struct {
+// Request defines operations receive from the remote
+type Request struct {
 	Request *model.Request
 	Resize  *ResizeRequest
 	Input   *InputRequest
 	Cancel  *struct{}
 }
 
-type StreamResponse struct {
+// Response defines response to the remote
+type Response struct {
 	Response *model.Response
 	Output   *OutputResponse
 }
 
+// ResizeRequest defines resize operation to the virtual terminal
 type ResizeRequest struct {
 	Name string
 	Rows int
@@ -42,11 +47,13 @@ type ResizeRequest struct {
 	Y    int
 }
 
+// InputRequest defines input operation from the remote
 type InputRequest struct {
 	Name    string
 	Content []byte
 }
 
+// OutputResponse defines output result to the remote
 type OutputResponse struct {
 	Name    string
 	Content []byte
@@ -56,6 +63,7 @@ var (
 	errFirstMustBeExec = errors.New("the first stream request must be exec request")
 )
 
+// Start initiate a interactive execution on the worker and transmit the request and response over Stream transport layer
 func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []string, logger *zap.Logger) error {
 	req, err := s.Recv()
 	if err != nil {
@@ -122,7 +130,7 @@ func sendLoop(ctx context.Context, s Stream, outCh chan *OutputResponse, rtCh <-
 			return ctx.Err()
 
 		case o := <-outCh:
-			err := s.Send(StreamResponse{Output: o})
+			err := s.Send(Response{Output: o})
 			if err != nil {
 				return fmt.Errorf("send output: %w", err)
 			}
@@ -133,7 +141,7 @@ func sendLoop(ctx context.Context, s Stream, outCh chan *OutputResponse, rtCh <-
 			if err != nil {
 				return fmt.Errorf("convert response: %w", err)
 			}
-			return s.Send(StreamResponse{Response: &model.Response{Results: ret.Results}})
+			return s.Send(Response{Response: &model.Response{Results: ret.Results}})
 		}
 	}
 }

@@ -86,8 +86,10 @@ type Result struct {
 	FileError []FileError
 }
 
+// FileErrorType defines the location that file operation fails
 type FileErrorType int
 
+// FileError enums
 const (
 	ErrCopyInOpenFile FileErrorType = iota
 	ErrCopyInCreateDir
@@ -102,6 +104,7 @@ const (
 	ErrSymlink
 )
 
+// FileError defines the location, file name and the detailed message for a failed file operation
 type FileError struct {
 	Name    string        `json:"name"`
 	Type    FileErrorType `json:"type"`
@@ -131,17 +134,19 @@ func (t FileErrorType) String() string {
 	return ""
 }
 
+// MarshalJSON encodes file error into json string
 func (t FileErrorType) MarshalJSON() ([]byte, error) {
 	return []byte(`"` + t.String() + `"`), nil
 }
 
+// UnmarshalJSON decodes file error from json string
 func (t *FileErrorType) UnmarshalJSON(b []byte) error {
 	str := string(b)
-	if v, ok := fileErrorStringReverse[str]; ok {
+	v, ok := fileErrorStringReverse[str]
+	if ok {
 		return fmt.Errorf("%s is not file error type", str)
-	} else {
-		*t = v
 	}
+	*t = v
 	return nil
 }
 

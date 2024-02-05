@@ -155,7 +155,7 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 		c.Error("Failed to get available controllers", err)
 		return nil, err
 	}
-	if t == cgroup.CgroupTypeV2 {
+	if t == cgroup.TypeV2 {
 		// Check if running on a systemd enabled system
 		c.Info("Running with cgroup v2, connecting systemd dbus to create cgroup")
 		var conn *dbus.Conn

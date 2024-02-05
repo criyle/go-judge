@@ -48,7 +48,7 @@ type wsHandle struct {
 
 type wsRequest struct {
 	model.Request
-	CancelRequestId string `json:"cancelRequestId"`
+	CancelRequestID string `json:"cancelRequestId"`
 }
 
 func (h *wsHandle) Register(r *gin.Engine) {
@@ -66,9 +66,9 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 	cm := newContextMap()
 
 	handleRequest := func(baseCtx context.Context, req *wsRequest) error {
-		if req.CancelRequestId != "" {
-			h.logger.Sugar().Debugf("ws cancel: %s", req.CancelRequestId)
-			cm.Remove(req.CancelRequestId)
+		if req.CancelRequestID != "" {
+			h.logger.Sugar().Debugf("ws cancel: %s", req.CancelRequestID)
+			cm.Remove(req.CancelRequestID)
 			return nil
 		}
 		r, err := model.ConvertRequest(&req.Request, h.srcPrefix)
@@ -185,26 +185,26 @@ func newContextMap() *contextMap {
 	return &contextMap{m: make(map[string]context.CancelFunc)}
 }
 
-func (c *contextMap) Add(reqId string, cancel context.CancelFunc) error {
-	if reqId == "" {
+func (c *contextMap) Add(reqID string, cancel context.CancelFunc) error {
+	if reqID == "" {
 		return fmt.Errorf("empty request id")
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if _, exist := c.m[reqId]; exist {
-		return fmt.Errorf("duplicated request id: %v", reqId)
+	if _, exist := c.m[reqID]; exist {
+		return fmt.Errorf("duplicated request id: %v", reqID)
 	}
-	c.m[reqId] = cancel
+	c.m[reqID] = cancel
 	return nil
 }
 
-func (c *contextMap) Remove(reqId string) {
+func (c *contextMap) Remove(reqID string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if cancel, exist := c.m[reqId]; exist {
-		delete(c.m, reqId)
+	if cancel, exist := c.m[reqID]; exist {
+		delete(c.m, reqID)
 		cancel()
 	}
 }

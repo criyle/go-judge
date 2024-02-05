@@ -33,7 +33,7 @@ func newListener(addr string) (net.Listener, error) {
 	if host == "" {
 		return net.Listen("tcp", addr)
 	} else if host == "localhost" {
-		ips, err = getLocalhostIp()
+		ips, err = getLocalhostIP()
 		if err != nil {
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func newListener(addr string) (net.Listener, error) {
 	return newMultiListener(ips, iPort)
 }
 
-func getLocalhostIp() ([]net.IP, error) {
+func getLocalhostIP() ([]net.IP, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, err

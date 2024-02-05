@@ -15,12 +15,11 @@ func fileToByte(f *os.File, mmap bool) ([]byte, error) {
 func fileToByteMmap(f *os.File) ([]byte, error) {
 	defer f.Close()
 
-	var s int64
-	if fi, err := f.Stat(); err != nil {
+	fi, err := f.Stat()
+	if err != nil {
 		return nil, err
-	} else {
-		s = fi.Size()
 	}
+	s := fi.Size()
 	if s == 0 {
 		return []byte{}, nil
 	}

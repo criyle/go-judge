@@ -35,7 +35,9 @@ func readerToFile(reader io.Reader) (*os.File, error) {
 
 func copyDir(src *os.File, dst string) error {
 	// make sure dir exists
-	os.MkdirAll(dst, 0777)
+	if err := os.MkdirAll(dst, 0777); err != nil {
+		return err
+	}
 	newDir, err := os.Open(dst)
 	if err != nil {
 		return err

@@ -16,7 +16,7 @@ type streamWrapper struct {
 	es pb.Executor_ExecStreamServer
 }
 
-func (sw *streamWrapper) Send(r stream.StreamResponse) error {
+func (sw *streamWrapper) Send(r stream.Response) error {
 	res := &pb.StreamResponse{}
 	switch {
 	case r.Response != nil:
@@ -34,21 +34,21 @@ func (sw *streamWrapper) Send(r stream.StreamResponse) error {
 	return sw.es.Send(res)
 }
 
-func (sw *streamWrapper) Recv() (*stream.StreamRequest, error) {
+func (sw *streamWrapper) Recv() (*stream.Request, error) {
 	req, err := sw.es.Recv()
 	if err != nil {
 		return nil, err
 	}
 	switch i := req.Request.(type) {
 	case *pb.StreamRequest_ExecRequest:
-		return &stream.StreamRequest{Request: convertPBStreamRequest(i.ExecRequest)}, nil
+		return &stream.Request{Request: convertPBStreamRequest(i.ExecRequest)}, nil
 	case *pb.StreamRequest_ExecInput:
-		return &stream.StreamRequest{Input: &stream.InputRequest{
+		return &stream.Request{Input: &stream.InputRequest{
 			Name:    i.ExecInput.Name,
 			Content: i.ExecInput.Content,
 		}}, nil
 	case *pb.StreamRequest_ExecResize:
-		return &stream.StreamRequest{Resize: &stream.ResizeRequest{
+		return &stream.Request{Resize: &stream.ResizeRequest{
 			Name: i.ExecResize.Name,
 			Rows: int(i.ExecResize.Rows),
 			Cols: int(i.ExecResize.Cols),
@@ -56,7 +56,7 @@ func (sw *streamWrapper) Recv() (*stream.StreamRequest, error) {
 			Y:    int(i.ExecResize.Y),
 		}}, nil
 	case *pb.StreamRequest_ExecCancel:
-		return &stream.StreamRequest{Cancel: &struct{}{}}, nil
+		return &stream.Request{Cancel: &struct{}{}}, nil
 	}
 	return nil, errors.ErrUnsupported
 }

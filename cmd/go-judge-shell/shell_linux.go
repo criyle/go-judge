@@ -7,10 +7,10 @@ import (
 	"syscall"
 
 	"github.com/creack/pty"
-	"github.com/criyle/go-judge/pb"
+	"github.com/criyle/go-judge/cmd/go-judge/stream"
 )
 
-func handleSizeChange(sendCh chan<- *pb.StreamRequest) {
+func handleSizeChange(sendCh chan *stream.Request) {
 	// pump resize
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGWINCH)
@@ -21,15 +21,13 @@ func handleSizeChange(sendCh chan<- *pb.StreamRequest) {
 				log.Println("get win size", err)
 				return
 			}
-			sendCh <- &pb.StreamRequest{
-				Request: &pb.StreamRequest_ExecResize{
-					ExecResize: &pb.StreamRequest_Resize{
-						Name: "stdin",
-						Rows: uint32(winSize.Rows),
-						Cols: uint32(winSize.Cols),
-						X:    uint32(winSize.X),
-						Y:    uint32(winSize.Y),
-					},
+			sendCh <- &stream.Request{
+				Resize: &stream.ResizeRequest{
+					Name: "stdin",
+					Rows: int(winSize.Rows),
+					Cols: int(winSize.Cols),
+					X:    int(winSize.X),
+					Y:    int(winSize.Y),
 				},
 			}
 		}

@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/worker"
 )
+
+type FileError = envexec.FileError
+type FileErrorType = envexec.FileErrorType
 
 // CmdFile defines file from multiple source including local / memory / cached or pipe collector
 type CmdFile struct {
@@ -77,9 +81,14 @@ type Request struct {
 // Status offers JSON marshal for envexec.Status
 type Status envexec.Status
 
+// String converts status to string
+func (s Status) String() string {
+	return envexec.Status(s).String()
+}
+
 // MarshalJSON convert status into string
 func (s Status) MarshalJSON() ([]byte, error) {
-	return []byte("\"" + (envexec.Status)(s).String() + "\""), nil
+	return []byte("\"" + envexec.Status(s).String() + "\""), nil
 }
 
 // UnmarshalJSON convert string into status
@@ -95,18 +104,47 @@ func (s *Status) UnmarshalJSON(b []byte) error {
 
 // Result defines single command result
 type Result struct {
-	Status     Status              `json:"status"`
-	ExitStatus int                 `json:"exitStatus"`
-	Error      string              `json:"error,omitempty"`
-	Time       uint64              `json:"time"`
-	Memory     uint64              `json:"memory"`
-	RunTime    uint64              `json:"runTime"`
-	Files      map[string]string   `json:"files,omitempty"`
-	FileIDs    map[string]string   `json:"fileIds,omitempty"`
-	FileError  []envexec.FileError `json:"fileError,omitempty"`
+	Status     Status            `json:"status"`
+	ExitStatus int               `json:"exitStatus"`
+	Error      string            `json:"error,omitempty"`
+	Time       uint64            `json:"time"`
+	Memory     uint64            `json:"memory"`
+	RunTime    uint64            `json:"runTime"`
+	Files      map[string]string `json:"files,omitempty"`
+	FileIDs    map[string]string `json:"fileIds,omitempty"`
+	FileError  []FileError       `json:"fileError,omitempty"`
 
 	files []string
 	Buffs map[string][]byte `json:"-"`
+}
+
+func (r Result) String() string {
+	type Result struct {
+		Status     Status
+		ExitStatus int
+		Error      string
+		Time       time.Duration
+		RunTime    time.Duration
+		Memory     envexec.Size
+		Files      map[string]string
+		FileIDs    map[string]string
+		FileError  []FileError
+	}
+	d := Result{
+		Status:     r.Status,
+		ExitStatus: r.ExitStatus,
+		Error:      r.Error,
+		Time:       time.Duration(r.Time),
+		RunTime:    time.Duration(r.RunTime),
+		Memory:     envexec.Size(r.Memory),
+		Files:      make(map[string]string),
+		FileIDs:    r.FileIDs,
+		FileError:  r.FileError,
+	}
+	for k, v := range r.Files {
+		d.Files[k] = "len:" + strconv.Itoa(len(v))
+	}
+	return fmt.Sprintf("%+v", d)
 }
 
 // Response defines worker response for single request

@@ -2,7 +2,7 @@
 
 package main
 
-import "github.com/criyle/go-judge/pb"
+import "github.com/criyle/go-judge/cmd/go-judge/stream"
 
-func handleSizeChange(sendCh chan<- *pb.StreamRequest) {
+func handleSizeChange(sendCh chan *stream.Request) {
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -11,11 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/criyle/go-judge/pb"
+	"github.com/criyle/go-judge/cmd/go-judge/model"
+	"github.com/criyle/go-judge/cmd/go-judge/stream"
 	"golang.org/x/term"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -36,75 +33,46 @@ var env = []string{
 	"TERM=" + os.Getenv("TERM"),
 }
 
+type Stream interface {
+	Send(*stream.Request) error
+	Recv() (*stream.Response, error)
+}
+
 func main() {
 	flag.Parse()
 	args := flag.Args()
 	if len(args) == 0 {
 		args = []string{"/bin/bash"}
 	}
-
-	token := os.Getenv("TOKEN")
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	if token != "" {
-		opts = append(opts, grpc.WithPerRPCCredentials(newTokenAuth(token)))
-	}
-	conn, err := grpc.Dial(*srvAddr, opts...)
-
-	if err != nil {
-		log.Fatalln("client", err)
-	}
-	client := pb.NewExecutorClient(conn)
-	sc, err := client.ExecStream(context.TODO())
-	if err != nil {
-		log.Fatalln("ExecStream", err)
-	}
-	log.Println("Starts", args)
-	r, err := run(sc, args)
-	log.Println("ExecStream Finished", r, err)
+	w := newGrpc(args, srvAddr)
+	r, err := run(w, args)
+	log.Printf("finished: %+v %v", r, err)
 }
 
-func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
-	req := &pb.Request{
-		Cmd: []*pb.Request_CmdType{{
+func stringPointer(s string) *string {
+	return &s
+}
+
+func run(sc Stream, args []string) (*model.Response, error) {
+	req := model.Request{
+		Cmd: []model.Cmd{{
 			Args: args,
 			Env:  env,
-			Files: []*pb.Request_File{
-				{
-					File: &pb.Request_File_StreamIn{
-						StreamIn: &pb.Request_StreamInput{
-							Name: "stdin",
-						},
-					},
-				},
-				{
-					File: &pb.Request_File_StreamOut{
-						StreamOut: &pb.Request_StreamOutput{
-							Name: "stdout",
-						},
-					},
-				},
-				{
-					File: &pb.Request_File_StreamOut{
-						StreamOut: &pb.Request_StreamOutput{
-							Name: "stderr",
-						},
-					},
-				},
+			Files: []*model.CmdFile{
+				{StreamIn: stringPointer("stdin")},
+				{StreamOut: stringPointer("stdout")},
+				{StreamOut: stringPointer("stderr")},
 			},
-			CpuTimeLimit:   uint64(cpuLimit),
-			ClockTimeLimit: uint64(sessionLimit),
-			MemoryLimit:    memoryLimit,
-			ProcLimit:      procLimit,
-			Tty:            true,
+			CPULimit:    uint64(cpuLimit.Nanoseconds()),
+			ClockLimit:  uint64(sessionLimit.Nanoseconds()),
+			MemoryLimit: memoryLimit,
+			ProcLimit:   procLimit,
+			TTY:         true,
 		}},
 	}
-	err := sc.Send(&pb.StreamRequest{
-		Request: &pb.StreamRequest_ExecRequest{
-			ExecRequest: req,
-		},
-	})
+	err := sc.Send(&stream.Request{Request: &req})
 	if err != nil {
-		return nil, fmt.Errorf("ExecStream Send request %v", err)
+		return nil, fmt.Errorf("send request: %w", err)
 	}
 
 	// Set stdin in raw mode.
@@ -115,7 +83,7 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 	defer func() { _ = term.Restore(int(os.Stdin.Fd()), oldState) }() // Best effort.
 
 	// pump msg
-	sendCh := make(chan *pb.StreamRequest, 64)
+	sendCh := make(chan *stream.Request, 64)
 	defer close(sendCh)
 	go func() {
 		for r := range sendCh {
@@ -134,20 +102,18 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 		for {
 			n, err := os.Stdin.Read(buf)
 			if err == io.EOF {
-				sendCh <- &pb.StreamRequest{
-					Request: &pb.StreamRequest_ExecInput{
-						ExecInput: &pb.StreamRequest_Input{
-							Name:    "stdin",
-							Content: []byte("\004"),
-						},
+				sendCh <- &stream.Request{
+					Input: &stream.InputRequest{
+						Name:    "stdin",
+						Content: []byte("\004"),
 					},
 				}
 				continue
 			}
 			if n == 1 && buf[0] == 3 {
 				if forceQuit {
-					sendCh <- &pb.StreamRequest{
-						Request: &pb.StreamRequest_ExecCancel{},
+					sendCh <- &stream.Request{
+						Cancel: &struct{}{},
 					}
 				}
 				forceQuit = true
@@ -159,12 +125,10 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 				log.Println("stdin", err)
 				return
 			}
-			sendCh <- &pb.StreamRequest{
-				Request: &pb.StreamRequest_ExecInput{
-					ExecInput: &pb.StreamRequest_Input{
-						Name:    "stdin",
-						Content: buf[:n],
-					},
+			sendCh <- &stream.Request{
+				Input: &stream.InputRequest{
+					Name:    "stdin",
+					Content: buf[:n],
 				},
 			}
 		}
@@ -175,12 +139,10 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 	// pump ^C
 	go func() {
 		for range sigCh {
-			sendCh <- &pb.StreamRequest{
-				Request: &pb.StreamRequest_ExecInput{
-					ExecInput: &pb.StreamRequest_Input{
-						Name:    "stdin",
-						Content: []byte("\003"),
-					},
+			sendCh <- &stream.Request{
+				Input: &stream.InputRequest{
+					Name:    "stdin",
+					Content: []byte("\003"),
 				},
 			}
 		}
@@ -193,37 +155,18 @@ func run(sc pb.Executor_ExecStreamClient, args []string) (*pb.Response, error) {
 	for {
 		sr, err := sc.Recv()
 		if err != nil {
-			return nil, fmt.Errorf("ExecStream recv %v", err)
+			return nil, fmt.Errorf("recv: %w", err)
 		}
-		switch sr := sr.Response.(type) {
-		case *pb.StreamResponse_ExecOutput:
-			switch sr.ExecOutput.Name {
+		switch {
+		case sr.Output != nil:
+			switch sr.Output.Name {
 			case "stdout":
-				os.Stdout.Write(sr.ExecOutput.Content)
+				os.Stdout.Write(sr.Output.Content)
 			case "stderr":
-				os.Stderr.Write(sr.ExecOutput.Content)
+				os.Stderr.Write(sr.Output.Content)
 			}
-		case *pb.StreamResponse_ExecResponse:
-			return sr.ExecResponse, nil
+		case sr.Response != nil:
+			return sr.Response, nil
 		}
 	}
-}
-
-type tokenAuth struct {
-	token string
-}
-
-func newTokenAuth(token string) credentials.PerRPCCredentials {
-	return &tokenAuth{token: token}
-}
-
-// Return value is mapped to request headers.
-func (t *tokenAuth) GetRequestMetadata(ctx context.Context, in ...string) (map[string]string, error) {
-	return map[string]string{
-		"authorization": "Bearer " + t.token,
-	}, nil
-}
-
-func (*tokenAuth) RequireTransportSecurity() bool {
-	return false
 }

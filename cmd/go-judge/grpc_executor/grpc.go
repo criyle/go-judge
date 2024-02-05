@@ -176,18 +176,16 @@ func convertPBRequest(r *pb.Request, srcPrefix []string) (req *worker.Request, e
 
 func convertPBPipeMap(p *pb.Request_PipeMap) worker.PipeMap {
 	return worker.PipeMap{
-		In: worker.PipeIndex{
-			Index: int(p.GetIn().GetIndex()),
-			Fd:    int(p.GetIn().GetFd()),
-		},
-		Out: worker.PipeIndex{
-			Index: int(p.GetOut().GetIndex()),
-			Fd:    int(p.GetOut().GetFd()),
-		},
+		In:    convertPBPipeIndex(p.GetIn()),
+		Out:   convertPBPipeIndex(p.GetOut()),
 		Proxy: p.GetProxy(),
 		Name:  p.GetName(),
 		Limit: worker.Size(p.Max),
 	}
+}
+
+func convertPBPipeIndex(p *pb.Request_PipeMap_PipeIndex) worker.PipeIndex {
+	return worker.PipeIndex{Index: int(p.GetIndex()), Fd: int(p.GetFd())}
 }
 
 func convertPBCmd(c *pb.Request_CmdType, srcPrefix []string) (cm worker.Cmd, err error) {

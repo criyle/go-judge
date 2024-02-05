@@ -13,6 +13,7 @@ type Size = envexec.Size
 type CmdCopyOutFile = envexec.CmdCopyOutFile
 type PipeMap = envexec.Pipe
 type PipeIndex = envexec.PipeIndex
+type FileError = envexec.FileError
 
 // Cmd defines command and limits to start a program using in envexec
 type Cmd struct {
@@ -57,10 +58,10 @@ type Result struct {
 	Error      string
 	Time       time.Duration
 	RunTime    time.Duration
-	Memory     envexec.Size
+	Memory     Size
 	Files      map[string]*os.File
 	FileIDs    map[string]string
-	FileError  []envexec.FileError
+	FileError  []FileError
 }
 
 // Response defines worker response for single request
@@ -77,10 +78,10 @@ func (r Result) String() string {
 		Error      string
 		Time       time.Duration
 		RunTime    time.Duration
-		Memory     envexec.Size
+		Memory     Size
 		Files      map[string]string
 		FileIDs    map[string]string
-		FileError  []envexec.FileError
+		FileError  []FileError
 	}
 	d := Result{
 		Status:     r.Status,

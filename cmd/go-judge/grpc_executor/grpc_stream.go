@@ -89,20 +89,18 @@ func convertPBStreamRequest(req *pb.Request) *model.Request {
 	}
 	for _, p := range req.PipeMapping {
 		ret.PipeMapping = append(ret.PipeMapping, model.PipeMap{
-			In: model.PipeIndex{
-				Index: int(p.In.Index),
-				Fd:    int(p.In.Fd),
-			},
-			Out: model.PipeIndex{
-				Index: int(p.Out.Index),
-				Fd:    int(p.Out.Fd),
-			},
+			In:    convertPBStreamPipeIndex(p.In),
+			Out:   convertPBStreamPipeIndex(p.Out),
 			Max:   int64(p.Max),
 			Name:  p.Name,
 			Proxy: p.Proxy,
 		})
 	}
 	return ret
+}
+
+func convertPBStreamPipeIndex(pi *pb.Request_PipeMap_PipeIndex) model.PipeIndex {
+	return model.PipeIndex{Index: int(pi.Index), Fd: int(pi.Fd)}
 }
 
 func convertPBStreamFiles(files []*pb.Request_File) []*model.CmdFile {

@@ -52,10 +52,6 @@ message Request {
     bool pipe = 3;
   }
 
-  message StreamInput { }
-
-  message StreamOutput { }
-
   message File {
     oneof file {
       LocalFile local = 1;
@@ -64,10 +60,10 @@ message Request {
       PipeCollector pipe = 4;
 
       // streamIn only valid in streaming RPC
-      StreamInput streamIn = 5;
+      google.protobuf.Empty streamIn = 5;
 
       // streamOut only valid in streaming RPC
-      StreamOutput streamOut = 6;
+      google.protobuf.Empty streamOut = 6;
     }
   }
 
@@ -190,13 +186,11 @@ message StreamRequest {
     uint32 y = 5;
   }
 
-  message Cancel { }
-
   oneof request {
     Request execRequest = 1;
     Input execInput = 2;
     Resize execResize = 3;
-    Cancel execCancel = 4;
+    google.protobuf.Empty execCancel = 4;
   }
 }
 

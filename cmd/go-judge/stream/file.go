@@ -17,7 +17,8 @@ var (
 )
 
 type fileStreamIn struct {
-	name   string
+	index  int
+	fd     int
 	r      io.ReadCloser
 	w      *io.PipeWriter
 	tty    *os.File
@@ -35,9 +36,9 @@ func (f *fileStreamInReader) TTY(tty *os.File) {
 	close(f.fi.done)
 }
 
-func newFileStreamIn(name string, hasTTY bool) *fileStreamIn {
+func newFileStreamIn(index, fd int, hasTTY bool) *fileStreamIn {
 	r, w := io.Pipe()
-	fi := &fileStreamIn{name: name, w: w, done: make(chan struct{}), hasTTY: hasTTY}
+	fi := &fileStreamIn{index: index, fd: fd, w: w, done: make(chan struct{}), hasTTY: hasTTY}
 	fi.r = &fileStreamInReader{r, fi}
 	return fi
 }
@@ -50,10 +51,6 @@ func (f *fileStreamIn) GetTTY() *os.File {
 	return f.tty
 }
 
-func (f *fileStreamIn) Name() string {
-	return f.name
-}
-
 func (f *fileStreamIn) Write(b []byte) (int, error) {
 	return f.w.Write(b)
 }
@@ -63,7 +60,7 @@ func (f *fileStreamIn) EnvFile(fs filestore.FileStore) (envexec.File, error) {
 }
 
 func (f *fileStreamIn) String() string {
-	return fmt.Sprintf("fileStreamIn:%s", f.name)
+	return fmt.Sprintf("fileStreamIn:(index:%d,fd:%d)", f.index, f.fd)
 }
 
 func (f *fileStreamIn) Close() error {
@@ -72,18 +69,15 @@ func (f *fileStreamIn) Close() error {
 }
 
 type fileStreamOut struct {
-	name string
-	r    *io.PipeReader
-	w    *io.PipeWriter
+	index int
+	fd    int
+	r     *io.PipeReader
+	w     *io.PipeWriter
 }
 
-func newFileStreamOut(name string) *fileStreamOut {
+func newFileStreamOut(index, fd int) *fileStreamOut {
 	r, w := io.Pipe()
-	return &fileStreamOut{name: name, r: r, w: w}
-}
-
-func (f *fileStreamOut) Name() string {
-	return f.name
+	return &fileStreamOut{index: index, fd: fd, r: r, w: w}
 }
 
 func (f *fileStreamOut) Read(b []byte) (int, error) {
@@ -95,7 +89,7 @@ func (f *fileStreamOut) EnvFile(fs filestore.FileStore) (envexec.File, error) {
 }
 
 func (f *fileStreamOut) String() string {
-	return fmt.Sprintf("fileStreamOut:%s", f.name)
+	return fmt.Sprintf("fileStreamOut:(index:%d,fd:%d)", f.index, f.fd)
 }
 
 func (f *fileStreamOut) Close() error {

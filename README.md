@@ -28,6 +28,7 @@ A REST service to run program in restricted environment (Listening on `localhost
 - /file/:fileId GET downloads file from go judge (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
+- TODO: /stream WebSocket for stream run
 - /version gets build git version (e.g. `v1.4.0`) together with runtime information (go version, os, platform)
 - /config gets some configuration (e.g. `fileStorePath`, `runnerConfig`) together with some supported features
 
@@ -751,6 +752,29 @@ Due to limitation of GO runtime, the memory will not return to OS automatically,
 
 - `-force-gc-target` default `20m`, the minimal size to trigger GC
 - `-force-gc-interval` default `5s`, the interval to check memory usage
+
+### WebSocket Stream Interface
+
+Websocket stream interface is used to run command interactively with inputs and outputs pumping from the command. All message is transmitted in binary format for maximum compatibility.
+
+```text
++--------+--------+---...
+| type   | payload ...
++--------|--------+---...
+request:
+type = 
+  1 - request (payload = JSON encoded request)
+  2 - resize (payload = JSON encoded resize request)
+  3 - input (payload = 1 byte (4-bit index + 4-bit fd), followed by content)
+  4 - cancel (no payload)
+
+response:
+type = 
+  1 - response (payload = JSON encoded response)
+  2 - output (payload = 1 byte (4-bit index + 4-bit fd), followed by content)
+```
+
+Any incomplete / invalid message will be treated as error.
 
 ### Benchmark
 

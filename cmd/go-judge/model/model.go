@@ -23,8 +23,8 @@ type CmdFile struct {
 	Name      *string `json:"name"`
 	Max       *int64  `json:"max"`
 	Symlink   *string `json:"symlink"`
-	StreamIn  *string `json:"streamIn"`
-	StreamOut *string `json:"streamOut"`
+	StreamIn  bool    `json:"streamIn"`
+	StreamOut bool    `json:"streamOut"`
 	Pipe      bool    `json:"pipe"`
 }
 

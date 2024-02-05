@@ -52,9 +52,9 @@ message Request {
     bool pipe = 3;
   }
 
-  message StreamInput { string name = 1; }
+  message StreamInput { }
 
-  message StreamOutput { string name = 1; }
+  message StreamOutput { }
 
   message File {
     oneof file {
@@ -176,19 +176,21 @@ message Response {
 
 message StreamRequest {
   message Input {
-    string name = 1;
+    uint32 index = 1;
+    uint32 fd = 3;
     bytes content = 2;
   }
 
   message Resize {
-    string name = 1;
+    uint32 index = 1;
+    uint32 fd = 6;
     uint32 rows = 2;
     uint32 cols = 3;
     uint32 x = 4;
     uint32 y = 5;
   }
 
-  message Cancel {}
+  message Cancel { }
 
   oneof request {
     Request execRequest = 1;
@@ -200,7 +202,8 @@ message StreamRequest {
 
 message StreamResponse {
   message Output {
-    string name = 1;
+    uint32 index = 1;
+    uint32 fd = 3;
     bytes content = 2;
   }
 

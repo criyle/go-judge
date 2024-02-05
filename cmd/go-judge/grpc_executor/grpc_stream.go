@@ -27,7 +27,8 @@ func (sw *streamWrapper) Send(r stream.Response) error {
 		res.Response = &pb.StreamResponse_ExecResponse{ExecResponse: resp}
 	case r.Output != nil:
 		res.Response = &pb.StreamResponse_ExecOutput{ExecOutput: &pb.StreamResponse_Output{
-			Name:    r.Output.Name,
+			Index:   uint32(r.Output.Index),
+			Fd:      uint32(r.Output.Fd),
 			Content: r.Output.Content,
 		}}
 	}
@@ -44,16 +45,18 @@ func (sw *streamWrapper) Recv() (*stream.Request, error) {
 		return &stream.Request{Request: convertPBStreamRequest(i.ExecRequest)}, nil
 	case *pb.StreamRequest_ExecInput:
 		return &stream.Request{Input: &stream.InputRequest{
-			Name:    i.ExecInput.Name,
+			Index:   int(i.ExecInput.Index),
+			Fd:      int(i.ExecInput.Fd),
 			Content: i.ExecInput.Content,
 		}}, nil
 	case *pb.StreamRequest_ExecResize:
 		return &stream.Request{Resize: &stream.ResizeRequest{
-			Name: i.ExecResize.Name,
-			Rows: int(i.ExecResize.Rows),
-			Cols: int(i.ExecResize.Cols),
-			X:    int(i.ExecResize.X),
-			Y:    int(i.ExecResize.Y),
+			Index: int(i.ExecResize.Index),
+			Fd:    int(i.ExecResize.Fd),
+			Rows:  int(i.ExecResize.Rows),
+			Cols:  int(i.ExecResize.Cols),
+			X:     int(i.ExecResize.X),
+			Y:     int(i.ExecResize.Y),
 		}}, nil
 	case *pb.StreamRequest_ExecCancel:
 		return &stream.Request{Cancel: &struct{}{}}, nil
@@ -142,9 +145,9 @@ func convertPBStreamFile(i *pb.Request_File) model.CmdFile {
 	case *pb.Request_File_Pipe:
 		return model.CmdFile{Name: &c.Pipe.Name, Max: &c.Pipe.Max, Pipe: c.Pipe.Pipe}
 	case *pb.Request_File_StreamIn:
-		return model.CmdFile{StreamIn: &c.StreamIn.Name}
+		return model.CmdFile{StreamIn: true}
 	case *pb.Request_File_StreamOut:
-		return model.CmdFile{StreamOut: &c.StreamOut.Name}
+		return model.CmdFile{StreamOut: true}
 	}
 	return model.CmdFile{}
 }

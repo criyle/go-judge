@@ -23,7 +23,6 @@ func handleSizeChange(sendCh chan *stream.Request) {
 			}
 			sendCh <- &stream.Request{
 				Resize: &stream.ResizeRequest{
-					Name: "stdin",
 					Rows: int(winSize.Rows),
 					Cols: int(winSize.Cols),
 					X:    int(winSize.X),

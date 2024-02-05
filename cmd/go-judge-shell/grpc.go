@@ -46,16 +46,18 @@ func (w *grpcWrapper) Send(req *stream.Request) error {
 		w.sc.Send(convertPBRequest(req.Request))
 	case req.Input != nil:
 		w.sc.Send(&pb.StreamRequest{Request: &pb.StreamRequest_ExecInput{ExecInput: &pb.StreamRequest_Input{
-			Name:    req.Input.Name,
+			Index:   uint32(req.Input.Index),
+			Fd:      uint32(req.Input.Fd),
 			Content: req.Input.Content,
 		}}})
 	case req.Resize != nil:
 		w.sc.Send(&pb.StreamRequest{Request: &pb.StreamRequest_ExecResize{ExecResize: &pb.StreamRequest_Resize{
-			Name: req.Resize.Name,
-			Rows: uint32(req.Resize.Rows),
-			Cols: uint32(req.Resize.Cols),
-			X:    uint32(req.Resize.X),
-			Y:    uint32(req.Resize.Y),
+			Index: uint32(req.Resize.Index),
+			Fd:    uint32(req.Resize.Fd),
+			Rows:  uint32(req.Resize.Rows),
+			Cols:  uint32(req.Resize.Cols),
+			X:     uint32(req.Resize.X),
+			Y:     uint32(req.Resize.Y),
 		}}})
 	case req.Cancel != nil:
 		w.sc.Send(&pb.StreamRequest{Request: &pb.StreamRequest_ExecCancel{}})
@@ -73,7 +75,8 @@ func (w *grpcWrapper) Recv() (*stream.Response, error) {
 	switch i := resp.Response.(type) {
 	case *pb.StreamResponse_ExecOutput:
 		return &stream.Response{Output: &stream.OutputResponse{
-			Name:    i.ExecOutput.Name,
+			Index:   int(i.ExecOutput.Index),
+			Fd:      int(i.ExecOutput.Fd),
 			Content: i.ExecOutput.Content,
 		}}, nil
 	case *pb.StreamResponse_ExecResponse:
@@ -227,10 +230,10 @@ func convertPBFile(i model.CmdFile) *pb.Request_File {
 		return &pb.Request_File{File: &pb.Request_File_Cached{Cached: &pb.Request_CachedFile{FileID: *i.FileID}}}
 	case i.Name != nil && i.Max != nil:
 		return &pb.Request_File{File: &pb.Request_File_Pipe{Pipe: &pb.Request_PipeCollector{Name: *i.Name, Max: *i.Max, Pipe: i.Pipe}}}
-	case i.StreamIn != nil:
-		return &pb.Request_File{File: &pb.Request_File_StreamIn{StreamIn: &pb.Request_StreamInput{Name: *i.StreamIn}}}
-	case i.StreamOut != nil:
-		return &pb.Request_File{File: &pb.Request_File_StreamOut{StreamOut: &pb.Request_StreamOutput{Name: *i.StreamOut}}}
+	case i.StreamIn:
+		return &pb.Request_File{File: &pb.Request_File_StreamIn{}}
+	case i.StreamOut:
+		return &pb.Request_File{File: &pb.Request_File_StreamOut{}}
 	}
 	return nil
 }

@@ -14,6 +14,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var _ Register = &wsHandle{}
+
 // Register registers web socket handle /ws
 type Register interface {
 	Register(*gin.Engine)

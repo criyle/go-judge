@@ -40,22 +40,25 @@ type Response struct {
 
 // ResizeRequest defines resize operation to the virtual terminal
 type ResizeRequest struct {
-	Name string
-	Rows int
-	Cols int
-	X    int
-	Y    int
+	Index int
+	Fd    int
+	Rows  int
+	Cols  int
+	X     int
+	Y     int
 }
 
 // InputRequest defines input operation from the remote
 type InputRequest struct {
-	Name    string
+	Index   int
+	Fd      int
 	Content []byte
 }
 
 // OutputResponse defines output result to the remote
 type OutputResponse struct {
-	Name    string
+	Index   int
+	Fd      int
 	Content []byte
 }
 
@@ -170,13 +173,13 @@ func convertStreamRequest(m *model.Request, srcPrefix []string) (req *worker.Req
 			switch {
 			case f == nil:
 				continue
-			case f.StreamIn != nil:
-				si := newFileStreamIn(*f.StreamIn, c.TTY)
+			case f.StreamIn:
+				si := newFileStreamIn(i, j, c.TTY)
 				streamIn = append(streamIn, si)
 				streams = append(streams, cmdStream{index: i, fd: j, f: si})
 				c.Files[j] = nil
-			case f.StreamOut != nil:
-				so := newFileStreamOut(*f.StreamOut)
+			case f.StreamOut:
+				so := newFileStreamOut(i, j)
 				streamOut = append(streamOut, so)
 				streams = append(streams, cmdStream{index: i, fd: j, f: so})
 				c.Files[j] = nil
@@ -194,9 +197,9 @@ func convertStreamRequest(m *model.Request, srcPrefix []string) (req *worker.Req
 }
 
 func streamInput(ctx context.Context, s Stream, si []*fileStreamIn, execCancel func()) error {
-	inf := make(map[string]*fileStreamIn)
+	inf := make(map[int]*fileStreamIn)
 	for _, f := range si {
-		inf[f.Name()] = f
+		inf[f.index<<8|f.fd] = f
 	}
 	for {
 		select {
@@ -215,29 +218,29 @@ func streamInput(ctx context.Context, s Stream, si []*fileStreamIn, execCancel f
 
 		switch {
 		case in.Input != nil:
-			f, ok := inf[in.Input.Name]
+			f, ok := inf[in.Input.Index<<8|in.Input.Fd]
 			if !ok {
-				return fmt.Errorf("input does not exist: %s", in.Input.Name)
+				return fmt.Errorf("input does not exist: %d/%d", in.Input.Index, in.Input.Fd)
 			}
 			_, err := f.Write(in.Input.Content)
 			if err == io.EOF { // file closed with io.EOF
 				return nil
 			}
 			if err != nil {
-				return fmt.Errorf("write to input %s: %w", in.Input.Name, err)
+				return fmt.Errorf("write to input %d/%d: %w", in.Input.Index, in.Input.Fd, err)
 			}
 
 		case in.Resize != nil:
-			f, ok := inf[in.Resize.Name]
+			f, ok := inf[in.Resize.Index<<8|in.Resize.Fd]
 			if !ok {
-				return fmt.Errorf("input does not exist: %s", in.Input.Name)
+				return fmt.Errorf("input does not exist: %d/%d", in.Resize.Index, in.Resize.Fd)
 			}
 			tty := f.GetTTY()
 			if tty == nil {
-				return fmt.Errorf("resize input does not have tty: %s", in.Resize.Name)
+				return fmt.Errorf("resize input does not have tty: %d/%d", in.Resize.Index, in.Resize.Fd)
 			}
 			if err = setWinsize(tty, in.Resize); err != nil {
-				return fmt.Errorf("resize %s: %w", in.Resize.Name, err)
+				return fmt.Errorf("resize %d/%d: %w", in.Resize.Index, in.Resize.Fd, err)
 			}
 
 		case in.Cancel != nil:
@@ -270,7 +273,8 @@ func streamOutput(ctx context.Context, outCh chan *OutputResponse, so *fileStrea
 		case <-ctx.Done():
 			return nil
 		case outCh <- &OutputResponse{
-			Name:    so.Name(),
+			Index:   so.index,
+			Fd:      so.fd,
 			Content: buf[:n],
 		}:
 		}

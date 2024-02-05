@@ -49,19 +49,15 @@ func main() {
 	log.Printf("finished: %+v %v", r, err)
 }
 
-func stringPointer(s string) *string {
-	return &s
-}
-
 func run(sc Stream, args []string) (*model.Response, error) {
 	req := model.Request{
 		Cmd: []model.Cmd{{
 			Args: args,
 			Env:  env,
 			Files: []*model.CmdFile{
-				{StreamIn: stringPointer("stdin")},
-				{StreamOut: stringPointer("stdout")},
-				{StreamOut: stringPointer("stderr")},
+				{StreamIn: true},
+				{StreamOut: true},
+				{StreamOut: true},
 			},
 			CPULimit:    uint64(cpuLimit.Nanoseconds()),
 			ClockLimit:  uint64(sessionLimit.Nanoseconds()),
@@ -104,7 +100,6 @@ func run(sc Stream, args []string) (*model.Response, error) {
 			if err == io.EOF {
 				sendCh <- &stream.Request{
 					Input: &stream.InputRequest{
-						Name:    "stdin",
 						Content: []byte("\004"),
 					},
 				}
@@ -127,7 +122,6 @@ func run(sc Stream, args []string) (*model.Response, error) {
 			}
 			sendCh <- &stream.Request{
 				Input: &stream.InputRequest{
-					Name:    "stdin",
 					Content: buf[:n],
 				},
 			}
@@ -141,7 +135,6 @@ func run(sc Stream, args []string) (*model.Response, error) {
 		for range sigCh {
 			sendCh <- &stream.Request{
 				Input: &stream.InputRequest{
-					Name:    "stdin",
 					Content: []byte("\003"),
 				},
 			}
@@ -159,10 +152,10 @@ func run(sc Stream, args []string) (*model.Response, error) {
 		}
 		switch {
 		case sr.Output != nil:
-			switch sr.Output.Name {
-			case "stdout":
+			switch sr.Output.Fd {
+			case 1:
 				os.Stdout.Write(sr.Output.Content)
-			case "stderr":
+			case 2:
 				os.Stderr.Write(sr.Output.Content)
 			}
 		case sr.Response != nil:

@@ -79,15 +79,19 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 	if err != nil {
 		return fmt.Errorf("convert exec request: %w", err)
 	}
-	logger.Sugar().Debugf("request: %+v", rq)
-	defer func() {
+	closeFunc := func() {
 		for _, f := range streamIn {
 			f.Close()
 		}
+		streamIn = nil
 		for _, f := range streamOut {
 			f.Close()
 		}
-	}()
+		streamOut = nil
+	}
+	defer closeFunc()
+
+	logger.Sugar().Debugf("request: %+v", rq)
 
 	var wg errgroup.Group
 	execCtx, execCancel := context.WithCancel(baseCtx)
@@ -120,6 +124,8 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 	err = sendLoop(ctx, s, outCh, rtCh, logger)
 
 	cancel()
+	closeFunc()
+	streamOut = nil
 	wg.Wait()
 	return err
 }

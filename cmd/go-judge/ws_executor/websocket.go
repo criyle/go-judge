@@ -197,7 +197,10 @@ func (h *wsHandle) handleStream(c *gin.Context) {
 
 	w := &streamWrapper{ctx: ctx, conn: conn, sendCh: make(chan stream.Response)}
 	go w.sendLoop()
-	stream.Start(ctx, w, h.worker, h.srcPrefix, h.logger)
+	if err := stream.Start(ctx, w, h.worker, h.srcPrefix, h.logger); err != nil {
+		h.logger.Sugar().Debugln("stream start: ", err)
+		c.Error(err)
+	}
 }
 
 type contextMap struct {

@@ -21,13 +21,13 @@ type grpcWrapper struct {
 	sc pb.Executor_ExecStreamClient
 }
 
-func newGrpc(args []string, srvAddr *string) Stream {
+func newGrpc(args []string, srvAddr string) Stream {
 	token := os.Getenv("TOKEN")
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if token != "" {
 		opts = append(opts, grpc.WithPerRPCCredentials(newTokenAuth(token)))
 	}
-	conn, err := grpc.Dial(*srvAddr, opts...)
+	conn, err := grpc.Dial(srvAddr, opts...)
 	if err != nil {
 		log.Fatalln("client", err)
 	}

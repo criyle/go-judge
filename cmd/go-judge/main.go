@@ -510,6 +510,7 @@ func generateHandleVersion(conf *config.Config, builderParam map[string]any) fun
 			"pipeProxy":         true,
 			"symlink":           true,
 			"addressSpaceLimit": true,
+			"stream":            true,
 		})
 	}
 }
@@ -521,6 +522,7 @@ func generateHandleConfig(conf *config.Config, builderParam map[string]any) func
 			"pipeProxy":         true,
 			"symlink":           true,
 			"addressSpaceLimit": true,
+			"stream":            true,
 			"fileStorePath":     conf.Dir,
 			"runnerConfig":      builderParam,
 		})

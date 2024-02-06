@@ -16,7 +16,9 @@ import (
 )
 
 var (
-	srvAddr = flag.String("srv-addr", "localhost:5051", "GRPC server addr")
+	transport = flag.String("transport", "websocket", "defines transport layer (websocket / grpc)")
+	wsURL     = flag.String("ws-url", "ws://localhost:5050/stream", "HTTP server url")
+	grpcAddr  = flag.String("grpc-addr", "localhost:5051", "GRPC server addr")
 )
 
 const (
@@ -33,6 +35,7 @@ var env = []string{
 	"TERM=" + os.Getenv("TERM"),
 }
 
+// Stream defines the transport layer for stream execution
 type Stream interface {
 	Send(*stream.Request) error
 	Recv() (*stream.Response, error)
@@ -44,8 +47,16 @@ func main() {
 	if len(args) == 0 {
 		args = []string{"/bin/bash"}
 	}
-	w := newGrpc(args, srvAddr)
-	r, err := run(w, args)
+	var s Stream
+	switch *transport {
+	case "websocket":
+		s = newWebsocket(args, *wsURL)
+	case "grpc":
+		s = newGrpc(args, *grpcAddr)
+	default:
+		log.Fatalln("invalid transport: ", *transport)
+	}
+	r, err := run(s, args)
 	log.Printf("finished: %+v %v", r, err)
 }
 

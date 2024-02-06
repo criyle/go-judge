@@ -40,12 +40,12 @@ type Response struct {
 
 // ResizeRequest defines resize operation to the virtual terminal
 type ResizeRequest struct {
-	Index int
-	Fd    int
-	Rows  int
-	Cols  int
-	X     int
-	Y     int
+	Index int `json:"index,omitempty"`
+	Fd    int `json:"fd,omitempty"`
+	Rows  int `json:"rows,omitempty"`
+	Cols  int `json:"cols,omitempty"`
+	X     int `json:"x,omitempty"`
+	Y     int `json:"y,omitempty"`
 }
 
 // InputRequest defines input operation from the remote
@@ -97,15 +97,13 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 	defer cancel()
 
 	// stream in
-	if len(streamIn) > 0 {
-		wg.Go(func() error {
-			if err := streamInput(ctx, s, streamIn, execCancel); err != nil {
-				cancel()
-				return err
-			}
-			return nil
-		})
-	}
+	wg.Go(func() error {
+		if err := streamInput(ctx, s, streamIn, execCancel); err != nil {
+			cancel()
+			return err
+		}
+		return nil
+	})
 
 	// stream out
 	outCh := make(chan *OutputResponse, len(streamOut))

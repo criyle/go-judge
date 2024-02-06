@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
+	"github.com/criyle/go-judge/cmd/go-judge/stream"
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -55,6 +56,7 @@ type wsRequest struct {
 
 func (h *wsHandle) Register(r *gin.Engine) {
 	r.GET("/ws", h.handleWS)
+	r.GET("/stream", h.handleStream)
 }
 
 func (h *wsHandle) handleWS(c *gin.Context) {
@@ -176,6 +178,26 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			}
 		}
 	}()
+}
+
+func (h *wsHandle) handleStream(c *gin.Context) {
+	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		c.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		return
+	}
+	conn.SetReadDeadline(time.Now().Add(pongWait))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+
+	w := &streamWrapper{ctx: ctx, conn: conn, sendCh: make(chan stream.Response)}
+	go w.sendLoop()
+	stream.Start(ctx, w, h.worker, h.srcPrefix, h.logger)
 }
 
 type contextMap struct {

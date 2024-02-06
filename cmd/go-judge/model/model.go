@@ -12,7 +12,10 @@ import (
 	"github.com/criyle/go-judge/worker"
 )
 
+// FileError defines the location, file name and the detailed message for a failed file operation
 type FileError = envexec.FileError
+
+// FileErrorType defines the location that file operation fails
 type FileErrorType = envexec.FileErrorType
 
 // CmdFile defines file from multiple source including local / memory / cached or pipe collector

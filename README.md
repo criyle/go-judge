@@ -57,12 +57,20 @@ interface Symlink {
     symlink: string; // symlink destination (v1.6.0+)
 }
 
+interface StreamIn {
+    streamIn: boolean; // stream input (v1.8.1+)
+}
+
+interface StreamOut {
+    streamOut: boolean; // stream output (v1.8.1+)
+}
+
 interface Cmd {
     args: string[]; // command line argument
     env?: string[]; // environment
 
     // specifies file input / pipe collector for program file descriptors
-    files?: (LocalFile | MemoryFile | PreparedFile | Collector)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector | StreamIn | StreamOut)[];
     tty?: boolean; // enables tty on the input and output pipes (should have just one input & one output)
     // Notice: must have TERM environment variables (e.g. TERM=xterm)
 
@@ -172,6 +180,28 @@ interface WSResult {
     requestId: string;
     results: Result[];
     error?: string;
+}
+
+// Stream request & responses
+interface Resize {
+    index: number;
+    fd: number;
+    rows: number;
+    cols: number;
+    x: number;
+    y: number;
+}
+
+interface Input {
+    index: number;
+    fd: number;
+    content: Buffer;
+}
+
+interface Output {
+    index: number;
+    fd: number;
+    content: Buffer;
 }
 ```
 

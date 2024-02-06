@@ -56,12 +56,20 @@ interface Symlink {
     symlink: string; // 符号连接目标 (v1.6.0+)
 }
 
+interface StreamIn {
+    streamIn: boolean; // 流式输入 (v1.8.1+)
+}
+
+interface StreamOut {
+    streamOut: boolean; // 流式输出 (v1.8.1+)
+}
+
 interface Cmd {
     args: string[]; // 程序命令行参数
     env?: string[]; // 程序环境变量
 
     // 指定 标准输入、标准输出和标准错误的文件
-    files?: (LocalFile | MemoryFile | PreparedFile | Collector)[];
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector | StreamIn | StreamOut)[];
     tty?: boolean; // 开启 TTY （需要保证标准输出和标准错误为同一文件）同时需要指定 TERM 环境变量 （例如 TERM=xterm）
 
     // 资源限制
@@ -166,6 +174,28 @@ interface WSResult {
     requestId: string;
     results: Result[];
     error?: string;
+}
+
+// 流式请求 / 响应
+interface Resize {
+    index: number;
+    fd: number;
+    rows: number;
+    cols: number;
+    x: number;
+    y: number;
+}
+
+interface Input {
+    index: number;
+    fd: number;
+    content: Buffer;
+}
+
+interface Output {
+    index: number;
+    fd: number;
+    content: Buffer;
 }
 ```
 

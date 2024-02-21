@@ -28,6 +28,7 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 - /file/:fileId GET 下载文件 ID 指定的文件
 - /file/:fileId DELETE 删除文件 ID 指定的文件
 - /ws /run 接口的 WebSocket 版
+- /stream 运行交互式命令
 - /version 得到本程序编译版本和 go 语言运行时版本
 - /config 得到本程序部分运行参数，包括沙箱详细参数
 

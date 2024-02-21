@@ -28,7 +28,7 @@ A REST service to run program in restricted environment (Listening on `localhost
 - /file/:fileId GET downloads file from go judge (in memory), returns file content
 - /file/:fileId DELETE delete file specified by fileId
 - /ws WebSocket for /run
-- TODO: /stream WebSocket for stream run
+- /stream WebSocket for stream run
 - /version gets build git version (e.g. `v1.4.0`) together with runtime information (go version, os, platform)
 - /config gets some configuration (e.g. `fileStorePath`, `runnerConfig`) together with some supported features
 

@@ -181,7 +181,7 @@ func convertPBCopyIn(copyIn map[string]model.CmdFile) map[string]*pb.Request_Fil
 }
 
 func convertPBCopyOut(copyOut []string) []*pb.Request_CmdCopyOutFile {
-	rt := make([]*pb.Request_CmdCopyOutFile, len(copyOut))
+	rt := make([]*pb.Request_CmdCopyOutFile, 0)
 	for _, n := range copyOut {
 		optional := false
 		if strings.HasSuffix(n, "?") {

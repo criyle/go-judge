@@ -365,6 +365,7 @@ func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server
 	grpcServer := grpc.NewServer(
 		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamMiddleware...)),
 		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryMiddleware...)),
+		grpc.MaxRecvMsgSize(int(conf.GRPCMsgSize.Byte())),
 	)
 	pb.RegisterExecutorServer(grpcServer, esServer)
 	grpc_prometheus.Register(grpcServer)

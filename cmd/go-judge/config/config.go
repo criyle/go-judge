@@ -38,13 +38,14 @@ type Config struct {
 	FileTimeout              time.Duration `flagUsage:"specified timeout for filestore files"`
 
 	// server config
-	HTTPAddr      string `flagUsage:"specifies the http binding address"`
-	EnableGRPC    bool   `flagUsage:"enable gRPC endpoint"`
-	GRPCAddr      string `flagUsage:"specifies the grpc binding address"`
-	MonitorAddr   string `flagUsage:"specifies the metrics binding address"`
-	AuthToken     string `flagUsage:"bearer token auth for REST / gRPC"`
-	EnableDebug   bool   `flagUsage:"enable debug endpoint"`
-	EnableMetrics bool   `flagUsage:"enable prometheus metrics endpoint"`
+	HTTPAddr      string        `flagUsage:"specifies the http binding address"`
+	EnableGRPC    bool          `flagUsage:"enable gRPC endpoint"`
+	GRPCAddr      string        `flagUsage:"specifies the grpc binding address"`
+	MonitorAddr   string        `flagUsage:"specifies the metrics binding address"`
+	AuthToken     string        `flagUsage:"bearer token auth for REST / gRPC"`
+	GRPCMsgSize   *envexec.Size `flagUsage:"message size limit for gRPC message" default:"64m"`
+	EnableDebug   bool          `flagUsage:"enable debug endpoint"`
+	EnableMetrics bool          `flagUsage:"enable prometheus metrics endpoint"`
 
 	// logger config
 	Release bool `flagUsage:"release level of logs"`

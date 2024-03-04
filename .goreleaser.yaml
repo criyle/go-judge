@@ -30,6 +30,7 @@ builds:
       - "7"
     tags:
       - nomsgpack
+      - grpcnotrace
     main: ./cmd/go-judge
     binary: go-judge
 archives:

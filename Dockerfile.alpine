@@ -11,7 +11,7 @@ RUN go mod download -x
 COPY ./ /go/judge
 
 RUN go generate ./cmd/go-judge/version \
-    && CGO_ENABLE=0 go build -v -tags nomsgpack -o go-judge ./cmd/go-judge
+    && CGO_ENABLE=0 go build -v -tags grpcnotrace,nomsgpack -o go-judge ./cmd/go-judge
 
 FROM alpine:latest
 

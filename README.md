@@ -69,8 +69,8 @@ interface Cmd {
     args: string[]; // command line argument
     env?: string[]; // environment
 
-    // specifies file input / pipe collector for program file descriptors
-    files?: (LocalFile | MemoryFile | PreparedFile | Collector | StreamIn | StreamOut)[];
+    // specifies file input / pipe collector for program file descriptors (null is reserved for pipe mapping and must be filled by in / out)
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector | StreamIn | StreamOut ｜ null)[];
     tty?: boolean; // enables tty on the input and output pipes (should have just one input & one output)
     // Notice: must have TERM environment variables (e.g. TERM=xterm)
 

@@ -69,8 +69,8 @@ interface Cmd {
     args: string[]; // 程序命令行参数
     env?: string[]; // 程序环境变量
 
-    // 指定 标准输入、标准输出和标准错误的文件
-    files?: (LocalFile | MemoryFile | PreparedFile | Collector | StreamIn | StreamOut)[];
+    // 指定 标准输入、标准输出和标准错误的文件 (null 是为了 pipe 的使用情况准备的，而且必须被 pipeMapping 的 in / out 指定)
+    files?: (LocalFile | MemoryFile | PreparedFile | Collector | StreamIn | StreamOut | null)[];
     tty?: boolean; // 开启 TTY （需要保证标准输出和标准错误为同一文件）同时需要指定 TERM 环境变量 （例如 TERM=xterm）
 
     // 资源限制

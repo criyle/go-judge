@@ -243,6 +243,12 @@ func prepareFds(r *Group, newStoreFile NewStoreFile) (f [][]*os.File, p [][]pipe
 
 	// prepare pipes
 	for _, p := range r.Pipes {
+		if files[p.Out.Index][p.Out.Fd] != nil {
+			return nil, nil, fmt.Errorf("pipe mapping to existing file descriptor: out %d/%d", p.Out.Index, p.Out.Fd)
+		}
+		if files[p.In.Index][p.In.Fd] != nil {
+			return nil, nil, fmt.Errorf("pipe mapping to existing file descriptor: in %d/%d", p.In.Index, p.In.Fd)
+		}
 		out, in, pc, err := pipe(p, newStoreFile)
 		if err != nil {
 			return nil, nil, err
@@ -252,6 +258,15 @@ func prepareFds(r *Group, newStoreFile NewStoreFile) (f [][]*os.File, p [][]pipe
 
 		if pc != nil {
 			pipeToCollect[p.In.Index] = append(pipeToCollect[p.In.Index], *pc)
+		}
+	}
+
+	// null check
+	for i, fds := range files {
+		for j, f := range fds {
+			if f == nil {
+				return nil, nil, fmt.Errorf("null passed to files for index/fd: %d/%d", i, j)
+			}
 		}
 	}
 	return files, pipeToCollect, nil

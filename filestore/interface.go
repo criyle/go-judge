@@ -3,13 +3,11 @@ package filestore
 import (
 	"encoding/base32"
 	"errors"
-	"math/rand"
+	"math/rand/v2"
 	"os"
 
 	"github.com/criyle/go-judge/envexec"
 )
-
-const randIDLength = 5
 
 var errUniqueIDNotGenerated = errors.New("unique id does not exists after tried 50 times")
 
@@ -23,9 +21,13 @@ type FileStore interface {
 }
 
 func generateID() (string, error) {
+	const randIDLength = 5
 	b := make([]byte, randIDLength)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
+	r := rand.Int64N(1 << 40)
+	b[0] = byte(r)
+	b[1] = byte(r >> 8)
+	b[2] = byte(r >> 16)
+	b[3] = byte(r >> 24)
+	b[4] = byte(r >> 32)
 	return base32.StdEncoding.EncodeToString(b), nil
 }

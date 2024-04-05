@@ -5,4 +5,4 @@ cmd = "go build -o ./tmp/go-judge ./cmd/go-judge"
 full_bin = "tmp/go-judge -enable-grpc -enable-debug -enable-metrics -http-addr=:5050 -grpc-addr=:5051"
 
 include_ext = ["go"]
-exclude_dir = ["dist"]
+exclude_dir = ["dist", "node_modules"]

@@ -135,7 +135,7 @@ func main() {
 	if token != "" {
 		opts = append(opts, grpc.WithPerRPCCredentials(newTokenAuth(token)))
 	}
-	conn, err := grpc.Dial(*srvAddr, opts...)
+	conn, err := grpc.NewClient(*srvAddr, opts...)
 	if err != nil {
 		log.Fatalln("client", err)
 	}

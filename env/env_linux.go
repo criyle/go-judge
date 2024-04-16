@@ -15,6 +15,7 @@ import (
 	"github.com/criyle/go-sandbox/pkg/forkexec"
 	"github.com/criyle/go-sandbox/pkg/mount"
 	ddbus "github.com/godbus/dbus/v5"
+	"github.com/google/shlex"
 	"golang.org/x/sys/unix"
 )
 
@@ -90,12 +91,20 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	workDir := defaultWorkDir
 	cUID := containerCred
 	cGID := containerCred
+	var initCmd []string
 	if mc != nil {
 		hostName = mc.HostName
 		domainName = mc.DomainName
 		workDir = mc.WorkDir
 		cUID = mc.UID
 		cGID = mc.GID
+		if mc.InitCmd != "" {
+			initCmd, err = shlex.Split(mc.InitCmd)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to parse initCmd: %s %w", mc.InitCmd, err)
+			}
+			c.Info("Initialize container with command: ", mc.InitCmd)
+		}
 	}
 	c.Info("Creating container builder: hostName=", hostName, ", domainName=", domainName, ", workDir=", workDir)
 
@@ -110,6 +119,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		ExecFile:      c.ContainerInitPath,
 		HostName:      hostName,
 		DomainName:    domainName,
+		InitCommand:   initCmd,
 		WorkDir:       workDir,
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,

@@ -31,6 +31,7 @@ type Mounts struct {
 	Mount      []Mount  `yaml:"mount"`
 	SymLinks   []Link   `yaml:"symLink"`
 	MaskPaths  []string `yaml:"maskPath"`
+	InitCmd    string   `yaml:"initCmd"`
 	WorkDir    string   `yaml:"workDir"`
 	HostName   string   `yaml:"hostName"`
 	DomainName string   `yaml:"domainName"`
@@ -124,6 +125,8 @@ var defaultSymLinks = []container.SymbolicLink{
 }
 
 var defaultMaskPaths = []string{
+	"/sys/firmware",
+	"/sys/devices/virtual/powercap",
 	"/proc/acpi",
 	"/proc/asound",
 	"/proc/kcore",

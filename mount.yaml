@@ -71,6 +71,10 @@ mount:
   - type: tmpfs
     target: /tmp
     data: size=128m,nr_inodes=4k
+  # MPI wants shm
+  - type: tmpfs
+    target: /dev/shm
+    data: size=64m,nr_inodes=4k
   # (optional) bind a /etc/passwd to show customized user name
   - type: bind
     source: containerPasswd.txt
@@ -80,6 +84,11 @@ mount:
     source: dotenv
     target: /.env
     #readonly: true
+  # MPI wants /sys, readonly may not work for /sys
+  - type: bind
+    source: /sys
+    target: /sys
+  #  # readonly: true
 # java & ghc wants /proc/self/exe
 proc: true
 # create /dev standard io
@@ -94,6 +103,8 @@ symLink:
     target: /proc/self/fd/2
 # mask mounted paths with empty / null mount
 maskPath:
+  - /sys/firmware
+  - /sys/devices/virtual/powercap
   - /proc/acpi
   - /proc/asound
   - /proc/kcore
@@ -108,10 +119,13 @@ maskPath:
 # container work directory
 workDir: /w
 # container host name
-hostName: go_judge
+hostName: go-judge
 # container domain name
-domainName: go_judge
+domainName: go-judge
 # container user uid
 uid: 1536
 # container user gid
 gid: 1536
+# init cmd does additional setups
+# MPI want network
+initCmd: ip link set dev lo up

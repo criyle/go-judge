@@ -459,7 +459,7 @@ interface Output {
 - 默认最大额外内存使用为 `16KiB` ，使用 `-extra-memory-limit` 指定
 - 默认最大 `copyOut` 文件大小为 `64MiB` ，使用 `-copy-out-limit` 指定
 - 使用 `-cpuset` 指定 `cpuset.cpus` （仅 Linux）
-- 默认容器用户开始区间为 10000 使用 `-container-cred-start` 指定（仅 Linux）
+- 默认容器用户开始区间为 0（不启用） 使用 `-container-cred-start` 指定（仅 Linux）
   - 举例，默认情况下第 0 个容器使用 10001 作为容器用户。第 1 个容器使用 10002 作为容器用户，以此类推
 - 使用 `-enable-cpu-rate` 开启 `cpu` cgroup 来启用 `cpuRate` 控制（仅 Linux）
   - 使用 `-cpu-cfs-period` 指定 cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])

@@ -640,7 +640,7 @@ Sandbox:
 - `-copy-out-limit` specifies the default file copy out max (default 64MiB)
 - `-open-file-limit` specifies the max number of open files (default 256)
 - `-cpuset` specifies `cpuset.cpus` cgroup for each container (Linux only)
-- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 10000) (Linux only)
+- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 0 (disabled)) (Linux only)
   - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
 - `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control (Linux only)
   - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])

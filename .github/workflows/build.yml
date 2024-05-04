@@ -159,13 +159,13 @@ jobs:
         run: |
           go build -tags grpcnotrace,nomsgpack -o go-judge ./cmd/go-judge
           go build -o go-judge-shell ./cmd/go-judge-shell
-      - name: Build shared object on macOS
-        if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
-        env:
-          GOARCH: ${{ matrix.GOARCH }}
-          CGO_ENABLE: 1
-        run: |
-          go build -buildmode=c-shared -o go-judge.dylib ./cmd/go-judge-ffi
+      # - name: Build shared object on macOS
+      #   if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
+      #   env:
+      #     GOARCH: ${{ matrix.GOARCH }}
+      #     CGO_ENABLE: 1
+      #   run: |
+      #     go build -buildmode=c-shared -o go-judge.dylib ./cmd/go-judge-ffi
       - name: Upload go-judge on macOS
         if: ${{ matrix.os == 'macos-latest' }}
         uses: actions/upload-artifact@v4
@@ -178,9 +178,9 @@ jobs:
         with:
           name: go-judge-shell-MacOS-${{ matrix.GOARCH }}
           path: go-judge-shell
-      - name: Upload go-judge.dylib on macOS
-        if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: go-judge-${{ matrix.GOARCH }}.dylib
-          path: go-judge.dylib
+      # - name: Upload go-judge.dylib on macOS
+      #   if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: go-judge-${{ matrix.GOARCH }}.dylib
+      #     path: go-judge.dylib

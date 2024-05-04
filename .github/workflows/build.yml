@@ -96,6 +96,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' && matrix.GOARCH == 'amd64' }}
         env:
           GOARCH: ${{ matrix.GOARCH }}
+          CGO_ENABLE: 1
         run: |
           go build -buildmode=c-shared -o go-judge.so ./cmd/go-judge-ffi
       - name: Upload go-judge on linux
@@ -127,12 +128,14 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         env:
           GOARCH: ${{ matrix.GOARCH }}
+          CGO_ENABLE: 0
         run: |
           go build -tags grpcnotrace,nomsgpack -o go-judge.exe ./cmd/go-judge
       - name: Build shared object on Windows
         if: ${{ matrix.os == 'windows-latest' }}
         env:
           GOARCH: ${{ matrix.GOARCH }}
+          CGO_ENABLE: 1
         run: |
           go build -buildmode=c-shared -o go-judge.dll ./cmd/go-judge-ffi
       - name: Upload go-judge.exe on Windows
@@ -152,6 +155,7 @@ jobs:
         if: ${{ matrix.os == 'macos-latest' }}
         env:
           GOARCH: ${{ matrix.GOARCH }}
+          CGO_ENABLE: 0
         run: |
           go build -tags grpcnotrace,nomsgpack -o go-judge ./cmd/go-judge
           go build -o go-judge-shell ./cmd/go-judge-shell
@@ -159,6 +163,7 @@ jobs:
         if: ${{ matrix.os == 'macos-latest' && matrix.GOARCH == 'amd64' }}
         env:
           GOARCH: ${{ matrix.GOARCH }}
+          CGO_ENABLE: 1
         run: |
           go build -buildmode=c-shared -o go-judge.dylib ./cmd/go-judge-ffi
       - name: Upload go-judge on macOS

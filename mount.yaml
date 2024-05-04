@@ -72,9 +72,9 @@ mount:
     target: /tmp
     data: size=128m,nr_inodes=4k
   # MPI wants shm
-  - type: tmpfs
-    target: /dev/shm
-    data: size=64m,nr_inodes=4k
+  # - type: tmpfs
+  #   target: /dev/shm
+  #   data: size=64m,nr_inodes=4k
   # (optional) bind a /etc/passwd to show customized user name
   - type: bind
     source: containerPasswd.txt
@@ -85,9 +85,9 @@ mount:
     target: /.env
     #readonly: true
   # MPI wants /sys, readonly may not work for /sys
-  - type: bind
-    source: /sys
-    target: /sys
+  # - type: bind
+  #   source: /sys
+  #   target: /sys
   #  # readonly: true
 # java & ghc wants /proc/self/exe
 proc: true
@@ -128,4 +128,4 @@ uid: 1536
 gid: 1536
 # init cmd does additional setups
 # MPI want network
-initCmd: ip link set dev lo up
+#initCmd: ip link set dev lo up

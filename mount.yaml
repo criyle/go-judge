@@ -91,6 +91,8 @@ mount:
   #  # readonly: true
 # java & ghc wants /proc/self/exe
 proc: true
+# procrw enables read-write permission on /proc for special usage like CUDA
+#procrw: true
 # create /dev standard io
 symLink:
   - linkPath: /dev/fd

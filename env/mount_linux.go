@@ -38,6 +38,7 @@ type Mounts struct {
 	UID        int      `yaml:"uid"`
 	GID        int      `yaml:"gid"`
 	Proc       bool     `yaml:"proc"`
+	ProcRW     bool     `yaml:"procrw"`
 }
 
 func readMountConfig(p string) (*Mounts, error) {
@@ -77,7 +78,7 @@ func parseMountConfig(m *Mounts) (*mount.Builder, error) {
 		}
 	}
 	if m.Proc {
-		b.WithProc()
+		b.WithProcRW(m.ProcRW)
 	}
 	return b, nil
 }

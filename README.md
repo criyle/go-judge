@@ -761,17 +761,6 @@ When running in containers, the `go-judge` will migrate all processed into `/api
 
 When running in Linux distributions powered by `systemd`, the `go-judge` will contact `systemd` via `dbus` to create a transient scope as cgroup root.
 
-#### CentOS 7
-
-By default, user namespace is disabled and it can be enabled following [stack overflow](https://superuser.com/questions/1294215/is-it-safe-to-enable-user-namespaces-in-centos-7-4-and-how-to-do-it/1294246#1294246)
-
-```bash
-echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
-sysctl -p
-# reboot make the config effective
-reboot
-```
-
 #### Memory Usage
 
 The controller will consume `20M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max. Notice that the cached file stores in the shared memory (`/dev/shm`) of the host, so please ensure enough size allocated.

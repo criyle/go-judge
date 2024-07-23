@@ -537,17 +537,6 @@ interface Output {
 
 在 `systemd` 为 `init` 的发行版中运行时，`go-judge` 会使用 `dbus` 通知 `systemd` 来创建一个临时 `scope` 作为 `cgroup` 的根。
 
-#### CentOS 7
-
-需要开启 user 命名空间来使用 [stack overflow](https://superuser.com/questions/1294215/is-it-safe-to-enable-user-namespaces-in-centos-7-4-and-how-to-do-it/1294246#1294246)
-
-```bash
-echo user.max_user_namespaces=10000 >> /etc/sysctl.d/98-userns.conf
-sysctl -p
-# 重启生效
-reboot
-```
-
 #### 内存使用
 
 控制进程通常会使用 `20M` 内存，每个容器进程最大会使用 `20M` 内存，每个请求最大会使用 `2 * 16M` + 总 copy out max 限制 * 2 内存。请注意，缓存文件会存储在宿主机的共享内存中 (`/dev/shm`)，请保证其大小足够存储运行时最大可能文件。

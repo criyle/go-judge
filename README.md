@@ -670,11 +670,11 @@ For cgroup v2, systemd dbus will be used to create a transient scope for cgroup 
 
 Build container init `cinit`:
 
-`go build -o cinit ./cmd/cinit`
+`go build -o cinit ./cmd/go-judge-init`
 
 Build `go_judge.so`:
 
-`go build -buildmode=c-shared -o go_judge.so ./cmd/ffi/`
+`go build -buildmode=c-shared -o go_judge.so ./cmd/go-judge-ffi/`
 
 For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported yet):
 
@@ -732,7 +732,7 @@ If a bind mount is specifying a target within the previous mounted one, please e
 ### Windows Support
 
 - Build `go-judge` by: `go build ./cmd/go-judge/`
-- Build `go_judge.dll`: (need to install `gcc` as well) `go build -buildmode=c-shared -o go_judge.so ./cmd/ffi/`
+- Build `go_judge.dll`: (need to install `gcc` as well) `go build -buildmode=c-shared -o go_judge.so ./cmd/go-judge-ffi/`
 - Run: `./go-judge`
 
 #### Windows Security
@@ -744,7 +744,7 @@ If a bind mount is specifying a target within the previous mounted one, please e
 ### MacOS Support
 
 - Build `go-judge` by: `go build ./cmd/go-judge/`
-- Build `go_judge.dylib`: (need to install `XCode`) `go build -buildmode=c-shared -o go_judge.dylib ./cmd/ffi/`
+- Build `go_judge.dylib`: (need to install `XCode`) `go build -buildmode=c-shared -o go_judge.dylib ./cmd/go-judge-ffi/`
 - Run: `./go-judge`
 
 #### MacOS Security

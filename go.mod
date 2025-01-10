@@ -19,7 +19,7 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/zsais/go-gin-prometheus v0.1.0
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.32.0
+	golang.org/x/net v0.33.0
 	golang.org/x/sync v0.10.0
 	golang.org/x/sys v0.28.0
 	golang.org/x/term v0.27.0

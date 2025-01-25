@@ -30,18 +30,19 @@ import (
 	"github.com/criyle/go-judge/worker"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
-	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
-	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/auth"
-	grpc_zap "github.com/grpc-ecosystem/go-grpc-middleware/logging/zap"
-	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
+	grpc_logging "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zapgrpc"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/status"
 )
 
@@ -345,16 +346,53 @@ func initDebugRoute(mux *http.ServeMux) {
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 }
 
+func InterceptorLogger(l *zap.Logger) grpc_logging.Logger {
+	return grpc_logging.LoggerFunc(func(ctx context.Context, lvl grpc_logging.Level, msg string, fields ...any) {
+		f := make([]zap.Field, 0, len(fields)/2)
+
+		for i := 0; i < len(fields); i += 2 {
+			key := fields[i]
+			value := fields[i+1]
+
+			switch v := value.(type) {
+			case string:
+				f = append(f, zap.String(key.(string), v))
+			case int:
+				f = append(f, zap.Int(key.(string), v))
+			case bool:
+				f = append(f, zap.Bool(key.(string), v))
+			default:
+				f = append(f, zap.Any(key.(string), v))
+			}
+		}
+
+		logger := l.WithOptions(zap.AddCallerSkip(1)).With(f...)
+
+		switch lvl {
+		case grpc_logging.LevelDebug:
+			logger.Debug(msg)
+		case grpc_logging.LevelInfo:
+			logger.Info(msg)
+		case grpc_logging.LevelWarn:
+			logger.Warn(msg)
+		case grpc_logging.LevelError:
+			logger.Error(msg)
+		default:
+			panic(fmt.Sprintf("unknown level %v", lvl))
+		}
+	})
+}
+
 func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server {
-	grpc_zap.ReplaceGrpcLoggerV2(logger)
+	grpclog.SetLoggerV2(zapgrpc.NewLogger(logger))
 	streamMiddleware := []grpc.StreamServerInterceptor{
 		grpc_prometheus.StreamServerInterceptor,
-		grpc_zap.StreamServerInterceptor(logger),
+		grpc_logging.StreamServerInterceptor(InterceptorLogger(logger)),
 		grpc_recovery.StreamServerInterceptor(),
 	}
 	unaryMiddleware := []grpc.UnaryServerInterceptor{
 		grpc_prometheus.UnaryServerInterceptor,
-		grpc_zap.UnaryServerInterceptor(logger),
+		grpc_logging.UnaryServerInterceptor(InterceptorLogger(logger)),
 		grpc_recovery.UnaryServerInterceptor(),
 	}
 	if conf.AuthToken != "" {
@@ -363,8 +401,8 @@ func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server
 		unaryMiddleware = append(unaryMiddleware, grpc_auth.UnaryServerInterceptor(authFunc))
 	}
 	grpcServer := grpc.NewServer(
-		grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(streamMiddleware...)),
-		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(unaryMiddleware...)),
+		grpc.ChainStreamInterceptor(streamMiddleware...),
+		grpc.ChainUnaryInterceptor(unaryMiddleware...),
 		grpc.MaxRecvMsgSize(int(conf.GRPCMsgSize.Byte())),
 	)
 	pb.RegisterExecutorServer(grpcServer, esServer)

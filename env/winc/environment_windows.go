@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"syscall"
+	"time"
 	"unicode/utf16"
 	"unsafe"
 
@@ -36,6 +37,7 @@ type Environment struct {
 
 // Execve implements windows sandbox ..
 func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (proc envexec.Process, err error) {
+	startTime := time.Now()
 	if len(param.Files) != 3 {
 		return nil, errFileCount
 	}
@@ -69,7 +71,10 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 	}
 
 	deskName := fmt.Sprintf("winc_%08x_%s", windows.GetCurrentProcessId(), hex.EncodeToString(random))
-	deskNameW := syscall.StringToUTF16Ptr(deskName)
+	deskNameW, err := syscall.UTF16PtrFromString(deskName)
+	if err != nil {
+		return nil, err
+	}
 
 	sa := windows.SecurityAttributes{
 		Length:             uint32(unsafe.Sizeof(windows.SecurityAttributes{})),
@@ -106,8 +111,14 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 	}
 
 	cmdLine := makeCmdLine(param.Args)
-	cmdLineW := syscall.StringToUTF16Ptr(cmdLine)
-	dirW := syscall.StringToUTF16Ptr(e.root)
+	cmdLineW, err := syscall.UTF16PtrFromString(cmdLine)
+	if err != nil {
+		return nil, err
+	}
+	dirW, err := syscall.UTF16PtrFromString(e.root)
+	if err != nil {
+		return nil, err
+	}
 
 	var startupInfo syscall.StartupInfo
 	startupInfo.Cb = uint32(unsafe.Sizeof(startupInfo))
@@ -165,6 +176,7 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 		return nil, err
 	}
 
+	setUpTime := time.Now()
 	// resume thread
 	if _, err := windows.ResumeThread(windows.Handle(processInfo.Thread)); err != nil {
 		return nil, err
@@ -258,6 +270,8 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 		}
 		result.Time = t
 		result.Memory = m
+		result.SetUpTime = setUpTime.Sub(startTime)
+		result.RunningTime = time.Since(setUpTime)
 		procSet.result = result
 	}()
 

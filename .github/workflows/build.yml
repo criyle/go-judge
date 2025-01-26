@@ -71,11 +71,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: go-judge_${{ matrix.os == 'darwin' && 'macos' || matrix.os }}_${{ matrix.arch }}
-          path: dist/go-judge_${{ matrix.os }}_${{ matrix.arch }}/go-judge${{ matrix.os == 'windows' && '.exe'}}
+          path: dist/go-judge_${{ matrix.os }}_${{ matrix.arch }}/go-judge${{ matrix.os == 'windows' && '.exe' || ''}}
       - name: Upload assets go-judge-shell
         uses: actions/upload-artifact@v4
         with:
           name: go-judge-shell_${{ matrix.os == 'darwin' && 'macos' || matrix.os }}_${{ matrix.arch }}
-          path: dist/go-judge-shell_${{ matrix.os }}_${{ matrix.arch }}/go-judge-shell${{ matrix.os == 'windows' && '.exe'}}
+          path: dist/go-judge-shell_${{ matrix.os }}_${{ matrix.arch }}/go-judge-shell${{ matrix.os == 'windows' && '.exe' || ''}}
 
     

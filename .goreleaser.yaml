@@ -27,8 +27,13 @@ builds:
       - ppc64le
       - s390x
     goarm:
-      - "6"
+      - "5"
       - "7"
+    goarm64:
+      - "v8.0"
+    goamd64:
+      - v2
+      - v3
     tags:
       - nomsgpack
       - grpcnotrace
@@ -37,20 +42,14 @@ builds:
 archives:
   - files:
       - mount.yaml
+    formats: [ 'binary', 'tar.gz' ]
     name_template: >- 
       {{ .ProjectName }}_{{ .Version }}_
       {{- if eq .Os "darwin" }}macOS
       {{- else }}{{ .Os }}{{ end }}_{{ .Arch }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
-  - id: no_archive
-    files:
-      - mount.yaml
-    format: binary
-    name_template: >- 
-      {{ .ProjectName }}_{{ .Version }}_
-      {{- if eq .Os "darwin" }}macOS
-      {{- else }}{{ .Os }}{{ end }}_{{ .Arch }}
-      {{- if .Arm }}v{{ .Arm }}{{ end }}
+      {{- with .Arm }}v{{ . }}{{ end }}
+      {{- with .Mips }}_{{ . }}{{ end }}
+      {{- if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{end}}
 nfpms:
   - license: MIT
     maintainer: "criyle"
@@ -67,6 +66,7 @@ dockers:
     use: buildx
     dockerfile: "Dockerfile.goreleaser"
     goarch: amd64
+    goamd64: v2
     extra_files:
       - "mount.yaml"
     build_flag_templates:
@@ -81,7 +81,7 @@ dockers:
     build_flag_templates:
       - "--platform=linux/arm64"
   - image_templates:
-    - "criyle/go-judge:{{ .Tag }}-arm"
+    - "criyle/go-judge:{{ .Tag }}-armv7"
     use: buildx
     goarch: "arm"
     goarm: "7"
@@ -90,6 +90,16 @@ dockers:
       - "mount.yaml"
     build_flag_templates:
       - "--platform=linux/arm/v7"
+  - image_templates:
+    - "criyle/go-judge:{{ .Tag }}-armv5"
+    use: buildx
+    goarch: "arm"
+    goarm: "5"
+    dockerfile: "Dockerfile.goreleaser"
+    extra_files:
+      - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/arm/v5"
   - image_templates:
     - "criyle/go-judge:{{ .Tag }}-ppc64le"
     use: buildx
@@ -123,7 +133,8 @@ docker_manifests:
     image_templates:
       - "criyle/go-judge:{{ .Tag }}-amd64"
       - "criyle/go-judge:{{ .Tag }}-arm64"
-      - "criyle/go-judge:{{ .Tag }}-arm"
+      - "criyle/go-judge:{{ .Tag }}-armv7"
+      - "criyle/go-judge:{{ .Tag }}-armv5"
       - "criyle/go-judge:{{ .Tag }}-ppc64le"
       - "criyle/go-judge:{{ .Tag }}-s390x"
       # - "criyle/go-judge:{{ .Tag }}-riscv64"
@@ -131,7 +142,8 @@ docker_manifests:
     image_templates:
       - "criyle/go-judge:{{ .Tag }}-amd64"
       - "criyle/go-judge:{{ .Tag }}-arm64"
-      - "criyle/go-judge:{{ .Tag }}-arm"
+      - "criyle/go-judge:{{ .Tag }}-armv7"
+      - "criyle/go-judge:{{ .Tag }}-armv5"
       - "criyle/go-judge:{{ .Tag }}-ppc64le"
       - "criyle/go-judge:{{ .Tag }}-s390x"
       # - "criyle/go-judge:{{ .Tag }}-riscv64"

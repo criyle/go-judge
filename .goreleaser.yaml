@@ -10,7 +10,9 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./cmd/...
 builds:
-  - env:
+  - main: ./cmd/go-judge
+    binary: go-judge
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
@@ -37,8 +39,71 @@ builds:
     tags:
       - nomsgpack
       - grpcnotrace
-    main: ./cmd/go-judge
-    binary: go-judge
+  - main: ./cmd/go-judge-shell
+    binary: go-judge-shell
+    id: go-judge-shell
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+      - riscv64
+      - loong64
+      - mips64le
+      - ppc64le
+      - s390x
+    goarm:
+      - "5"
+      - "7"
+    goarm64:
+      - "v8.0"
+    goamd64:
+      - v2
+      - v3
+    tags:
+      - nomsgpack
+      - grpcnotrace
+  - main: ./cmd/go-judge-ffi
+    binary: go-judge-ffi
+    id: go-judge-ffi
+    buildmode: c-shared
+    goos:
+      - linux
+    goarch:
+      - amd64
+    goamd64:
+      - v2
+  - main: ./cmd/go-judge-init
+    binary: go-judge-init
+    id: go-judge-init
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+      - riscv64
+      - loong64
+      - mips64le
+      - ppc64le
+      - s390x
+    goarm:
+      - "5"
+      - "7"
+    goarm64:
+      - "v8.0"
+    goamd64:
+      - v2
+      - v3
 archives:
   - files:
       - mount.yaml

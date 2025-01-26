@@ -124,7 +124,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,
 	}
-	cgb, err := newCgroup(c)
+	cgb, ct, err := newCgroup(c)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -154,16 +154,18 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 			"workDir":      workDir,
 			"uid":          cUID,
 			"gid":          cGID,
+
+			"cgroupControllers": ct.Names(),
 		}, nil
 }
 
-func newCgroup(c Config) (cgroup.Cgroup, error) {
+func newCgroup(c Config) (cgroup.Cgroup, *cgroup.Controllers, error) {
 	prefix := c.CgroupPrefix
 	t := cgroup.DetectedCgroupType
 	ct, err := cgroup.GetAvailableController()
 	if err != nil {
 		c.Error("Failed to get available controllers", err)
-		return nil, err
+		return nil, nil, err
 	}
 	if t == cgroup.TypeV2 {
 		// Check if running on a systemd enabled system
@@ -192,21 +194,21 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 			}
 			ch := make(chan string, 1)
 			if _, err := conn.StartTransientUnitContext(context.TODO(), scopeName, "replace", properties, ch); err != nil {
-				return nil, fmt.Errorf("failed to start transient unit: %w", err)
+				return nil, nil, fmt.Errorf("failed to start transient unit: %w", err)
 			}
 			s := <-ch
 			if s != "done" {
-				return nil, fmt.Errorf("starting transient unit returns error: %w", err)
+				return nil, nil, fmt.Errorf("starting transient unit returns error: %w", err)
 			}
 			scopeName, err := cgroup.GetCurrentCgroupPrefix()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			c.Info("Current cgroup is ", scopeName)
 			prefix = scopeName
 			ct, err = cgroup.GetAvailableControllerWithPrefix(prefix)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
@@ -214,10 +216,10 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 	if err != nil {
 		if os.Getuid() == 0 {
 			c.Error("Failed to create cgroup ", prefix, " ", err)
-			return nil, err
+			return nil, nil, err
 		}
 		c.Warn("Not running in root and have no permission on cgroup, falling back to rlimit / rusage mode")
-		return nil, nil
+		return nil, nil, nil
 	}
 	// Create api and migrate current process into it
 	c.Info("Creating nesting api cgroup ", cgb)
@@ -227,7 +229,7 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 			c.Warn("Creating api cgroup with error: ", err)
 			c.Warn("As running in non-root mode, falling back back to rlimit / rusage mode")
 			cgb.Destroy()
-			return nil, nil
+			return nil, nil, nil
 		}
 	}
 
@@ -238,7 +240,13 @@ func newCgroup(c Config) (cgroup.Cgroup, error) {
 		c.Warn("Falling back to rlimit / rusage mode")
 		cgb = nil
 	}
-	return cg, nil
+	if !ct.Memory {
+		c.Warn("Memory cgroup is not enabled, failling back to rlimit / rusage mode")
+	}
+	if !ct.Pids {
+		c.Warn("Pid cgroup is not enabled, proc limit does not have effect")
+	}
+	return cg, ct, nil
 }
 
 func newSystemdProperty(name string, units any) dbus.Property {

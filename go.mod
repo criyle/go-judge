@@ -13,8 +13,8 @@ require (
 	github.com/godbus/dbus/v5 v5.1.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/gorilla/websocket v1.5.3
+	github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus v1.0.1
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.2.0
-	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/prometheus/client_golang v1.20.5
 	github.com/zsais/go-gin-prometheus v0.1.0

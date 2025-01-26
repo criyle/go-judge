@@ -30,10 +30,11 @@ import (
 	"github.com/criyle/go-judge/worker"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	grpc_auth "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/auth"
 	grpc_logging "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
-	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 	"go.uber.org/zap"
@@ -384,14 +385,15 @@ func InterceptorLogger(l *zap.Logger) grpc_logging.Logger {
 }
 
 func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server {
+	prom := grpc_prometheus.NewServerMetrics(grpc_prometheus.WithServerHandlingTimeHistogram())
 	grpclog.SetLoggerV2(zapgrpc.NewLogger(logger))
 	streamMiddleware := []grpc.StreamServerInterceptor{
-		grpc_prometheus.StreamServerInterceptor,
+		prom.StreamServerInterceptor(),
 		grpc_logging.StreamServerInterceptor(InterceptorLogger(logger)),
 		grpc_recovery.StreamServerInterceptor(),
 	}
 	unaryMiddleware := []grpc.UnaryServerInterceptor{
-		grpc_prometheus.UnaryServerInterceptor,
+		prom.UnaryServerInterceptor(),
 		grpc_logging.UnaryServerInterceptor(InterceptorLogger(logger)),
 		grpc_recovery.UnaryServerInterceptor(),
 	}
@@ -406,8 +408,7 @@ func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server
 		grpc.MaxRecvMsgSize(int(conf.GRPCMsgSize.Byte())),
 	)
 	pb.RegisterExecutorServer(grpcServer, esServer)
-	grpc_prometheus.Register(grpcServer)
-	grpc_prometheus.EnableHandlingTimeHistogram()
+	prometheus.MustRegister(prom)
 	return grpcServer
 }
 

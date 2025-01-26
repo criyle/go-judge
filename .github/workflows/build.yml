@@ -14,8 +14,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Fetch all tags
-        run: git fetch --force --tags
       - name: Login to DockerHub
         uses: docker/login-action@v3
         with:
@@ -50,4 +48,33 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: go-judge
-          path: dist/*
+          path: dist/
+  upload-artifacts:
+    name: Upload artifacts-${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os:
+          - windows
+          - linux
+          - darwin
+        arch:
+          - amd64_v3
+          - arm64_v8.0
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: go-judge
+          path: dist
+      - name: Upload assets go-judge
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-judge_${{ matrix.os == 'darwin' && 'macos' || matrix.os }}_${{ matrix.arch }}
+          path: dist/go-judge_${{ matrix.os }}_${{ matrix.arch }}/go-judge${{ matrix.os == 'windows' && '.exe'}}
+      - name: Upload assets go-judge-shell
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-judge-shell_${{ matrix.os == 'darwin' && 'macos' || matrix.os }}_${{ matrix.arch }}
+          path: dist/go-judge-shell_${{ matrix.os }}_${{ matrix.arch }}/go-judge-shell${{ matrix.os == 'windows' && '.exe'}}
+
+    

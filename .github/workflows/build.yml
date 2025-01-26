@@ -52,6 +52,7 @@ jobs:
   upload-artifacts:
     name: Upload artifacts-${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ubuntu-latest
+    needs: goreleaser
     strategy:
       matrix:
         os:

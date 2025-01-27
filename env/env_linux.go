@@ -137,6 +137,10 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	if cgb == nil {
 		cgroupType = 0
 	}
+	cgroupControllers := []string{}
+	if ct != nil {
+		cgroupControllers = ct.Names()
+	}
 	return linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
 			Builder:    b,
 			CgroupPool: cgroupPool,
@@ -155,7 +159,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 			"uid":          cUID,
 			"gid":          cGID,
 
-			"cgroupControllers": ct.Names(),
+			"cgroupControllers": cgroupControllers,
 		}, nil
 }
 

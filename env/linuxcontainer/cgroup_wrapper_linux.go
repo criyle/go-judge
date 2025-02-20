@@ -1,6 +1,7 @@
 package linuxcontainer
 
 import (
+	"os"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
@@ -62,4 +63,8 @@ func (c *wCgroup) Reset() error {
 
 func (c *wCgroup) Destroy() error {
 	return c.cg.Destroy()
+}
+
+func (c *wCgroup) Open() (*os.File, error) {
+	return c.cg.Open()
 }

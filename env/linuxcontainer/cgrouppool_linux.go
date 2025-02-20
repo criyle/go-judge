@@ -1,6 +1,7 @@
 package linuxcontainer
 
 import (
+	"os"
 	"sync"
 	"time"
 
@@ -22,6 +23,8 @@ type Cgroup interface {
 	AddProc(int) error
 	Reset() error
 	Destroy() error
+
+	Open() (*os.File, error)
 }
 
 // CgroupPool implements pool of Cgroup

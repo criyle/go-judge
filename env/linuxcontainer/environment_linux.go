@@ -28,6 +28,7 @@ type environ struct {
 	cpuset  string
 	seccomp []syscall.SockFilter
 	cpuRate bool
+	cgFd    bool
 }
 
 // Destroy destroys the environment
@@ -45,6 +46,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		cg       Cgroup
 		syncFunc func(int) error
 		err      error
+		cgFd     uintptr
 	)
 
 	limit := param.Limit
@@ -56,7 +58,16 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		if err := c.setCgroupLimit(cg, limit); err != nil {
 			return nil, err
 		}
-		syncFunc = cg.AddProc
+		if c.cgFd {
+			f, err := cg.Open()
+			if err != nil {
+				return nil, fmt.Errorf("execve: failed to get cgroup fd %v", err)
+			}
+			defer f.Close()
+			cgFd = f.Fd()
+		} else {
+			syncFunc = cg.AddProc
+		}
 	}
 
 	rLimits := rlimit.RLimits{
@@ -92,6 +103,8 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 			}
 			return nil
 		},
+		SyncAfterExec: syncFunc == nil,
+		CgroupFD:      cgFd,
 	}
 	proc := newProcess(func() runner.Result {
 		return c.Environment.Execve(ctx, p)

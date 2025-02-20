@@ -16,6 +16,7 @@ type Config struct {
 	Seccomp    []syscall.SockFilter
 	Cpuset     string
 	CPURate    bool
+	CgroupFd   bool // whether to enable cgroup fd with clone3, kernel >= 5.7
 }
 
 type environmentBuilder struct {
@@ -25,6 +26,7 @@ type environmentBuilder struct {
 	seccomp []syscall.SockFilter
 	cpuset  string
 	cpuRate bool
+	cgFd    bool
 }
 
 // NewEnvBuilder creates builder for linux container pools
@@ -36,6 +38,7 @@ func NewEnvBuilder(c Config) pool.EnvBuilder {
 		seccomp: c.Seccomp,
 		cpuset:  c.Cpuset,
 		cpuRate: c.CPURate,
+		cgFd:    c.CgroupFd,
 	}
 }
 
@@ -61,5 +64,6 @@ func (b *environmentBuilder) Build() (pool.Environment, error) {
 		cpuset:      b.cpuset,
 		cpuRate:     b.cpuRate,
 		seccomp:     b.seccomp,
+		cgFd:        b.cgFd,
 	}, nil
 }

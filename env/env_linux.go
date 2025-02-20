@@ -10,10 +10,12 @@ import (
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/criyle/go-judge/env/linuxcontainer"
 	"github.com/criyle/go-judge/env/pool"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
 	"github.com/criyle/go-sandbox/pkg/mount"
+	"github.com/criyle/go-sandbox/runner"
 	ddbus "github.com/godbus/dbus/v5"
 	"github.com/google/shlex"
 	"golang.org/x/sys/unix"
@@ -141,26 +143,65 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	if ct != nil {
 		cgroupControllers = ct.Names()
 	}
-	return linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
-			Builder:    b,
-			CgroupPool: cgroupPool,
-			WorkDir:    workDir,
-			Cpuset:     c.Cpuset,
-			CPURate:    c.EnableCPURate,
-			Seccomp:    seccomp,
-		}), map[string]any{
-			"cgroupType":   cgroupType,
-			"mount":        m,
-			"symbolicLink": symbolicLinks,
-			"maskedPaths":  maskPaths,
-			"hostName":     hostName,
-			"domainName":   domainName,
-			"workDir":      workDir,
-			"uid":          cUID,
-			"gid":          cGID,
+	conf := map[string]any{
+		"cgroupType":   cgroupType,
+		"mount":        m,
+		"symbolicLink": symbolicLinks,
+		"maskedPaths":  maskPaths,
+		"hostName":     hostName,
+		"domainName":   domainName,
+		"workDir":      workDir,
+		"uid":          cUID,
+		"gid":          cGID,
 
-			"cgroupControllers": cgroupControllers,
-		}, nil
+		"cgroupControllers": cgroupControllers,
+	}
+	if cgb != nil && cgroupType == cgroup.TypeV2 && major >= 5 && minor >= 7 {
+		c.Info("Running kernel ", major, ".", minor, " >= 5.7 with cgroup V2, trying faster clone3(CLONE_INTO_CGROUP)")
+		if b := func() pool.EnvBuilder {
+			b := linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
+				Builder:    b,
+				CgroupPool: cgroupPool,
+				WorkDir:    workDir,
+				Cpuset:     c.Cpuset,
+				CPURate:    c.EnableCPURate,
+				Seccomp:    seccomp,
+				CgroupFd:   true,
+			})
+			e, err := b.Build()
+			if err != nil {
+				c.Info("Environment build failed: ", err)
+				return nil
+			}
+			defer e.Destroy()
+			p, err := e.Execve(context.TODO(), envexec.ExecveParam{
+				Args: []string{"/usr/bin/env"},
+			})
+			if err != nil {
+				c.Info("Environment run failed: ", err)
+				return nil
+			}
+			<-p.Done()
+			r := p.Result()
+			if r.Status == runner.StatusRunnerError {
+				c.Info("Environment result failed: ", r)
+				return nil
+			}
+			return b
+		}(); b != nil {
+			conf["clone3"] = true
+			return b, conf, nil
+		}
+	}
+
+	return linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
+		Builder:    b,
+		CgroupPool: cgroupPool,
+		WorkDir:    workDir,
+		Cpuset:     c.Cpuset,
+		CPURate:    c.EnableCPURate,
+		Seccomp:    seccomp,
+	}), conf, nil
 }
 
 func newCgroup(c Config) (cgroup.Cgroup, *cgroup.Controllers, error) {

@@ -261,15 +261,17 @@ func newSystemdProperty(name string, units any) dbus.Property {
 }
 
 type credGen struct {
-	cur uint32
+	cur atomic.Uint32
 }
 
 func newCredGen(start uint32) *credGen {
-	return &credGen{cur: start}
+	rt := &credGen{}
+	rt.cur.Store(start)
+	return rt
 }
 
 func (c *credGen) Get() syscall.Credential {
-	n := atomic.AddUint32(&c.cur, 1)
+	n := c.cur.Add(1)
 	return syscall.Credential{
 		Uid: n,
 		Gid: n,

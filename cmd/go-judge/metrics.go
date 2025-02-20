@@ -16,6 +16,7 @@ const (
 	execSubsystem        = "exec"
 	filestoreSubsystem   = "file"
 	environmentSubsystem = "environment"
+	workerSubsystem      = "worker"
 )
 
 var (
@@ -88,6 +89,16 @@ var (
 		Name:      "current_count",
 		Help:      "Total number of environment currently in use",
 	})
+
+	workerQueue = prometheus.NewDesc(
+		prometheus.BuildFQName(metricsNamespace, workerSubsystem, "queue_count"),
+		"Number of requests waiting in worker queue", nil, nil,
+	)
+
+	workerRunning = prometheus.NewDesc(
+		prometheus.BuildFQName(metricsNamespace, workerSubsystem, "running_count"),
+		"Number of request running by workers", nil, nil,
+	)
 )
 
 func init() {
@@ -204,4 +215,33 @@ func (p *metricsEnvPool) Get() (envexec.Environment, error) {
 func (p *metricsEnvPool) Put(env envexec.Environment) {
 	p.EnvironmentPool.Put(env)
 	envInUse.Dec()
+}
+
+var _ worker.Worker = &metricsWorker{}
+var _ prometheus.Collector = &metricsWorker{}
+
+type metricsWorker struct {
+	worker.Worker
+}
+
+// Collect implements prometheus.Collector.
+func (m *metricsWorker) Collect(ch chan<- prometheus.Metric) {
+	s := m.Stat()
+	ch <- prometheus.MustNewConstMetric(
+		workerQueue, prometheus.GaugeValue, float64(s.Queue),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		workerRunning, prometheus.GaugeValue, float64(s.Running),
+	)
+}
+
+// Describe implements prometheus.Collector.
+func (m *metricsWorker) Describe(ch chan<- *prometheus.Desc) {
+	prometheus.DescribeByCollect(m, ch)
+}
+
+func newMetricsWorker(w worker.Worker) worker.Worker {
+	rt := &metricsWorker{w}
+	prometheus.MustRegister(rt)
+	return rt
 }

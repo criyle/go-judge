@@ -508,7 +508,7 @@ func newEnvPool(b pool.EnvBuilder, enableMetrics bool) worker.EnvironmentPool {
 }
 
 func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore.FileStore) worker.Worker {
-	return worker.New(worker.Config{
+	w := worker.New(worker.Config{
 		FileStore:             fs,
 		EnvironmentPool:       envPool,
 		Parallelism:           conf.Parallelism,
@@ -520,6 +520,10 @@ func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore
 		OpenFileLimit:         uint64(conf.OpenFileLimit),
 		ExecObserver:          execObserve,
 	})
+	if conf.EnableMetrics {
+		w = newMetricsWorker(w)
+	}
+	return w
 }
 
 func newForceGCWorker(conf *config.Config) {

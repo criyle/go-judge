@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/criyle/go-judge/envexec"
@@ -39,7 +40,14 @@ type Worker interface {
 	Start()
 	Submit(context.Context, *Request) (<-chan Response, <-chan struct{})
 	Execute(context.Context, *Request) <-chan Response
+	Stat() Stat
 	Shutdown()
+}
+
+// Stat stores the statistic of the Worker
+type Stat struct {
+	Queue   int
+	Running int
 }
 
 // worker defines executor worker
@@ -62,6 +70,7 @@ type worker struct {
 	wg        sync.WaitGroup
 	workCh    chan workRequest
 	done      chan struct{}
+	running   atomic.Int32
 }
 
 type workRequest struct {
@@ -131,6 +140,13 @@ func (w *worker) Execute(ctx context.Context, req *Request) <-chan Response {
 	return ch
 }
 
+func (w *worker) Stat() Stat {
+	return Stat{
+		Queue:   len(w.workCh),
+		Running: int(w.running.Load()),
+	}
+}
+
 // Shutdown waits all worker to finish
 func (w *worker) Shutdown() {
 	w.stopOnce.Do(func() {
@@ -166,6 +182,9 @@ func (w *worker) loop() {
 }
 
 func (w *worker) workDoCmd(ctx context.Context, req *Request) Response {
+	w.running.Add(1)
+	defer w.running.Add(-1)
+
 	var rt Response
 	if len(req.Cmd) == 1 {
 		rt = w.workDoSingle(ctx, req.Cmd[0])

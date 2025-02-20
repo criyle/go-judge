@@ -12,15 +12,15 @@ import (
 
 const memfdName = "input"
 
-var enableMemFd int32
+var enableMemFd atomic.Int32
 
 func readerToFile(reader io.Reader) (*os.File, error) {
-	if atomic.LoadInt32(&enableMemFd) == 0 {
+	if enableMemFd.Load() == 0 {
 		f, err := memfd.DupToMemfd(memfdName, reader)
 		if err == nil {
 			return f, err
 		}
-		atomic.StoreInt32(&enableMemFd, 1)
+		enableMemFd.Store(1)
 	}
 	r, w, err := os.Pipe()
 	if err != nil {

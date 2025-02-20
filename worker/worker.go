@@ -263,6 +263,7 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	res.Time = result.Time
 	res.RunTime = result.RunTime
 	res.Memory = result.Memory
+	res.ProcPeak = result.ProcPeak
 	res.FileError = result.FileError
 	res.Files = make(map[string]*os.File)
 	res.FileIDs = make(map[string]string)

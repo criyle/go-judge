@@ -48,6 +48,10 @@ func (c *wCgroup) MaxMemory() (envexec.Size, error) {
 	return envexec.Size(s), err
 }
 
+func (c *wCgroup) ProcPeak() (uint64, error) {
+	return c.cg.ProcessPeak()
+}
+
 func (c *wCgroup) AddProc(pid int) error {
 	return c.cg.AddProc(pid)
 }

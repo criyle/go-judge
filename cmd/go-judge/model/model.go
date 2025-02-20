@@ -113,6 +113,7 @@ type Result struct {
 	Time       uint64            `json:"time"`
 	Memory     uint64            `json:"memory"`
 	RunTime    uint64            `json:"runTime"`
+	ProcPeak   uint64            `json:"procPeak,omitempty"`
 	Files      map[string]string `json:"files,omitempty"`
 	FileIDs    map[string]string `json:"fileIds,omitempty"`
 	FileError  []FileError       `json:"fileError,omitempty"`
@@ -128,6 +129,7 @@ func (r Result) String() string {
 		Error      string
 		Time       time.Duration
 		RunTime    time.Duration
+		ProcPeak   uint64
 		Memory     envexec.Size
 		Files      map[string]string
 		FileIDs    map[string]string
@@ -140,6 +142,7 @@ func (r Result) String() string {
 		Time:       time.Duration(r.Time),
 		RunTime:    time.Duration(r.RunTime),
 		Memory:     envexec.Size(r.Memory),
+		ProcPeak:   r.ProcPeak,
 		Files:      make(map[string]string),
 		FileIDs:    r.FileIDs,
 		FileError:  r.FileError,
@@ -250,6 +253,7 @@ func convertResult(r worker.Result, mmap bool) (Result, error) {
 		Time:       uint64(r.Time),
 		RunTime:    uint64(r.RunTime),
 		Memory:     uint64(r.Memory),
+		ProcPeak:   r.ProcPeak,
 		FileIDs:    r.FileIDs,
 		FileError:  r.FileError,
 	}

@@ -39,6 +39,7 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 		Time:       rt.Time,
 		RunTime:    rt.RunningTime,
 		Memory:     rt.Memory,
+		ProcPeak:   rt.ProcPeak,
 		Files:      files,
 		FileError:  fe,
 	}

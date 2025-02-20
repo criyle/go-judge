@@ -551,6 +551,7 @@ func generateHandleVersion(conf *config.Config, builderParam map[string]any) fun
 			"symlink":           true,
 			"addressSpaceLimit": true,
 			"stream":            true,
+			"procPeak":          true,
 		})
 	}
 }
@@ -563,6 +564,7 @@ func generateHandleConfig(conf *config.Config, builderParam map[string]any) func
 			"symlink":           true,
 			"addressSpaceLimit": true,
 			"stream":            true,
+			"procPeak":          true,
 			"fileStorePath":     conf.Dir,
 			"runnerConfig":      builderParam,
 		})

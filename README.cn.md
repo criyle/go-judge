@@ -161,6 +161,7 @@ interface Result {
     exitStatus: number; // 程序返回值
     time: number;   // 程序运行 CPU 时间，单位纳秒
     memory: number; // 程序运行内存，单位 byte
+    procPeak?: number; // 程序运行最大线程数量（需要内核版本>=6.1，且开启 cgroup v2）
     runTime: number; // 程序运行现实时间，单位纳秒
     // copyOut 和 pipeCollector 指定的文件内容
     files?: {[name:string]:string};

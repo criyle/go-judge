@@ -75,9 +75,10 @@ type Result struct {
 
 	Error string // error
 
-	Time    time.Duration
-	RunTime time.Duration
-	Memory  Size // byte
+	Time     time.Duration
+	RunTime  time.Duration
+	Memory   Size   // byte
+	ProcPeak uint64 // maximum processes ever running
 
 	// Files stores copy out files
 	Files map[string]*os.File

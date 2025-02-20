@@ -42,6 +42,9 @@ func (p *process) collectUsage() {
 	if m, err := p.cg.MaxMemory(); err == nil && m > 0 {
 		p.rt.Memory = m
 	}
+	if pp, err := p.cg.ProcPeak(); err == nil && pp > 0 {
+		p.rt.ProcPeak = pp
+	}
 }
 
 func (p *process) Done() <-chan struct{} {

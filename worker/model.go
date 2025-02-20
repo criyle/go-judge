@@ -59,6 +59,7 @@ type Result struct {
 	Time       time.Duration
 	RunTime    time.Duration
 	Memory     Size
+	ProcPeak   uint64
 	Files      map[string]*os.File
 	FileIDs    map[string]string
 	FileError  []FileError
@@ -79,6 +80,7 @@ func (r Result) String() string {
 		Time       time.Duration
 		RunTime    time.Duration
 		Memory     Size
+		ProcPeak   uint64
 		Files      map[string]string
 		FileIDs    map[string]string
 		FileError  []FileError
@@ -90,6 +92,7 @@ func (r Result) String() string {
 		Time:       r.Time,
 		RunTime:    r.RunTime,
 		Memory:     r.Memory,
+		ProcPeak:   r.ProcPeak,
 		Files:      make(map[string]string),
 		FileIDs:    r.FileIDs,
 		FileError:  r.FileError,

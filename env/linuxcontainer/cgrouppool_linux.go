@@ -17,6 +17,7 @@ type Cgroup interface {
 	CPUUsage() (time.Duration, error)
 	CurrentMemory() (envexec.Size, error)
 	MaxMemory() (envexec.Size, error)
+	ProcPeak() (uint64, error)
 
 	AddProc(int) error
 	Reset() error

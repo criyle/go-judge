@@ -167,6 +167,7 @@ interface Result {
     time: number;   // ns (cgroup recorded time)
     memory: number; // byte
     runTime: number; // ns (wall clock time)
+    procPeak?: number; // peak number of process (cgroup v2, kernel >= 6.1)
     // copyFile name -> content
     files?: {[name:string]:string};
     // copyFileCached name -> fileId

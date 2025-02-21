@@ -61,3 +61,12 @@ func (p *pool) Put(env envexec.Environment) {
 
 	p.env = append(p.env, e)
 }
+
+func (p *pool) Destroy() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	for _, e := range p.env {
+		e.Destroy()
+	}
+}

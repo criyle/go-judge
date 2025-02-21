@@ -34,6 +34,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		mountBuilder  *mount.Builder
 		symbolicLinks []container.SymbolicLink
 		maskPaths     []string
+		unshareCgroup bool = true
 	)
 	mc, err := readMountConfig(c.MountConf)
 	if err != nil {
@@ -77,8 +78,9 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		unshareFlags ^= syscall.CLONE_NEWNET
 	}
 	major, minor := kernelVersion()
+	unshareFlags ^= unix.CLONE_NEWCGROUP
 	if major < 4 || (major == 4 && minor < 6) {
-		unshareFlags ^= unix.CLONE_NEWCGROUP
+		unshareCgroup = false
 		c.Info("Kernel version (", major, ".", minor, ") < 4.6, don't unshare cgroup")
 	}
 
@@ -125,6 +127,8 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		WorkDir:       workDir,
 		ContainerUID:  cUID,
 		ContainerGID:  cGID,
+
+		UnshareCgroupBeforeExec: unshareCgroup,
 	}
 	cgb, ct, err := newCgroup(c)
 	if err != nil {
@@ -176,6 +180,10 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 			defer e.Destroy()
 			p, err := e.Execve(context.TODO(), envexec.ExecveParam{
 				Args: []string{"/usr/bin/env"},
+				Limit: envexec.Limit{
+					Memory: 256 << 20,
+					Proc:   1,
+				},
 			})
 			if err != nil {
 				c.Info("Environment run failed: ", err)

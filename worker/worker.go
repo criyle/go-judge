@@ -19,6 +19,7 @@ const maxWaiting = 512
 type EnvironmentPool interface {
 	Get() (envexec.Environment, error)
 	Put(envexec.Environment)
+	Destroy()
 }
 
 // Config defines worker configuration
@@ -152,6 +153,7 @@ func (w *worker) Shutdown() {
 	w.stopOnce.Do(func() {
 		close(w.done)
 		w.wg.Wait()
+		w.envPool.Destroy()
 	})
 }
 

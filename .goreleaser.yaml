@@ -72,6 +72,8 @@ builds:
   - main: ./cmd/go-judge-ffi
     binary: go-judge-ffi
     id: go-judge-ffi
+    env:
+      - CGO_ENABLED=1
     buildmode: c-shared
     goos:
       - linux

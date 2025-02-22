@@ -1,11 +1,11 @@
 module github.com/criyle/go-judge
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/creack/pty v1.1.24
-	github.com/criyle/go-sandbox v0.11.1
+	github.com/criyle/go-sandbox v0.11.2
 	github.com/elastic/go-seccomp-bpf v1.5.0
 	github.com/elastic/go-ucfg v0.8.8
 	github.com/gin-contrib/zap v1.1.4
@@ -61,9 +61,9 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.13.0 // indirect
-	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/crypto v0.34.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250124145028-65684f501c47 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
 

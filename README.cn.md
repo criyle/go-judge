@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/criyle/go-judge.svg)](https://pkg.go.dev/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest) ![Build](https://github.com/criyle/go-judge/workflows/Build/badge.svg)
 
-[English](README.md)
+[English](README.md) | [文档](https://docs.goj.ac/cn)
 
 快速，简单，安全
 
@@ -475,7 +475,7 @@ interface Output {
 
 所有命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `go-judge --help` 查看所有环境变量
 
-#### 编译 docker
+### 编译 docker
 
 终端中运行 `docker build -t go-judge -f Dockerfile.exec .`
 
@@ -530,6 +530,14 @@ interface Output {
 
 ### 注意
 
+#### 使用 cgroup
+
+在 cgroup v1 系统上 `go-judge` 需要 `root` 权限创建 `cgroup`。请使用 `sudo` 以 `root` 用户运行或者确保运行用户拥有以下目录的读写权限 `/sys/fs/cgroup/cpuacct/gojudge`, `/sys/fs/cgroup/memory/gojudge`, `/sys/fs/cgroup/pids/gojudge`。
+
+在 cgroup v2 系统上，`go-judge` 会和 `system dbus` 沟通，创建一个临时 `scope`。如果 `systemd` 不存在，并且拥有 `root` 权限那么将尝试进行嵌套初始化。
+
+如果没有 `cgroup` 的权限，那么 `cgroup` 相关的资源配置将不会生效。
+
 #### cgroup v2
 
 `go-judge` 目前已经支持 cgroup v2 鉴于越来越多的 Linux 发行版默认启用 cgroup v2 而不是 v1 （比如 Ubuntu 21.10+，Fedora 31+）。然而，对于内核版本小于 5.19 的版本，因为 cgroup v2 在内存控制器里面缺少 `memory.max_usage_in_bytes`，内存使用量计数会转而采用 `maxrss` 指标。这项指标会显示的比使用 cgroup v1 时候要稍多，在运行使用内存较少的程序时比较明显。对于内核版本大于或等于 5.19 的版本，`memory.peak` 会被采用。
@@ -538,7 +546,7 @@ interface Output {
 
 在 `systemd` 为 `init` 的发行版中运行时，`go-judge` 会使用 `dbus` 通知 `systemd` 来创建一个临时 `scope` 作为 `cgroup` 的根。
 
-在高于 5.7 的内核中运行时，`go-judge` 会尝试更快的 `clone3(CLONE_INTO_CGROUP)` 方法.
+在高于 5.7 的内核中运行时，`go-judge` 会尝试更快的 `clone3(CLONE_INTO_CGROUP)` 和 `vfork` 方法.
 
 #### 内存使用
 
@@ -573,36 +581,3 @@ WebSocket 流接口是用于运行一个程序，同时和它的输入输出进�
 ```
 
 任何的不完整，或者不合法的消息会被认为是错误，并终止运行。
-
-### 压力测试
-
-使用 `wrk` 和 `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.
-
-注意，这些结果只是极限情况下的表现，实际情况和使用方式相关。通常沙箱服务相比于直接运行程序，通常有 1 毫秒左右额外延迟。
-
-```lua
-wrk.method = "POST"
-wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"files":[{"content":""},{"name":"stdout","max":10240},{"name":"stderr","max":10240}],"cpuLimit":10000000000,"memoryLimit":104857600,"procLimit":50,"copyIn":{"a.hs":{"content":"main = putStrLn \\"Hello, World!\\""},"b":{"content":"TEST"}}}]}'
-wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
-```
-
-- 单线程 ~800-860 op/s Windows 10 WSL2 @ 5800X
-- 多线程 ~4500-6000 op/s Windows 10 WSL2 @ 5800X
-
-单线程:
-
-```text
-Running 30s test @ http://localhost:5050/run
-  1 threads and 1 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.16ms  132.89us   6.20ms   90.15%
-    Req/Sec     0.87k    19.33     0.91k    85.33%
-  Latency Distribution
-     50%    1.13ms
-     75%    1.18ms
-     90%    1.27ms
-     99%    1.61ms
-  25956 requests in 30.01s, 6.88MB read
-Requests/sec:    864.88
-Transfer/sec:    234.68KB
-```

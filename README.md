@@ -2,7 +2,7 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/criyle/go-judge.svg)](https://pkg.go.dev/github.com/criyle/go-judge) [![Go Report Card](https://goreportcard.com/badge/github.com/criyle/go-judge)](https://goreportcard.com/report/github.com/criyle/go-judge) [![Release](https://img.shields.io/github/v/tag/criyle/go-judge)](https://github.com/criyle/go-judge/releases/latest) ![Build](https://github.com/criyle/go-judge/workflows/Build/badge.svg)
 
-[中文文档](README.cn.md)
+[中文文档](README.cn.md) | [Documentation](https://docs.goj.ac)
 
 Fast, Simple, Secure
 
@@ -659,15 +659,11 @@ Sandbox:
 
 Environment variable will be override by command line arguments if they both present and all command line arguments have its correspond environment variable (e.g. `ES_HTTP_ADDR`). Run `go-judge --help` to see all the environment variable configurations.
 
-#### Build go judge
+### Build go judge
 
 Build by your own `docker build -t go-judge -f Dockerfile.exec .`
 
-For cgroup v1, the `go-judge` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/go_judge`, `/sys/fs/cgroup/memory/go_judge`, `/sys/fs/cgroup/pids/go_judge` and make execution user readable or use `sudo` to run it.
-
-For cgroup v2, systemd dbus will be used to create a transient scope for cgroup integration.
-
-#### Build Shared object
+### Build Shared object
 
 Build container init `cinit`:
 
@@ -754,6 +750,14 @@ If a bind mount is specifying a target within the previous mounted one, please e
 
 ### Notice
 
+#### cgroup usage
+
+For cgroup v1, the `go-judge` need root privilege to create `cgroup`. Either creates sub-directory `/sys/fs/cgroup/cpuacct/gojudge`, `/sys/fs/cgroup/memory/gojudge`, `/sys/fs/cgroup/pids/gojudge` and make execution user readable or use `sudo` to run it.
+
+For cgroup v2, systemd dbus will be used to create a transient scope for cgroup integration.
+
+If no permission to create cgroup, the cgroup related limit will not be effective.
+
 #### cgroup v2 support
 
 The cgroup v2 is supported by `go-judge` now when running as root since more Linux distribution are enabling cgroup v2 by default (e.g. Ubuntu 21.10+, Fedora 31+). However, for kernel < 5.19, due to missing `memory.max_usage_in_bytes` in `memory` controller, the memory usage is now accounted by `maxrss` returned by `wait4` syscall. Thus, the memory usage appears higher than those who uses cgroup v1. For kernel >= 5.19, `memory.peak` is being used.
@@ -762,7 +766,7 @@ When running in containers, the `go-judge` will migrate all processed into `/api
 
 When running in Linux distributions powered by `systemd`, the `go-judge` will contact `systemd` via `dbus` to create a transient scope as cgroup root.
 
-When running with kernel >= 5.7, the `go-judge` will try faster `clone3(CLONE_INTO_CGROUP)` method.
+When running with kernel >= 5.7, the `go-judge` will try faster `clone3(CLONE_INTO_CGROUP)` and `vfork` method.
 
 #### Memory Usage
 
@@ -797,37 +801,3 @@ type =
 ```
 
 Any incomplete / invalid message will be treated as error.
-
-### Benchmark
-
-By `wrk` with `t.lua`: `wrk -s t.lua -c 1 -t 1 -d 30s --latency http://localhost:5050/run`.
-
-However, these results are not the real use cases since the running time depends on the actual program specifies in the request. Normally, the go judge consumes ~1ms more compare to running without sandbox.
-
-```lua
-wrk.method = "POST"
-wrk.body   = '{"cmd":[{"args":["/bin/cat","a.hs"],"env":["PATH=/usr/bin:/bin"],"files":[{"content":""},{"name":"stdout","max":10240},{"name":"stderr","max":10240}],"cpuLimit":10000000000,"memoryLimit":104857600,"procLimit":50,"copyIn":{"a.hs":{"content":"main = putStrLn \\"Hello, World!\\""},"b":{"content":"TEST"}}}]}'
-wrk.headers["Content-Type"] = "application/json;charset=UTF-8"
-```
-
-- Single thread ~800-860 op/s Windows 10 WSL2 @ 5800X
-- Multi thread ~4500-6000 op/s Windows 10 WSL2 @ 5800X
-
-Single thread:
-
-```text
-Running 30s test @ http://localhost:5050/run
-  1 threads and 1 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.16ms  132.89us   6.20ms   90.15%
-    Req/Sec     0.87k    19.33     0.91k    85.33%
-  Latency Distribution
-     50%    1.13ms
-     75%    1.18ms
-     90%    1.27ms
-     99%    1.61ms
-  25956 requests in 30.01s, 6.88MB read
-Requests/sec:    864.88
-Transfer/sec:    234.68KB
-```
-

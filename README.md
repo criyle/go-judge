@@ -104,30 +104,6 @@ Sandbox:
 
 Environment variable will be override by command line arguments if they both present and all command line arguments have its correspond environment variable (e.g. `ES_HTTP_ADDR`). Run `go-judge --help` to see all the environment variable configurations.
 
-### Build Shared object
-
-Build container init `cinit`:
-
-`go build -o cinit ./cmd/go-judge-init`
-
-Build `go_judge.so`:
-
-`go build -buildmode=c-shared -o go_judge.so ./cmd/go-judge-ffi/`
-
-For example, in JavaScript, run with `ffi-napi` (seems node 14 is not supported yet):
-
-### Build gRPC Proxy
-
-Build `go build ./cmd/go-judge-proxy`
-
-Run `./go-judge-proxy`, connect to gRPC endpoint expose as a REST endpoint.
-
-### Build go judge Shell
-
-Build `go build ./cmd/go-judge-shell`
-
-Run `./go-judge-shell`, connect to gRPC endpoint with interactive shell.
-
 ### Return Status
 
 - Accepted: Program exited with status code 0 within time & memory limits
@@ -154,7 +130,7 @@ Run `./go-judge-shell`, connect to gRPC endpoint with interactive shell.
 
 For linux platform, the default mounts points are bind mounting host's `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/ld.so.cache`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom`, `/dev/random`, `/dev/zero`, `/dev/full` and mounts tmpfs at `/w`, `/tmp` and creates `/proc`.
 
-To customize mount points, please look at example `mount.yaml` file.
+To [customize mount points](https://docs.goj.ac/mount#customization), please look at example `mount.yaml` file.
 
 `tmpfs` size for `/w` and `/tmp` is configured through `-tmp-fs-param` with default value `size=128m,nr_inodes=4k`
 
@@ -167,29 +143,10 @@ If a bind mount is specifying a target within the previous mounted one, please e
 - envexec: run single / group of programs in parallel within restricted environment and resource constraints
 - env: reference implementation environments to inject into envexec
 
-### Windows Support
-
-- Build `go-judge` by: `go build ./cmd/go-judge/`
-- Build `go_judge.dll`: (need to install `gcc` as well) `go build -buildmode=c-shared -o go_judge.so ./cmd/go-judge-ffi/`
-- Run: `./go-judge`
-
-#### Windows Security
-
-- Resources are limited by [JobObject](https://docs.microsoft.com/en-us/windows/win32/procthread/job-objects)
-- Privilege are limited by [Restricted Low Mandatory Level Token](https://docs.microsoft.com/en-us/windows/win32/secauthz/access-tokens)
-- Low Mandatory Level directory is created for read / write
-
-### MacOS Support
-
-- Build `go-judge` by: `go build ./cmd/go-judge/`
-- Build `go_judge.dylib`: (need to install `XCode`) `go build -buildmode=c-shared -o go_judge.dylib ./cmd/go-judge-ffi/`
-- Run: `./go-judge`
-
-#### MacOS Security
-
-- `sandbox-init` profile deny network access and file read / write and read / write to `/Users` directory
-
 ### Notice
+
+> [!WARNING]  
+> Window and macOS support are expriental and should not be used in production environments
 
 #### cgroup usage
 

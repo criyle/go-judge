@@ -137,7 +137,7 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 在 Linux 平台，默认只读挂载点包括主机的 `/lib`, `/lib64`, `/usr`, `/bin`, `/etc/ld.so.cache`, `/etc/alternatives`, `/etc/fpc.cfg`, `/dev/null`, `/dev/urandom`, `/dev/random`, `/dev/zero`, `/dev/full` 和临时文件系统 `/w`, `/tmp` 以及 `/proc`。
 
-使用 `mount.yaml` 定制容器文件系统。
+使用 `mount.yaml` [定制容器文件系统](https://docs.goj.ac/cn/mount#%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8C%82%E8%BD%BD)。
 
 `/w` 的 `/tmp` 挂载 `tmpfs` 大小通过 `-tmp-fs-param` 指定，默认值为 `size=128m,nr_inodes=4k`
 
@@ -151,6 +151,9 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 - env: 环境的标准实现
 
 ### 注意
+
+> [!WARNING]  
+> Window 和 macOS 平台为实验性支持，请不要在生产环境使用
 
 #### 使用 cgroup
 

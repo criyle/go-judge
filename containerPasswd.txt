@@ -1,2 +1,0 @@
-root:x:0:0::/w:/bin/bash
-go-judge:x:1536:1536::/w:/bin/bash

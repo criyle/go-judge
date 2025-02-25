@@ -22,15 +22,15 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 沙箱服务提供 REST API 接口来在受限制的环境中运行程序（默认监听于 `localhost:5050`）。
 
-- **/run POST 在受限制的环境中运行程序（下面有例子）**
-- /file GET 得到所有在文件存储中的文件 ID 到原始命名映射
-- /file POST 上传一个文件到文件存储，返回一个文件 ID 用于提供给 /run 接口
-- /file/:fileId GET 下载文件 ID 指定的文件
-- /file/:fileId DELETE 删除文件 ID 指定的文件
+- **POST /run 在受限制的环境中运行程序**
+- GET /file 得到所有在文件存储中的文件 ID 到原始命名映射
+  - POST /file 上传一个文件到文件存储，返回一个文件 ID 用于提供给 /run 接口
+  - GET /file/:fileId 下载文件 ID 指定的文件
+  - DELETE /file/:fileId 删除文件 ID 指定的文件
 - /ws /run 接口的 WebSocket 版
-- /stream 运行交互式命令
+- /stream 运行交互式命令。支持流式 api
 - /version 得到本程序编译版本和 go 语言运行时版本
-- /config 得到本程序部分运行参数，包括沙箱详细参数
+  - /config 得到本程序部分运行参数，包括沙箱详细参数
 
 ### REST API 接口定义
 
@@ -63,13 +63,15 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 +--------------------+----------------+---------------------+----------+-----+
 ```
 
-### 命令行参数
+### 配置
+
+[详细配置文档](https://docs.goj.ac/cn/configuration)
 
 服务相关:
 
 - 默认监听地址是 `localhost:5050`，使用 `-http-addr` 指定
 - 默认 gRPC 接口处于关闭状态，使用 `-enable-grpc` 开启
-- 默认 gRPC 监听地址是 `localhost:5051` ，使用 `-grpc-addr` 指定
+  - 默认 gRPC 监听地址是 `localhost:5051` ，使用 `-grpc-addr` 指定
 - 默认日志等级是 info ，使用 `-silent` 关闭 或 使用 `-release` 开启 release 级别日志
 - 默认没有开启鉴权，使用 `-auth-token` 指定令牌鉴权
 - 默认没有开启 go 语言调试接口（`localhost:5052/debug`），使用 `-enable-debug` 开启，同时将日志层级设为 Debug
@@ -79,35 +81,25 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 沙箱相关:
 
 - 默认同时运行任务数为和 CPU 数量相同，使用 `-parallelism` 指定
-- 默认文件存储在内存里，使用 `-dir` 指定本地目录为文件存储
-- 默认 cgroup 的前缀为 `gojudge` ，使用 `-cgroup-prefix` 指定
-- 默认没有磁盘文件复制限制，使用 `-src-prefix` 限制 copyIn 操作文件目录前缀，使用逗号 `,` 分隔（需要绝对路径）（例如：`/bin,/usr`）
+- 使用 `-mount-conf` 指定沙箱文件系统挂载细节，详细请参见 [文件系统挂载](https://docs.goj.ac/cn/mount) (仅 Linux)
+- 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（举例 `30m`）
+- 默认文件存储在内存里（`/dev/shm/`），使用 `-dir` 指定本地目录为文件存储
 - 默认时间和内存使用检查周期为 100 毫秒(`100ms`)，使用 `-time-limit-checker-interval` 指定
 - 默认最大输出限制为 `256MiB`，使用 `-output-limit` 指定
 - 默认最大打开文件描述符为 `256`，使用 `-open-file-limit` 指定
 - 默认最大额外内存使用为 `16KiB` ，使用 `-extra-memory-limit` 指定
 - 默认最大 `copyOut` 文件大小为 `64MiB` ，使用 `-copy-out-limit` 指定
-- 使用 `-cpuset` 指定 `cpuset.cpus` （仅 Linux）
 - 默认容器用户开始区间为 0（不启用） 使用 `-container-cred-start` 指定（仅 Linux）
   - 举例，默认情况下第 0 个容器使用 10001 作为容器用户。第 1 个容器使用 10002 作为容器用户，以此类推
+- 使用 `-pre-fork` 指定启动时创建的容器数量
+- 默认 cgroup 的前缀为 `gojudge` ，使用 `-cgroup-prefix` 指定
+- 使用 `-cpuset` 指定 `cpuset.cpus` （仅 Linux）
 - 使用 `-enable-cpu-rate` 开启 `cpu` cgroup 来启用 `cpuRate` 控制（仅 Linux）
   - 使用 `-cpu-cfs-period` 指定 cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
-- 使用 `-seccomp-conf` 指定 `seecomp` 过滤器（需要编译标志 `seccomp`，默认不开启）（仅 Linux）
-- 使用 `-pre-fork` 指定启动时创建的容器数量
-- 使用 `-tmp-fs-param` 指定容器内 `tmpfs` 的挂载参数（仅 Linux）
-- 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（举例 `30m`）
-- 使用 `-mount-conf` 指定沙箱文件系统挂载细节，详细请参见 `mount.yaml` (仅 Linux)
-- 使用 `-container-init-path` 指定 `cinit` 路径 (请不要使用，仅 debug) (仅 Linux)
 
-### 环境变量
+### 沙箱终端
 
-所有命令行参数都可以通过环境变量的形式来指定，（类似 `ES_HTTP_ADDR` 来指定 `-http-addr`）。使用 `go-judge --help` 查看所有环境变量
-
-### 编译沙箱终端
-
-编译 `go build ./cmd/go-judge-shell`
-
-运行 `./go-judge-shell`，需要打开 gRPC 接口来使用。提供一个沙箱内的终端环境。
+从 [Release](https://github.com/criyle/go-judge/releases) 下载 `go-judge-shell` 。运行将连接本地 `go-judge` 沙箱服务并开启一个容器内的终端用于调试。
 
 ### /run 接口返回状态
 
@@ -183,26 +175,3 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 - `-force-gc-target` 默认 `20m`, 堆内存使用超过该值是强制垃圾收集和归还内存
 - `-force-gc-interval` 默认 `5s`, 为后台线程检查的频繁程度
-
-### WebSocket 流接口
-
-WebSocket 流接口是用于运行一个程序，同时和它的输入输出进行交互。所有的消息都应该使用 WebSocket 的 binary 格式来发送来避免兼容性问题。
-
-```text
-+--------+--------+---...
-| 类型   | 载荷 ...
-+--------|--------+---...
-请求:
-请求类型 = 
-  1 - 运行请求 (载荷 = JSON 编码的请求体)
-  2 - 设置终端窗口大小 (载荷 = JSON 编码的请求体)
-  3 - 输入 (载荷 = 1 字节 (4 位的 命令下标 + 4 位的 文件描述符) + 输入内容)
-  4 - 取消 (没有载荷)
-
-响应:
-响应类型 = 
-  1 - 运行结果 (载荷 = JSON 编码的运行结果)
-  2 - 输出 (载荷 = 1 字节 (4 位的 命令下标 + 4 位的 文件描述符) + 输入内容)
-```
-
-任何的不完整，或者不合法的消息会被认为是错误，并终止运行。

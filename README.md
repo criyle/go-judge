@@ -22,15 +22,15 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 A REST service to run program in restricted environment (Listening on `localhost:5050` by default).
 
-- **/run POST execute program in the restricted environment (examples below)**
-- /file GET list all cached file id to original name map
-- /file POST prepare a file in the go judge (in memory), returns fileId (can be referenced in /run parameter)
-- /file/:fileId GET downloads file from go judge (in memory), returns file content
-- /file/:fileId DELETE delete file specified by fileId
-- /ws WebSocket for /run
-- /stream WebSocket for stream run
-- /version gets build git version (e.g. `v1.4.0`) together with runtime information (go version, os, platform)
-- /config gets some configuration (e.g. `fileStorePath`, `runnerConfig`) together with some supported features
+- **POST /run execute program in the restricted environment**
+- GET /file list all cached file id to original name map
+  - POST /file prepare a file in the go judge (in memory), returns fileId (can be referenced in /run parameter)
+  - GET /file/:fileId downloads file from go judge (in memory), returns file content
+  - DELETE /file/:fileId  delete file specified by fileId
+- /ws WebSocket version for /run
+- /stream WebSocket for stream run. Supports streaming interface
+- GET /version gets build git version (e.g. `v1.9.0`) together with runtime information (go version, os, platform)
+  - GET /config gets some configuration (e.g. `fileStorePath`, `runnerConfig`) together with some supported features
 
 ### REST API Interface
 
@@ -61,13 +61,15 @@ A REST service to run program in restricted environment (Listening on `localhost
 +--------------------+----------------+---------------------+---------------+------+
 ```
 
-### Command Line Arguments
+### Configurations
+
+[Configurations](https://docs.goj.ac/configuration)
 
 Server:
 
 - The default binding address for the go judge is `localhost:5050`. Can be specified with `-http-addr` flag.
 - By default gRPC endpoint is disabled, to enable gRPC endpoint, add `-enable-grpc` flag.
-- The default binding address for the gRPC go judge is `localhost:5051`. Can be specified with `-grpc-addr` flag.
+  - The default binding address for the gRPC go judge is `localhost:5051`. Can be specified with `-grpc-addr` flag.
 - The default log level is info, use `-silent` to disable logs or use `-release` to enable release logger (auto turn on if in docker).
 - `-auth-token` to add token-based authentication to REST / gRPC
 - By default, the GO debug endpoints (`localhost:5052/debug`) are disabled, to enable, specifies `-enable-debug`, and it also enables debug log
@@ -77,32 +79,25 @@ Server:
 Sandbox:
 
 - The default concurrency equal to number of CPU, Can be specified with `-parallelism` flag.
-- The default file store is in memory, local cache can be specified with `-dir` flag.
-- The default CGroup prefix is `gojudge`, Can be specified with `-cgroup-prefix` flag.
-- `-src-prefix` to restrict `src` copyIn path split by comma (need to be absolute path) (example: `/bin,/usr`)
-- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms) (valid value: \[1ms, 1s\])
+- `-mount-conf` specifies detailed mount configuration, please refer [File System Mount](https://docs.goj.ac/mount) as a reference (Linux only)
+- `-file-timeout` specifies maximum TTL for file created in file store （e.g. `30m`)
+- The default file store is in memory(`/dev/shm/`), local cache can be specified with `-dir` flag.
+- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
 - `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)
 - `-copy-out-limit` specifies the default file copy out max (default 64MiB)
 - `-open-file-limit` specifies the max number of open files (default 256)
-- `-cpuset` specifies `cpuset.cpus` cgroup for each container (Linux only)
 - `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 0 (disabled)) (Linux only)
   - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
+- `-pre-fork` specifies number of container to create when server starts
+- The default CGroup prefix is `gojudge`, Can be specified with `-cgroup-prefix` flag.
+- `-cpuset` specifies `cpuset.cpus` cgroup for each container (Linux only)
 - `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control (Linux only)
   - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
-- `-seccomp-conf` specifies `seccomp` filter setting to load when running program (need build tag `seccomp`) (Linux only)
-  - for example, by `strace -c prog` to get all `syscall` needed and restrict to that sub set
-  - however, the `syscall` count in one platform(e.g. x86_64) is not suitable for all platform, so this option is not recommended
-  - the program killed by seccomp filter will have status `Dangerous Syscall`
-- `-pre-fork` specifies number of container to create when server starts
-- `-tmp-fs-param` specifies the tmpfs parameter for `/w` and `/tmp` when using default mounting (Linux only)
-- `-file-timeout` specifies maximum TTL for file created in file store （e.g. `30m`)
-- `-mount-conf` specifies detailed mount configuration, please refer `mount.yaml` as a reference (Linux only)
-- `-container-init-path` specifies path to `cinit` (do not use, debug only) (Linux only)
 
-### Environment Variables
+### Terminal in Container
 
-Environment variable will be override by command line arguments if they both present and all command line arguments have its correspond environment variable (e.g. `ES_HTTP_ADDR`). Run `go-judge --help` to see all the environment variable configurations.
+Download `go-judge-shell` from [Release](https://github.com/criyle/go-judge/releases) and run. It will connect local `go-judge`, and open an interactive shell in the container for debugging purpose.
 
 ### Return Status
 
@@ -146,7 +141,7 @@ If a bind mount is specifying a target within the previous mounted one, please e
 ### Notice
 
 > [!WARNING]  
-> Window and macOS support are expriental and should not be used in production environments
+> Window and macOS support are experimental and should not be used in production environments
 
 #### cgroup usage
 
@@ -176,26 +171,3 @@ Due to limitation of GO runtime, the memory will not return to OS automatically,
 
 - `-force-gc-target` default `20m`, the minimal size to trigger GC
 - `-force-gc-interval` default `5s`, the interval to check memory usage
-
-### WebSocket Stream Interface
-
-Websocket stream interface is used to run command interactively with inputs and outputs pumping from the command. All message is transmitted in binary format for maximum compatibility.
-
-```text
-+--------+--------+---...
-| type   | payload ...
-+--------|--------+---...
-request:
-type = 
-  1 - request (payload = JSON encoded request)
-  2 - resize (payload = JSON encoded resize request)
-  3 - input (payload = 1 byte (4-bit index + 4-bit fd), followed by content)
-  4 - cancel (no payload)
-
-response:
-type = 
-  1 - response (payload = JSON encoded response)
-  2 - output (payload = 1 byte (4-bit index + 4-bit fd), followed by content)
-```
-
-Any incomplete / invalid message will be treated as error.

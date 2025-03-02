@@ -1,12 +1,16 @@
 edition = "2023";
 
-option features.field_presence = IMPLICIT;
-
-import "google/protobuf/empty.proto";
-
 package pb;
 
+option features.field_presence = IMPLICIT;
 option go_package = "github.com/criyle/go-judge/pb";
+
+import "google/protobuf/empty.proto";
+import "request.proto";
+import "response.proto";
+import "stream_request.proto";
+import "stream_response.proto";
+import "file.proto";
 
 service Executor {
   // Exec defines unary RPC to run a program with resource limitations
@@ -31,180 +35,3 @@ service Executor {
   // FileDelete deletes a file from the file store
   rpc FileDelete(FileID) returns (google.protobuf.Empty);
 };
-
-message FileID { string fileID = 1; }
-
-message FileContent {
-  string name = 1;
-  bytes content = 2;
-}
-
-message FileListType { map<string, string> fileIDs = 1; }
-
-message Request {
-  message LocalFile { string src = 1; }
-
-  message MemoryFile { bytes content = 1; }
-
-  message CachedFile { string fileID = 1; }
-
-  message PipeCollector {
-    string name = 1;
-    int64 max = 2;
-    bool pipe = 3;
-  }
-
-  message File {
-    oneof file {
-      LocalFile local = 1;
-      MemoryFile memory = 2;
-      CachedFile cached = 3;
-      PipeCollector pipe = 4;
-
-      // streamIn only valid in streaming RPC
-      google.protobuf.Empty streamIn = 5;
-
-      // streamOut only valid in streaming RPC
-      google.protobuf.Empty streamOut = 6;
-    }
-  }
-
-  message CmdType {
-    repeated string args = 1;
-    repeated string env = 2;
-    repeated File files = 3;
-    bool tty = 13;
-
-    uint64 cpuTimeLimit = 4;
-    uint64 clockTimeLimit = 5;
-    uint64 memoryLimit = 6;
-    uint64 stackLimit = 12;
-    uint64 procLimit = 7;
-    uint64 cpuRateLimit = 15;
-    string cpuSetLimit = 17;
-    bool dataSegmentLimit = 16;
-    bool addressSpaceLimit = 19;
-
-    map<string, File> copyIn = 8;
-    map<string, string> symlinks = 18;
-
-    repeated CmdCopyOutFile copyOut = 9;
-    repeated CmdCopyOutFile copyOutCached = 10;
-    string copyOutDir = 11;
-    uint64 copyOutMax = 14;
-  }
-
-  message CmdCopyOutFile {
-    string name = 1;
-    bool optional = 2;
-  }
-
-  message PipeMap {
-    message PipeIndex {
-      int32 index = 1;
-      int32 fd = 2;
-    }
-
-    PipeIndex in = 1;
-    PipeIndex out = 2;
-    bool proxy = 3;
-    string name = 4;
-    uint64 max = 5;
-  }
-
-  string requestID = 1;
-  repeated CmdType cmd = 2;
-  repeated PipeMap pipeMapping = 3;
-}
-
-message Response {
-  message FileError {
-    enum ErrorType {
-      CopyInOpenFile = 0;
-      CopyInCreateFile = 1;
-      CopyInCopyContent = 2;
-
-      CopyOutOpen = 3;
-      CopyOutNotRegularFile = 4;
-      CopyOutSizeExceeded = 5;
-      CopyOutCreateFile = 6;
-      CopyOutCopyContent = 7;
-
-      CollectSizeExceeded = 8;
-
-      Symlink = 9;
-    }
-    string name = 1;
-    ErrorType type = 2;
-    string message = 3;
-  }
-
-  message Result {
-    enum StatusType {
-      Invalid = 0;
-      Accepted = 1;
-      WrongAnswer = 2;      // Not used
-      PartiallyCorrect = 3; // Not used
-      MemoryLimitExceeded = 4;
-      TimeLimitExceeded = 5;
-      OutputLimitExceeded = 6;
-      FileError = 7;
-      NonZeroExitStatus = 8;
-      Signalled = 9;
-      DangerousSyscall = 10;
-      JudgementFailed = 11;    // Not used
-      InvalidInteraction = 12; // Not used
-      InternalError = 13;
-    }
-
-    StatusType status = 1;
-    int32 exitStatus = 2;
-    string error = 3;
-    uint64 time = 4;
-    uint64 runTime = 8;
-    uint64 memory = 5;
-    map<string, bytes> files = 6;
-    map<string, string> fileIDs = 7;
-    repeated FileError fileError = 9;
-  }
-  string requestID = 1;
-  repeated Result results = 2;
-  string error = 3;
-}
-
-message StreamRequest {
-  message Input {
-    uint32 index = 1;
-    uint32 fd = 3;
-    bytes content = 2;
-  }
-
-  message Resize {
-    uint32 index = 1;
-    uint32 fd = 6;
-    uint32 rows = 2;
-    uint32 cols = 3;
-    uint32 x = 4;
-    uint32 y = 5;
-  }
-
-  oneof request {
-    Request execRequest = 1;
-    Input execInput = 2;
-    Resize execResize = 3;
-    google.protobuf.Empty execCancel = 4;
-  }
-}
-
-message StreamResponse {
-  message Output {
-    uint32 index = 1;
-    uint32 fd = 3;
-    bytes content = 2;
-  }
-
-  oneof response {
-    Response execResponse = 1;
-    Output execOutput = 2;
-  }
-}

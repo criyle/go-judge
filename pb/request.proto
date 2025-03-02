@@ -1,0 +1,84 @@
+edition = "2023";
+
+package pb;
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/criyle/go-judge/pb";
+
+import "google/protobuf/empty.proto";
+
+message Request {
+  message LocalFile { string src = 1; }
+
+  message MemoryFile { bytes content = 1; }
+
+  message CachedFile { string fileID = 1; }
+
+  message PipeCollector {
+    string name = 1;
+    int64 max = 2;
+    bool pipe = 3;
+  }
+
+  message File {
+    oneof file {
+      LocalFile local = 1;
+      MemoryFile memory = 2;
+      CachedFile cached = 3;
+      PipeCollector pipe = 4;
+
+      // streamIn only valid in streaming RPC
+      google.protobuf.Empty streamIn = 5;
+
+      // streamOut only valid in streaming RPC
+      google.protobuf.Empty streamOut = 6;
+    }
+  }
+
+  message CmdType {
+    repeated string args = 1;
+    repeated string env = 2;
+    repeated File files = 3;
+    bool tty = 13;
+
+    uint64 cpuTimeLimit = 4;
+    uint64 clockTimeLimit = 5;
+    uint64 memoryLimit = 6;
+    uint64 stackLimit = 12;
+    uint64 procLimit = 7;
+    uint64 cpuRateLimit = 15;
+    string cpuSetLimit = 17;
+    bool dataSegmentLimit = 16;
+    bool addressSpaceLimit = 19;
+
+    map<string, File> copyIn = 8;
+    map<string, string> symlinks = 18;
+
+    repeated CmdCopyOutFile copyOut = 9;
+    repeated CmdCopyOutFile copyOutCached = 10;
+    string copyOutDir = 11;
+    uint64 copyOutMax = 14;
+  }
+
+  message CmdCopyOutFile {
+    string name = 1;
+    bool optional = 2;
+  }
+
+  message PipeMap {
+    message PipeIndex {
+      int32 index = 1;
+      int32 fd = 2;
+    }
+
+    PipeIndex in = 1;
+    PipeIndex out = 2;
+    bool proxy = 3;
+    string name = 4;
+    uint64 max = 5;
+  }
+
+  string requestID = 1;
+  repeated CmdType cmd = 2;
+  repeated PipeMap pipeMapping = 3;
+}

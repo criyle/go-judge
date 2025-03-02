@@ -1,0 +1,15 @@
+edition = "2023";
+
+package pb;
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/criyle/go-judge/pb";
+
+message FileID { string fileID = 1; }
+
+message FileContent {
+  string name = 1;
+  bytes content = 2;
+}
+
+message FileListType { map<string, string> fileIDs = 1; }

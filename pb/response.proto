@@ -1,0 +1,61 @@
+edition = "2023";
+
+package pb;
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/criyle/go-judge/pb";
+
+message Response {
+  message FileError {
+    enum ErrorType {
+      CopyInOpenFile = 0;
+      CopyInCreateFile = 1;
+      CopyInCopyContent = 2;
+
+      CopyOutOpen = 3;
+      CopyOutNotRegularFile = 4;
+      CopyOutSizeExceeded = 5;
+      CopyOutCreateFile = 6;
+      CopyOutCopyContent = 7;
+
+      CollectSizeExceeded = 8;
+
+      Symlink = 9;
+    }
+    string name = 1;
+    ErrorType type = 2;
+    string message = 3;
+  }
+
+  message Result {
+    enum StatusType {
+      Invalid = 0;
+      Accepted = 1;
+      WrongAnswer = 2;      // Not used
+      PartiallyCorrect = 3; // Not used
+      MemoryLimitExceeded = 4;
+      TimeLimitExceeded = 5;
+      OutputLimitExceeded = 6;
+      FileError = 7;
+      NonZeroExitStatus = 8;
+      Signalled = 9;
+      DangerousSyscall = 10;
+      JudgementFailed = 11;    // Not used
+      InvalidInteraction = 12; // Not used
+      InternalError = 13;
+    }
+
+    StatusType status = 1;
+    int32 exitStatus = 2;
+    string error = 3;
+    uint64 time = 4;
+    uint64 runTime = 8;
+    uint64 memory = 5;
+    map<string, bytes> files = 6;
+    map<string, string> fileIDs = 7;
+    repeated FileError fileError = 9;
+  }
+  string requestID = 1;
+  repeated Result results = 2;
+  string error = 3;
+}

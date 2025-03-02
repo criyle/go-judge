@@ -1,0 +1,21 @@
+edition = "2023";
+
+package pb;
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/criyle/go-judge/pb";
+
+import "response.proto";
+
+message StreamResponse {
+  message Output {
+    uint32 index = 1;
+    uint32 fd = 3;
+    bytes content = 2;
+  }
+
+  oneof response {
+    Response execResponse = 1;
+    Output execOutput = 2;
+  }
+}

@@ -1,0 +1,33 @@
+edition = "2023";
+
+package pb;
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/criyle/go-judge/pb";
+
+import "google/protobuf/empty.proto";
+import "request.proto";
+
+message StreamRequest {
+  message Input {
+    uint32 index = 1;
+    uint32 fd = 3;
+    bytes content = 2;
+  }
+
+  message Resize {
+    uint32 index = 1;
+    uint32 fd = 6;
+    uint32 rows = 2;
+    uint32 cols = 3;
+    uint32 x = 4;
+    uint32 y = 5;
+  }
+
+  oneof request {
+    Request execRequest = 1;
+    Input execInput = 2;
+    Resize execResize = 3;
+    google.protobuf.Empty execCancel = 4;
+  }
+}

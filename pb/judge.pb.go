@@ -176,7 +176,7 @@ func (Response_Result_StatusType) EnumDescriptor() ([]byte, []int) {
 
 type FileID struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FileID        string                 `protobuf:"bytes,1,opt,name=fileID,proto3" json:"fileID,omitempty"`
+	FileID        string                 `protobuf:"bytes,1,opt,name=fileID" json:"fileID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,8 +220,8 @@ func (x *FileID) GetFileID() string {
 
 type FileContent struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -272,7 +272,7 @@ func (x *FileContent) GetContent() []byte {
 
 type FileListType struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FileIDs       map[string]string      `protobuf:"bytes,1,rep,name=fileIDs,proto3" json:"fileIDs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FileIDs       map[string]string      `protobuf:"bytes,1,rep,name=fileIDs" json:"fileIDs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -316,9 +316,9 @@ func (x *FileListType) GetFileIDs() map[string]string {
 
 type Request struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestID     string                 `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
-	Cmd           []*Request_CmdType     `protobuf:"bytes,2,rep,name=cmd,proto3" json:"cmd,omitempty"`
-	PipeMapping   []*Request_PipeMap     `protobuf:"bytes,3,rep,name=pipeMapping,proto3" json:"pipeMapping,omitempty"`
+	RequestID     string                 `protobuf:"bytes,1,opt,name=requestID" json:"requestID,omitempty"`
+	Cmd           []*Request_CmdType     `protobuf:"bytes,2,rep,name=cmd" json:"cmd,omitempty"`
+	PipeMapping   []*Request_PipeMap     `protobuf:"bytes,3,rep,name=pipeMapping" json:"pipeMapping,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -376,9 +376,9 @@ func (x *Request) GetPipeMapping() []*Request_PipeMap {
 
 type Response struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	RequestID     string                 `protobuf:"bytes,1,opt,name=requestID,proto3" json:"requestID,omitempty"`
-	Results       []*Response_Result     `protobuf:"bytes,2,rep,name=results,proto3" json:"results,omitempty"`
-	Error         string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	RequestID     string                 `protobuf:"bytes,1,opt,name=requestID" json:"requestID,omitempty"`
+	Results       []*Response_Result     `protobuf:"bytes,2,rep,name=results" json:"results,omitempty"`
+	Error         string                 `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -525,19 +525,19 @@ type isStreamRequest_Request interface {
 }
 
 type StreamRequest_ExecRequest struct {
-	ExecRequest *Request `protobuf:"bytes,1,opt,name=execRequest,proto3,oneof"`
+	ExecRequest *Request `protobuf:"bytes,1,opt,name=execRequest,oneof"`
 }
 
 type StreamRequest_ExecInput struct {
-	ExecInput *StreamRequest_Input `protobuf:"bytes,2,opt,name=execInput,proto3,oneof"`
+	ExecInput *StreamRequest_Input `protobuf:"bytes,2,opt,name=execInput,oneof"`
 }
 
 type StreamRequest_ExecResize struct {
-	ExecResize *StreamRequest_Resize `protobuf:"bytes,3,opt,name=execResize,proto3,oneof"`
+	ExecResize *StreamRequest_Resize `protobuf:"bytes,3,opt,name=execResize,oneof"`
 }
 
 type StreamRequest_ExecCancel struct {
-	ExecCancel *emptypb.Empty `protobuf:"bytes,4,opt,name=execCancel,proto3,oneof"`
+	ExecCancel *emptypb.Empty `protobuf:"bytes,4,opt,name=execCancel,oneof"`
 }
 
 func (*StreamRequest_ExecRequest) isStreamRequest_Request() {}
@@ -619,11 +619,11 @@ type isStreamResponse_Response interface {
 }
 
 type StreamResponse_ExecResponse struct {
-	ExecResponse *Response `protobuf:"bytes,1,opt,name=execResponse,proto3,oneof"`
+	ExecResponse *Response `protobuf:"bytes,1,opt,name=execResponse,oneof"`
 }
 
 type StreamResponse_ExecOutput struct {
-	ExecOutput *StreamResponse_Output `protobuf:"bytes,2,opt,name=execOutput,proto3,oneof"`
+	ExecOutput *StreamResponse_Output `protobuf:"bytes,2,opt,name=execOutput,oneof"`
 }
 
 func (*StreamResponse_ExecResponse) isStreamResponse_Response() {}
@@ -632,7 +632,7 @@ func (*StreamResponse_ExecOutput) isStreamResponse_Response() {}
 
 type Request_LocalFile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Src           string                 `protobuf:"bytes,1,opt,name=src,proto3" json:"src,omitempty"`
+	Src           string                 `protobuf:"bytes,1,opt,name=src" json:"src,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -676,7 +676,7 @@ func (x *Request_LocalFile) GetSrc() string {
 
 type Request_MemoryFile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Content       []byte                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	Content       []byte                 `protobuf:"bytes,1,opt,name=content" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -720,7 +720,7 @@ func (x *Request_MemoryFile) GetContent() []byte {
 
 type Request_CachedFile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	FileID        string                 `protobuf:"bytes,1,opt,name=fileID,proto3" json:"fileID,omitempty"`
+	FileID        string                 `protobuf:"bytes,1,opt,name=fileID" json:"fileID,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -764,9 +764,9 @@ func (x *Request_CachedFile) GetFileID() string {
 
 type Request_PipeCollector struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Max           int64                  `protobuf:"varint,2,opt,name=max,proto3" json:"max,omitempty"`
-	Pipe          bool                   `protobuf:"varint,3,opt,name=pipe,proto3" json:"pipe,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Max           int64                  `protobuf:"varint,2,opt,name=max" json:"max,omitempty"`
+	Pipe          bool                   `protobuf:"varint,3,opt,name=pipe" json:"pipe,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -933,29 +933,29 @@ type isRequest_File_File interface {
 }
 
 type Request_File_Local struct {
-	Local *Request_LocalFile `protobuf:"bytes,1,opt,name=local,proto3,oneof"`
+	Local *Request_LocalFile `protobuf:"bytes,1,opt,name=local,oneof"`
 }
 
 type Request_File_Memory struct {
-	Memory *Request_MemoryFile `protobuf:"bytes,2,opt,name=memory,proto3,oneof"`
+	Memory *Request_MemoryFile `protobuf:"bytes,2,opt,name=memory,oneof"`
 }
 
 type Request_File_Cached struct {
-	Cached *Request_CachedFile `protobuf:"bytes,3,opt,name=cached,proto3,oneof"`
+	Cached *Request_CachedFile `protobuf:"bytes,3,opt,name=cached,oneof"`
 }
 
 type Request_File_Pipe struct {
-	Pipe *Request_PipeCollector `protobuf:"bytes,4,opt,name=pipe,proto3,oneof"`
+	Pipe *Request_PipeCollector `protobuf:"bytes,4,opt,name=pipe,oneof"`
 }
 
 type Request_File_StreamIn struct {
 	// streamIn only valid in streaming RPC
-	StreamIn *emptypb.Empty `protobuf:"bytes,5,opt,name=streamIn,proto3,oneof"`
+	StreamIn *emptypb.Empty `protobuf:"bytes,5,opt,name=streamIn,oneof"`
 }
 
 type Request_File_StreamOut struct {
 	// streamOut only valid in streaming RPC
-	StreamOut *emptypb.Empty `protobuf:"bytes,6,opt,name=streamOut,proto3,oneof"`
+	StreamOut *emptypb.Empty `protobuf:"bytes,6,opt,name=streamOut,oneof"`
 }
 
 func (*Request_File_Local) isRequest_File_File() {}
@@ -972,25 +972,25 @@ func (*Request_File_StreamOut) isRequest_File_File() {}
 
 type Request_CmdType struct {
 	state             protoimpl.MessageState    `protogen:"open.v1"`
-	Args              []string                  `protobuf:"bytes,1,rep,name=args,proto3" json:"args,omitempty"`
-	Env               []string                  `protobuf:"bytes,2,rep,name=env,proto3" json:"env,omitempty"`
-	Files             []*Request_File           `protobuf:"bytes,3,rep,name=files,proto3" json:"files,omitempty"`
-	Tty               bool                      `protobuf:"varint,13,opt,name=tty,proto3" json:"tty,omitempty"`
-	CpuTimeLimit      uint64                    `protobuf:"varint,4,opt,name=cpuTimeLimit,proto3" json:"cpuTimeLimit,omitempty"`
-	ClockTimeLimit    uint64                    `protobuf:"varint,5,opt,name=clockTimeLimit,proto3" json:"clockTimeLimit,omitempty"`
-	MemoryLimit       uint64                    `protobuf:"varint,6,opt,name=memoryLimit,proto3" json:"memoryLimit,omitempty"`
-	StackLimit        uint64                    `protobuf:"varint,12,opt,name=stackLimit,proto3" json:"stackLimit,omitempty"`
-	ProcLimit         uint64                    `protobuf:"varint,7,opt,name=procLimit,proto3" json:"procLimit,omitempty"`
-	CpuRateLimit      uint64                    `protobuf:"varint,15,opt,name=cpuRateLimit,proto3" json:"cpuRateLimit,omitempty"`
-	CpuSetLimit       string                    `protobuf:"bytes,17,opt,name=cpuSetLimit,proto3" json:"cpuSetLimit,omitempty"`
-	DataSegmentLimit  bool                      `protobuf:"varint,16,opt,name=dataSegmentLimit,proto3" json:"dataSegmentLimit,omitempty"`
-	AddressSpaceLimit bool                      `protobuf:"varint,19,opt,name=addressSpaceLimit,proto3" json:"addressSpaceLimit,omitempty"`
-	CopyIn            map[string]*Request_File  `protobuf:"bytes,8,rep,name=copyIn,proto3" json:"copyIn,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Symlinks          map[string]string         `protobuf:"bytes,18,rep,name=symlinks,proto3" json:"symlinks,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CopyOut           []*Request_CmdCopyOutFile `protobuf:"bytes,9,rep,name=copyOut,proto3" json:"copyOut,omitempty"`
-	CopyOutCached     []*Request_CmdCopyOutFile `protobuf:"bytes,10,rep,name=copyOutCached,proto3" json:"copyOutCached,omitempty"`
-	CopyOutDir        string                    `protobuf:"bytes,11,opt,name=copyOutDir,proto3" json:"copyOutDir,omitempty"`
-	CopyOutMax        uint64                    `protobuf:"varint,14,opt,name=copyOutMax,proto3" json:"copyOutMax,omitempty"`
+	Args              []string                  `protobuf:"bytes,1,rep,name=args" json:"args,omitempty"`
+	Env               []string                  `protobuf:"bytes,2,rep,name=env" json:"env,omitempty"`
+	Files             []*Request_File           `protobuf:"bytes,3,rep,name=files" json:"files,omitempty"`
+	Tty               bool                      `protobuf:"varint,13,opt,name=tty" json:"tty,omitempty"`
+	CpuTimeLimit      uint64                    `protobuf:"varint,4,opt,name=cpuTimeLimit" json:"cpuTimeLimit,omitempty"`
+	ClockTimeLimit    uint64                    `protobuf:"varint,5,opt,name=clockTimeLimit" json:"clockTimeLimit,omitempty"`
+	MemoryLimit       uint64                    `protobuf:"varint,6,opt,name=memoryLimit" json:"memoryLimit,omitempty"`
+	StackLimit        uint64                    `protobuf:"varint,12,opt,name=stackLimit" json:"stackLimit,omitempty"`
+	ProcLimit         uint64                    `protobuf:"varint,7,opt,name=procLimit" json:"procLimit,omitempty"`
+	CpuRateLimit      uint64                    `protobuf:"varint,15,opt,name=cpuRateLimit" json:"cpuRateLimit,omitempty"`
+	CpuSetLimit       string                    `protobuf:"bytes,17,opt,name=cpuSetLimit" json:"cpuSetLimit,omitempty"`
+	DataSegmentLimit  bool                      `protobuf:"varint,16,opt,name=dataSegmentLimit" json:"dataSegmentLimit,omitempty"`
+	AddressSpaceLimit bool                      `protobuf:"varint,19,opt,name=addressSpaceLimit" json:"addressSpaceLimit,omitempty"`
+	CopyIn            map[string]*Request_File  `protobuf:"bytes,8,rep,name=copyIn" json:"copyIn,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Symlinks          map[string]string         `protobuf:"bytes,18,rep,name=symlinks" json:"symlinks,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	CopyOut           []*Request_CmdCopyOutFile `protobuf:"bytes,9,rep,name=copyOut" json:"copyOut,omitempty"`
+	CopyOutCached     []*Request_CmdCopyOutFile `protobuf:"bytes,10,rep,name=copyOutCached" json:"copyOutCached,omitempty"`
+	CopyOutDir        string                    `protobuf:"bytes,11,opt,name=copyOutDir" json:"copyOutDir,omitempty"`
+	CopyOutMax        uint64                    `protobuf:"varint,14,opt,name=copyOutMax" json:"copyOutMax,omitempty"`
 	unknownFields     protoimpl.UnknownFields
 	sizeCache         protoimpl.SizeCache
 }
@@ -1160,8 +1160,8 @@ func (x *Request_CmdType) GetCopyOutMax() uint64 {
 
 type Request_CmdCopyOutFile struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Optional      bool                   `protobuf:"varint,2,opt,name=optional,proto3" json:"optional,omitempty"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Optional      bool                   `protobuf:"varint,2,opt,name=optional" json:"optional,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1212,11 +1212,11 @@ func (x *Request_CmdCopyOutFile) GetOptional() bool {
 
 type Request_PipeMap struct {
 	state         protoimpl.MessageState     `protogen:"open.v1"`
-	In            *Request_PipeMap_PipeIndex `protobuf:"bytes,1,opt,name=in,proto3" json:"in,omitempty"`
-	Out           *Request_PipeMap_PipeIndex `protobuf:"bytes,2,opt,name=out,proto3" json:"out,omitempty"`
-	Proxy         bool                       `protobuf:"varint,3,opt,name=proxy,proto3" json:"proxy,omitempty"`
-	Name          string                     `protobuf:"bytes,4,opt,name=name,proto3" json:"name,omitempty"`
-	Max           uint64                     `protobuf:"varint,5,opt,name=max,proto3" json:"max,omitempty"`
+	In            *Request_PipeMap_PipeIndex `protobuf:"bytes,1,opt,name=in" json:"in,omitempty"`
+	Out           *Request_PipeMap_PipeIndex `protobuf:"bytes,2,opt,name=out" json:"out,omitempty"`
+	Proxy         bool                       `protobuf:"varint,3,opt,name=proxy" json:"proxy,omitempty"`
+	Name          string                     `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	Max           uint64                     `protobuf:"varint,5,opt,name=max" json:"max,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1288,8 +1288,8 @@ func (x *Request_PipeMap) GetMax() uint64 {
 
 type Request_PipeMap_PipeIndex struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         int32                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Fd            int32                  `protobuf:"varint,2,opt,name=fd,proto3" json:"fd,omitempty"`
+	Index         int32                  `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
+	Fd            int32                  `protobuf:"varint,2,opt,name=fd" json:"fd,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1340,9 +1340,9 @@ func (x *Request_PipeMap_PipeIndex) GetFd() int32 {
 
 type Response_FileError struct {
 	state         protoimpl.MessageState       `protogen:"open.v1"`
-	Name          string                       `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Type          Response_FileError_ErrorType `protobuf:"varint,2,opt,name=type,proto3,enum=pb.Response_FileError_ErrorType" json:"type,omitempty"`
-	Message       string                       `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	Name          string                       `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Type          Response_FileError_ErrorType `protobuf:"varint,2,opt,name=type,enum=pb.Response_FileError_ErrorType" json:"type,omitempty"`
+	Message       string                       `protobuf:"bytes,3,opt,name=message" json:"message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1400,15 +1400,15 @@ func (x *Response_FileError) GetMessage() string {
 
 type Response_Result struct {
 	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Status        Response_Result_StatusType `protobuf:"varint,1,opt,name=status,proto3,enum=pb.Response_Result_StatusType" json:"status,omitempty"`
-	ExitStatus    int32                      `protobuf:"varint,2,opt,name=exitStatus,proto3" json:"exitStatus,omitempty"`
-	Error         string                     `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
-	Time          uint64                     `protobuf:"varint,4,opt,name=time,proto3" json:"time,omitempty"`
-	RunTime       uint64                     `protobuf:"varint,8,opt,name=runTime,proto3" json:"runTime,omitempty"`
-	Memory        uint64                     `protobuf:"varint,5,opt,name=memory,proto3" json:"memory,omitempty"`
-	Files         map[string][]byte          `protobuf:"bytes,6,rep,name=files,proto3" json:"files,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	FileIDs       map[string]string          `protobuf:"bytes,7,rep,name=fileIDs,proto3" json:"fileIDs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	FileError     []*Response_FileError      `protobuf:"bytes,9,rep,name=fileError,proto3" json:"fileError,omitempty"`
+	Status        Response_Result_StatusType `protobuf:"varint,1,opt,name=status,enum=pb.Response_Result_StatusType" json:"status,omitempty"`
+	ExitStatus    int32                      `protobuf:"varint,2,opt,name=exitStatus" json:"exitStatus,omitempty"`
+	Error         string                     `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
+	Time          uint64                     `protobuf:"varint,4,opt,name=time" json:"time,omitempty"`
+	RunTime       uint64                     `protobuf:"varint,8,opt,name=runTime" json:"runTime,omitempty"`
+	Memory        uint64                     `protobuf:"varint,5,opt,name=memory" json:"memory,omitempty"`
+	Files         map[string][]byte          `protobuf:"bytes,6,rep,name=files" json:"files,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FileIDs       map[string]string          `protobuf:"bytes,7,rep,name=fileIDs" json:"fileIDs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	FileError     []*Response_FileError      `protobuf:"bytes,9,rep,name=fileError" json:"fileError,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1508,9 +1508,9 @@ func (x *Response_Result) GetFileError() []*Response_FileError {
 
 type StreamRequest_Input struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Fd            uint32                 `protobuf:"varint,3,opt,name=fd,proto3" json:"fd,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Index         uint32                 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
+	Fd            uint32                 `protobuf:"varint,3,opt,name=fd" json:"fd,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1568,12 +1568,12 @@ func (x *StreamRequest_Input) GetContent() []byte {
 
 type StreamRequest_Resize struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Fd            uint32                 `protobuf:"varint,6,opt,name=fd,proto3" json:"fd,omitempty"`
-	Rows          uint32                 `protobuf:"varint,2,opt,name=rows,proto3" json:"rows,omitempty"`
-	Cols          uint32                 `protobuf:"varint,3,opt,name=cols,proto3" json:"cols,omitempty"`
-	X             uint32                 `protobuf:"varint,4,opt,name=x,proto3" json:"x,omitempty"`
-	Y             uint32                 `protobuf:"varint,5,opt,name=y,proto3" json:"y,omitempty"`
+	Index         uint32                 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
+	Fd            uint32                 `protobuf:"varint,6,opt,name=fd" json:"fd,omitempty"`
+	Rows          uint32                 `protobuf:"varint,2,opt,name=rows" json:"rows,omitempty"`
+	Cols          uint32                 `protobuf:"varint,3,opt,name=cols" json:"cols,omitempty"`
+	X             uint32                 `protobuf:"varint,4,opt,name=x" json:"x,omitempty"`
+	Y             uint32                 `protobuf:"varint,5,opt,name=y" json:"y,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1652,9 +1652,9 @@ func (x *StreamRequest_Resize) GetY() uint32 {
 
 type StreamResponse_Output struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
-	Fd            uint32                 `protobuf:"varint,3,opt,name=fd,proto3" json:"fd,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	Index         uint32                 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
+	Fd            uint32                 `protobuf:"varint,3,opt,name=fd" json:"fd,omitempty"`
+	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1979,9 +1979,10 @@ var file_judge_proto_rawDesc = string([]byte{
 	0x69, 0x6c, 0x65, 0x49, 0x44, 0x12, 0x30, 0x0a, 0x0a, 0x46, 0x69, 0x6c, 0x65, 0x44, 0x65, 0x6c,
 	0x65, 0x74, 0x65, 0x12, 0x0a, 0x2e, 0x70, 0x62, 0x2e, 0x46, 0x69, 0x6c, 0x65, 0x49, 0x44, 0x1a,
 	0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
-	0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x1f, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75,
+	0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x24, 0x5a, 0x1d, 0x67, 0x69, 0x74, 0x68, 0x75,
 	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x72, 0x69, 0x79, 0x6c, 0x65, 0x2f, 0x67, 0x6f, 0x2d,
-	0x6a, 0x75, 0x64, 0x67, 0x65, 0x2f, 0x70, 0x62, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6a, 0x75, 0x64, 0x67, 0x65, 0x2f, 0x70, 0x62, 0x92, 0x03, 0x02, 0x08, 0x02, 0x62, 0x08, 0x65,
+	0x64, 0x69, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x70, 0xe8, 0x07,
 })
 
 var (

@@ -50,6 +50,7 @@ message Response {
     string error = 3;
     uint64 time = 4;
     uint64 runTime = 8;
+    uint64 procPeak = 10;
     uint64 memory = 5;
     map<string, bytes> files = 6;
     map<string, string> fileIDs = 7;

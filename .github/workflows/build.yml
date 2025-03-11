@@ -22,10 +22,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.24"
           cache-dependency-path: |
             go.sum
             .goreleaser.yaml
+      - name: Remove unsupported tags
+        run: git tag -d $(git tag -l "pb/*")
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         if: ${{ contains(github.ref, 'v') }}

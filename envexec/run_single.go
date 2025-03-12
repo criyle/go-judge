@@ -7,23 +7,31 @@ import (
 	"github.com/criyle/go-sandbox/runner"
 )
 
+func closePipes(ptc []pipeCollector) {
+	for _, p := range ptc {
+		p.buffer.Close()
+		os.Remove(p.buffer.Name())
+	}
+}
+
 // runSingle runs Cmd inside the given environment and cgroup
 func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, newStoreFile NewStoreFile) (result Result, err error) {
 	m := c.Environment
-	// copyin
-	if fe, err := runSingleCopyIn(m, c.CopyIn); err != nil {
+	resultFileError := func(err error, fe []FileError) {
 		result.Status = StatusFileError
 		result.Error = err.Error()
 		result.FileError = fe
+		closePipes(ptc)
 		closeFiles(fds...)
+	}
+	// copyin
+	if fe, err := runSingleCopyIn(m, c.CopyIn); err != nil {
+		resultFileError(err, fe)
 		return result, nil
 	}
 	// symlink
 	if fe, err := symlink(m, c.SymLinks); err != nil {
-		result.Status = StatusFileError
-		result.Error = err.Error()
-		result.FileError = []FileError{*fe}
-		closeFiles(fds...)
+		resultFileError(err, []FileError{*fe})
 		return result, nil
 	}
 

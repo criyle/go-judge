@@ -20,10 +20,10 @@ const (
 )
 
 var (
-	// 1ms -> 10s
+	// 1ms -> 100s
 	timeBuckets = []float64{
-		0.001, 0.002, 0.005, 0.008, 0.010, 0.025, 0.050, 0.075, 0.1, 0.2,
-		0.4, 0.6, 0.8, 1.0, 1.5, 2, 5, 10,
+		0.001, 0.002, 0.005, 0.010, 0.025, 0.050, 0.1, 0.2,
+		0.4, 0.8, 1.0, 2, 5, 10, 20, 50, 100,
 	}
 
 	// 4k (1<<12) -> 4g (1<<32)
@@ -132,10 +132,29 @@ type metricsFileStore struct {
 }
 
 func newMetricsFileStore(fs filestore.FileStore) filestore.FileStore {
-	return &metricsFileStore{
+	store := &metricsFileStore{
 		FileStore: fs,
 		fileSize:  make(map[string]int64),
 	}
+	fi := store.List()
+	for id := range fi {
+		_, file := store.Get(id)
+		if file == nil {
+			continue
+		}
+		if f, ok := file.(*envexec.FileInput); ok {
+			info, err := os.Stat(f.Path)
+			if err != nil {
+				continue
+			}
+			store.fileSize[id] = info.Size()
+			sf := float64(info.Size())
+			fsSizeHist.Observe(sf)
+			fsCurrentTotalSize.Add(sf)
+			fsCurrentTotalCount.Inc()
+		}
+	}
+	return store
 }
 
 func (m *metricsFileStore) Add(name, path string) (string, error) {

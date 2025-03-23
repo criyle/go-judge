@@ -160,7 +160,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 
 		"cgroupControllers": cgroupControllers,
 	}
-	if cgb != nil && cgroupType == cgroup.TypeV2 && major >= 5 && minor >= 7 {
+	if cgb != nil && cgroupType == cgroup.TypeV2 && (major > 5 || major == 5 && minor >= 7) {
 		c.Info("Running kernel ", major, ".", minor, " >= 5.7 with cgroup V2, trying faster clone3(CLONE_INTO_CGROUP)")
 		if b := func() pool.EnvBuilder {
 			b := linuxcontainer.NewEnvBuilder(linuxcontainer.Config{

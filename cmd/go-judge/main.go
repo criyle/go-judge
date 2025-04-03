@@ -469,7 +469,7 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 	}
 	os.MkdirAll(conf.Dir, 0755)
 	fs = filestore.NewFileLocalStore(conf.Dir)
-	if conf.EnableDebug {
+	if conf.EnableMetrics {
 		fs = newMetricsFileStore(fs)
 	}
 	if conf.FileTimeout > 0 {

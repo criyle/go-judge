@@ -70,6 +70,7 @@ func main() {
 	work.Start()
 	logger.Sugar().Infof("Started worker with parallelism=%d, workDir=%s, timeLimitCheckInterval=%v",
 		conf.Parallelism, conf.Dir, conf.TimeLimitCheckerInterval)
+	initCgroupMetrics(conf, builderParam)
 
 	servers := []initFunc{
 		cleanUpWorker(work),

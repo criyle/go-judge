@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: "go-judge: High Performance Sandbox Service"
+message: >-
+  If you use or benchmark this software, please cite 
+  it using the metadata from this file.
+type: software
+authors:
+  - given-names: Yang
+    family-names: Gao
+    email: i@goj.ac
+  - name: All go-judge Contributors
+repository-code: 'https://github.com/criyle/go-judge'
+url: 'https://docs.goj.ac'
+keywords:
+  - Online Judge
+  - Competitive Programming
+  - Sandbox
+  - Linux Container
+license: MIT

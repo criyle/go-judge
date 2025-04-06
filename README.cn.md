@@ -65,8 +65,6 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 ### 配置
 
-[详细配置文档](https://docs.goj.ac/cn/configuration)
-
 服务相关:
 
 - 默认监听地址是 `localhost:5050`，使用 `-http-addr` 指定
@@ -82,22 +80,18 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 - 默认同时运行任务数为和 CPU 数量相同，使用 `-parallelism` 指定
 - 使用 `-mount-conf` 指定沙箱文件系统挂载细节，详细请参见 [文件系统挂载](https://docs.goj.ac/cn/mount) (仅 Linux)
-- 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（举例 `30m`）
-- 默认文件存储在内存里（`/dev/shm/`），使用 `-dir` 指定本地目录为文件存储
-- 默认时间和内存使用检查周期为 100 毫秒(`100ms`)，使用 `-time-limit-checker-interval` 指定
+- 使用 `-file-timeout` 指定文件存储文件最大时间。超出时间的文件将会删除。（例如指定 `30m` 时，缓存文件将在创建后 30 分钟删除）
+- 默认文件存储在共享内存文件系统中（`/dev/shm/`），可以使用 `-dir` 指定另外的本地目录为文件存储
 - 默认最大输出限制为 `256MiB`，使用 `-output-limit` 指定
-- 默认最大打开文件描述符为 `256`，使用 `-open-file-limit` 指定
-- 默认最大额外内存使用为 `16KiB` ，使用 `-extra-memory-limit` 指定
 - 默认最大 `copyOut` 文件大小为 `64MiB` ，使用 `-copy-out-limit` 指定
-- 默认容器用户开始区间为 0（不启用） 使用 `-container-cred-start` 指定（仅 Linux）
-  - 举例，默认情况下第 0 个容器使用 10001 作为容器用户。第 1 个容器使用 10002 作为容器用户，以此类推
-- 使用 `-pre-fork` 指定启动时创建的容器数量
-- 默认 cgroup 的前缀为 `gojudge` ，使用 `-cgroup-prefix` 指定
-- 使用 `-cpuset` 指定 `cpuset.cpus` （仅 Linux）
-- 使用 `-enable-cpu-rate` 开启 `cpu` cgroup 来启用 `cpuRate` 控制（仅 Linux）
-  - 使用 `-cpu-cfs-period` 指定 cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
 
-### 沙箱终端
+可以[在此查看更多配置文档](https://docs.goj.ac/cn/configuration)。
+
+### 指标监控
+
+[Prometheus 指标监控接口](https://docs.goj.ac/cn/api#prometheus-监控接口)
+
+### 在沙箱中运行终端
 
 从 [Release](https://github.com/criyle/go-judge/releases) 下载 `go-judge-shell` 。运行将连接本地 `go-judge` 沙箱服务并开启一个容器内的终端用于调试。
 
@@ -105,7 +99,7 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 - Accepted: 程序在资源限制内正常退出
 - Memory Limit Exceeded: 超出内存限制
-- Time Limit Exceeded:
+- Time Limit Exceeded: （通常 `exitStatus` 为 `9`（超时时被 `SIGKILL` 结束））
   - 超出 `timeLimit` 时间限制
   - 或者超过 `clockLimit` 等待时间限制
 - Output Limit Exceeded:
@@ -117,7 +111,7 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
   - 或者 `copyOut` 指定文件不存在
 - Non Zero Exit Status: 程序用非 0 返回值退出
 - Signalled: 程序收到结束信号而退出（例如 `SIGSEGV`）
-- Dangerous Syscall: 程序被 `seccomp` 过滤器结束
+- Dangerous Syscall: 程序被 `seccomp` 过滤器结束（默认不启用）
 - Internal Error:
   - 指定程序路径不存在
   - 或者容器创建失败
@@ -131,16 +125,11 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 使用 `mount.yaml` [定制容器文件系统](https://docs.goj.ac/cn/mount#%E8%87%AA%E5%AE%9A%E4%B9%89%E6%8C%82%E8%BD%BD)。
 
-`/w` 的 `/tmp` 挂载 `tmpfs` 大小通过 `-tmp-fs-param` 指定，默认值为 `size=128m,nr_inodes=4k`
+不使用 `mount.yaml` 时，`/w` 的 `/tmp` 挂载 `tmpfs` 大小通过 `-tmp-fs-param` 指定，默认值为 `size=128m,nr_inodes=4k`
 
 如果在容器的根目录存在 `/.env` 文件，那么这个文件会在容器创建时被载入。文件的每一行会作为环境变量的初始值加入到运行程序当中。
 
 如果之后指定的挂载点目标在之前的挂载点之下，那么需要保证之前的挂载点存在目标文件或者文件夹。
-
-### 包
-
-- envexec: 核心逻辑包，在提供的环境中运行一个或多个程序
-- env: 环境的标准实现
 
 ### 注意
 
@@ -167,11 +156,11 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 
 #### 内存使用
 
-控制进程通常会使用 `20M` 内存，每个容器进程最大会使用 `20M` 内存，每个请求最大会使用 `2 * 16M` + 总 copy out max 限制 * 2 内存。请注意，缓存文件会存储在宿主机的共享内存中 (`/dev/shm`)，请保证其大小足够存储运行时最大可能文件。
+控制进程通常会使用 `20M` 内存，每个容器进程最大会使用 `20M` 内存，每个请求最大会使用 `2 * 16M` + 总 `copyOutMax` 限制 * 2 内存。请注意，缓存文件会存储在宿主机的共享内存中 (`/dev/shm`)，请保证其大小足够存储运行时最大可能文件。
 
 比方说当同时请求数最大为 4 的时候，本程序最大会占用 `60 + (20+32) * 4M = 268M` + 总 copy out max 限制 * 8 内存 + 总运行程序最大内存限制。
 
-因为 go 语言 runtime 垃圾收集算法实现的问题，它并不会主动归还占用内存。这种情况可能会引发 OOM Killer 杀死进程。加入了一个后台检查线程用于在堆内存占用高时强制垃圾收集和归还内存。
+因为 go 语言 runtime 垃圾收集算法实现，有时并不会主动归还占用内存。这种情况可能会引发 OOM Killer 杀死进程，因此引入了一个后台检查线程用于在堆内存占用高时强制垃圾收集和归还内存。
 
 - `-force-gc-target` 默认 `20m`, 堆内存使用超过该值是强制垃圾收集和归还内存
 - `-force-gc-interval` 默认 `5s`, 为后台线程检查的频繁程度

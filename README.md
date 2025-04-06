@@ -63,8 +63,6 @@ A REST service to run program in restricted environment (Listening on `localhost
 
 ### Configurations
 
-[Configurations](https://docs.goj.ac/configuration)
-
 Server:
 
 - The default binding address for the go judge is `localhost:5050`. Can be specified with `-http-addr` flag.
@@ -82,20 +80,12 @@ Sandbox:
 - `-mount-conf` specifies detailed mount configuration, please refer [File System Mount](https://docs.goj.ac/mount) as a reference (Linux only)
 - `-file-timeout` specifies maximum TTL for file created in file store （e.g. `30m`)
 - The default file store is in memory(`/dev/shm/`), local cache can be specified with `-dir` flag.
-- `-time-limit-checker-interval` specifies time limit checker interval (default 100ms)
 - `-output-limit` specifies size limit of POSIX rlimit of output (default 256MiB)
-- `-extra-memory-limit` specifies the additional memory limit to check memory limit exceeded (default 16KiB)
 - `-copy-out-limit` specifies the default file copy out max (default 64MiB)
-- `-open-file-limit` specifies the max number of open files (default 256)
-- `-container-cred-start` specifies container `setuid` / `setgid` credential start point (default: 0 (disabled)) (Linux only)
-  - for example, by default container 0 will run with 10001 uid & gid and container 1 will run with 10002 uid & gid...
-- `-pre-fork` specifies number of container to create when server starts
-- The default CGroup prefix is `gojudge`, Can be specified with `-cgroup-prefix` flag.
-- `-cpuset` specifies `cpuset.cpus` cgroup for each container (Linux only)
-- `-enable-cpu-rate` enabled `cpu` cgroup to control cpu rate using cfs_quota & cfs_period control (Linux only)
-  - `-cpu-cfs-period` specifies cfs_period if cpu rate is enabled (default 100ms) (valid value: \[1ms, 1s\])
 
-### Terminal in Container
+You can find [more available configuration here](https://docs.goj.ac/configuration).
+
+### Run Terminal in the Container
 
 Download `go-judge-shell` from [Release](https://github.com/criyle/go-judge/releases) and run. It will connect local `go-judge`, and open an interactive shell in the container for debugging purpose.
 
@@ -103,7 +93,7 @@ Download `go-judge-shell` from [Release](https://github.com/criyle/go-judge/rele
 
 - Accepted: Program exited with status code 0 within time & memory limits
 - Memory Limit Exceeded: Program uses more memory than memory limits
-- Time Limit Exceeded:
+- Time Limit Exceeded: (`exitStatus` usually have value `9` as killed by `SIGKILL` after timeout)
   - Program uses more CPU time than cpuLimit
   - Or, program uses more clock time than clockLimit
 - Output Limit Exceeded:
@@ -114,8 +104,8 @@ Download `go-judge-shell` from [Release](https://github.com/criyle/go-judge/rele
   - Or, CopyIn file too large for container file system
   - Or, CopyOut file is not existed after program exited
 - Non Zero Exit Status: Program exited with non 0 status code within time & memory limits
-- Signalled: Program exited with signal (e.g. SIGSEGV)
-- Dangerous Syscall: Program killed by seccomp filter
+- Signalled: Program exited with signal (e.g. `SIGSEGV`)
+- Dangerous Syscall: Program killed by seccomp filter (not enabled by default)
 - Internal Error:
   - Program is not exist
   - Or, container create not successful (e.g. not privileged docker)
@@ -127,16 +117,15 @@ For linux platform, the default mounts points are bind mounting host's `/lib`, `
 
 To [customize mount points](https://docs.goj.ac/mount#customization), please look at example `mount.yaml` file.
 
-`tmpfs` size for `/w` and `/tmp` is configured through `-tmp-fs-param` with default value `size=128m,nr_inodes=4k`
+If `mount.yaml` is not specified, the size of `tmpfs` for `/w` and `/tmp` is configured through `-tmp-fs-param` with default value `size=128m,nr_inodes=4k`
 
 If a file named `/.env` exists in the container rootfs, the container will load the file as environment variable line by line.
 
 If a bind mount is specifying a target within the previous mounted one, please ensure the target exists in the previous mount point.
 
-### Packages
+### Metrics Monitoring Endpoint
 
-- envexec: run single / group of programs in parallel within restricted environment and resource constraints
-- env: reference implementation environments to inject into envexec
+[Prometheus Metrics Monitoring Endpoint](https://docs.goj.ac/api#prometheus-monitor-api)
 
 ### Notice
 
@@ -163,11 +152,11 @@ When running with kernel >= 5.7, the `go-judge` will try faster `clone3(CLONE_IN
 
 #### Memory Usage
 
-The controller will consume `20M` memory and each container will consume `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max. Notice that the cached file stores in the shared memory (`/dev/shm`) of the host, so please ensure enough size allocated.
+The controller usually consumes `20M` memory and each container usually consumes `20M` + size of tmpfs `2 * 128M`. For each request, it consumes as much as user program limit + extra limit (`16k`) + total copy out max. Notice that the cached file stores in the shared memory (`/dev/shm`) of the host, so please ensure enough size allocated.
 
 For example, when concurrency = 4, the container itself can consume as much as `60 + (20+32) * 4M = 268M` + 4 * total copy out + total max memory of requests.
 
-Due to limitation of GO runtime, the memory will not return to OS automatically, which could lead to OOM killer. The background worker was introduced to checks heap usage and invokes GC when necessary.
+Due to limitation of GO runtime, the memory will not return to OS automatically, which could lead to OOM killer. A background worker was introduced to checks heap usage and invokes GC when necessary.
 
 - `-force-gc-target` default `20m`, the minimal size to trigger GC
 - `-force-gc-interval` default `5s`, the interval to check memory usage

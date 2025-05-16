@@ -205,3 +205,49 @@ func TestFileIDGet(t *testing.T) {
 		t.Fatalf("Expected response body %s, got %s", expectedContent, bodyString)
 	}
 }
+
+// TestFileIDDelete tests the file deletion functionality
+func TestFileIDDelete(t *testing.T) {
+	// Create a temporary directory for the file store
+	tempDir, err := os.MkdirTemp("", "test_storage")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Initialize the file store
+	router := gin.Default()
+	f := &fileHandle{fs: filestore.NewFileLocalStore(tempDir)}
+	router.DELETE("/file/:fid", f.fileIDDelete)
+
+	// Create a test file
+	testFileName := "test.py"
+	testFilePath := path.Join(tempDir, testFileName)
+	err = CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Add the file to the file store
+	fileID, err := f.fs.Add(testFileName, testFilePath)
+	if err != nil {
+		t.Fatalf("Failed to add file to storage: %v", err)
+	}
+
+	// Create HTTP request
+	req := httptest.NewRequest("DELETE", "/file/"+fileID, nil)
+
+	// Record the response
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Check the response status code
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	// Check if the file is deleted from the storage
+	if _, err := os.Stat(path.Join(tempDir, fileID)); !os.IsNotExist(err) {
+		t.Fatalf("Expected file to be deleted, but it still exists")
+	}
+}

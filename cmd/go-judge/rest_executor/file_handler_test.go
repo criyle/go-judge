@@ -15,11 +15,7 @@ import (
 
 func TestFilePost(t *testing.T) {
 	// Create a temporary directory for the file store
-	tempDir, err := os.MkdirTemp("", "test_storage")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir) // Clean up after test
+	tempDir := t.TempDir()
 
 	// Initialize the file store
 	router := gin.Default()
@@ -100,11 +96,7 @@ func CreateFileWithContent(filePath, content string) error {
 // TestFileGet tests the file retrieval functionality
 func TestFileGet(t *testing.T) {
 	// Create a temporary directory for the file store
-	tempDir, err := os.MkdirTemp("", "test_storage")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir) // Clean up after test
+	tempDir := t.TempDir()
 
 	// Initialize the file store
 	router := gin.Default()
@@ -125,7 +117,7 @@ func TestFileGet(t *testing.T) {
 	// Create files in the temporary directory
 	for _, file := range filesToCreate {
 		filePath := path.Join(tempDir, file.Name)
-		err = CreateFileWithContent(filePath, file.Content)
+		err := CreateFileWithContent(filePath, file.Content)
 		if err != nil {
 			t.Fatalf("Failed to create file: %v", err)
 		}
@@ -157,11 +149,7 @@ func TestFileGet(t *testing.T) {
 // TestFileIDGet tests the file retrieval by ID functionality
 func TestFileIDGet(t *testing.T) {
 	// Create a temporary directory for the file store
-	tempDir, err := os.MkdirTemp("", "test_storage")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir) // Clean up after test
+	tempDir := t.TempDir()
 
 	// Initialize the file store
 	router := gin.Default()
@@ -171,7 +159,7 @@ func TestFileIDGet(t *testing.T) {
 	// Create a test file
 	testFileName := "test.py"
 	testFilePath := path.Join(tempDir, testFileName)
-	err = CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
+	err := CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}
@@ -209,11 +197,7 @@ func TestFileIDGet(t *testing.T) {
 // TestFileIDDelete tests the file deletion functionality
 func TestFileIDDelete(t *testing.T) {
 	// Create a temporary directory for the file store
-	tempDir, err := os.MkdirTemp("", "test_storage")
-	if err != nil {
-		t.Fatalf("Failed to create temp directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir) // Clean up after test
+	tempDir := t.TempDir()
 
 	// Initialize the file store
 	router := gin.Default()
@@ -223,7 +207,7 @@ func TestFileIDDelete(t *testing.T) {
 	// Create a test file
 	testFileName := "test.py"
 	testFilePath := path.Join(tempDir, testFileName)
-	err = CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
+	err := CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
 	}

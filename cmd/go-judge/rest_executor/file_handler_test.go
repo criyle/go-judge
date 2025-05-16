@@ -153,3 +153,55 @@ func TestFileGet(t *testing.T) {
 		}
 	}
 }
+
+// TestFileIDGet tests the file retrieval by ID functionality
+func TestFileIDGet(t *testing.T) {
+	// Create a temporary directory for the file store
+	tempDir, err := os.MkdirTemp("", "test_storage")
+	if err != nil {
+		t.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir) // Clean up after test
+
+	// Initialize the file store
+	router := gin.Default()
+	f := &fileHandle{fs: filestore.NewFileLocalStore(tempDir)}
+	router.GET("/file/:fid", f.fileIDGet)
+
+	// Create a test file
+	testFileName := "test.py"
+	testFilePath := path.Join(tempDir, testFileName)
+	err = CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Add the file to the file store
+	fileID, err := f.fs.Add(testFileName, testFilePath)
+	if err != nil {
+		t.Fatalf("Failed to add file to storage: %v", err)
+	}
+
+	// Create HTTP request
+	req := httptest.NewRequest("GET", "/file/"+fileID, nil)
+
+	// Record the response
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	// Check the response status code
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	bodyBytes, err := os.ReadFile(path.Join(tempDir, fileID))
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
+	}
+	bodyString := string(bodyBytes)
+
+	expectedContent := "print(58 - 7 * 3)"
+	if bodyString != expectedContent {
+		t.Fatalf("Expected response body %s, got %s", expectedContent, bodyString)
+	}
+}

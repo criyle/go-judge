@@ -12,16 +12,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type fileHandle struct {
+type FileHandler struct {
 	fs filestore.FileStore
 }
 
-func (f *fileHandle) fileGet(c *gin.Context) {
+func NewFileHandler(fs filestore.FileStore) *FileHandler {
+	return &FileHandler{
+		fs: fs,
+	}
+}
+
+func (f *FileHandler) fileGet(c *gin.Context) {
 	ids := f.fs.List()
 	c.JSON(http.StatusOK, ids)
 }
 
-func (f *fileHandle) filePost(c *gin.Context) {
+func (f *FileHandler) filePost(c *gin.Context) {
 	fh, err := c.FormFile("file")
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
@@ -52,7 +58,7 @@ func (f *fileHandle) filePost(c *gin.Context) {
 	c.JSON(http.StatusOK, id)
 }
 
-func (f *fileHandle) fileIDGet(c *gin.Context) {
+func (f *FileHandler) fileIDGet(c *gin.Context) {
 	type fileURI struct {
 		FileID string `uri:"fid"`
 	}
@@ -92,7 +98,7 @@ func (f *fileHandle) fileIDGet(c *gin.Context) {
 	c.Data(http.StatusOK, typ, content)
 }
 
-func (f *fileHandle) fileIDDelete(c *gin.Context) {
+func (f *FileHandler) fileIDDelete(c *gin.Context) {
 	type fileURI struct {
 		FileID string `uri:"fid"`
 	}

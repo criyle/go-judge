@@ -19,7 +19,7 @@ func TestFilePost(t *testing.T) {
 
 	// Initialize the file store
 	router := gin.Default()
-	f := &fileHandle{fs: filestore.NewFileLocalStore(tempDir)}
+	f := NewFileHandler(filestore.NewFileLocalStore(tempDir))
 	router.POST("/file", f.filePost)
 
 	// Create a buffer to simulate multipart form
@@ -100,7 +100,7 @@ func TestFileGet(t *testing.T) {
 
 	// Initialize the file store
 	router := gin.Default()
-	f := &fileHandle{fs: filestore.NewFileLocalStore(tempDir)}
+	f := &FileHandler{fs: filestore.NewFileLocalStore(tempDir)}
 	router.GET("/file", f.fileGet)
 
 	type FileToCreate struct {
@@ -153,7 +153,7 @@ func TestFileIDGet(t *testing.T) {
 
 	// Initialize the file store
 	router := gin.Default()
-	f := &fileHandle{fs: filestore.NewFileLocalStore(tempDir)}
+	f := &FileHandler{fs: filestore.NewFileLocalStore(tempDir)}
 	router.GET("/file/:fid", f.fileIDGet)
 
 	// Create a test file
@@ -201,7 +201,7 @@ func TestFileIDDelete(t *testing.T) {
 
 	// Initialize the file store
 	router := gin.Default()
-	f := &fileHandle{fs: filestore.NewFileLocalStore(tempDir)}
+	f := &FileHandler{fs: filestore.NewFileLocalStore(tempDir)}
 	router.DELETE("/file/:fid", f.fileIDDelete)
 
 	// Create a test file

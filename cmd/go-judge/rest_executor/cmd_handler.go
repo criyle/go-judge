@@ -5,48 +5,26 @@ import (
 	"net/http"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
-	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/worker"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
-// Register registers executor the handler
-//
-// POST /run, GET /file, POST /file, GET /file/:fid, DELETE /file/:fid
-type Register interface {
-	Register(*gin.Engine)
-}
-
-// New creates new REST API handler
-func New(worker worker.Worker, fs filestore.FileStore, srcPrefix []string, logger *zap.Logger) Register {
-	return &handle{
-		worker:     worker,
-		fileHandle: fileHandle{fs: fs},
-		srcPrefix:  srcPrefix,
-		logger:     logger,
-	}
-}
-
-type handle struct {
-	worker worker.Worker
-	fileHandle
+type CmdHandler struct {
+	worker    worker.Worker
 	srcPrefix []string
 	logger    *zap.Logger
 }
 
-func (h *handle) Register(r *gin.Engine) {
-	// Run handle
-	r.POST("/run", h.handleRun)
-
-	// File handle
-	r.GET("/file", h.fileGet)
-	r.POST("/file", h.filePost)
-	r.GET("/file/:fid", h.fileIDGet)
-	r.DELETE("/file/:fid", h.fileIDDelete)
+func NewCmdHandler(worker worker.Worker, srcPrefix []string, logger *zap.Logger) *CmdHandler {
+	return &CmdHandler{
+		worker:    worker,
+		srcPrefix: srcPrefix,
+		logger:    logger,
+	}
 }
 
-func (h *handle) handleRun(c *gin.Context) {
+func (h *CmdHandler) handleRun(c *gin.Context) {
 	var req model.Request
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.Error(err)

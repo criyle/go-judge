@@ -2,6 +2,7 @@ package restexecutor
 
 import (
 	"encoding/json"
+	"github.com/criyle/go-judge/cmd/go-judge/register"
 	"net/http"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
@@ -11,15 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// Register registers executor the handler
-//
-// POST /run, GET /file, POST /file, GET /file/:fid, DELETE /file/:fid
-type Register interface {
-	Register(*gin.Engine)
-}
-
 // New creates new REST API handler
-func New(worker worker.Worker, fs filestore.FileStore, srcPrefix []string, logger *zap.Logger) Register {
+func New(worker worker.Worker, fs filestore.FileStore, srcPrefix []string, logger *zap.Logger) register.Register {
 	return &handle{
 		worker:     worker,
 		fileHandle: fileHandle{fs: fs},

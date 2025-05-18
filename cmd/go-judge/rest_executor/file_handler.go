@@ -2,6 +2,7 @@ package restexecutor
 
 import (
 	"fmt"
+	"github.com/criyle/go-judge/cmd/go-judge/register"
 	"io"
 	"mime"
 	"net/http"
@@ -14,6 +15,21 @@ import (
 
 type fileHandle struct {
 	fs filestore.FileStore
+}
+
+// NewFileHandle creates a new file handle
+func NewFileHandle(fs filestore.FileStore) register.Register {
+	return &fileHandle{
+		fs: fs,
+	}
+}
+
+func (f *fileHandle) Register(r *gin.Engine) {
+	// File handle
+	r.GET("/file", f.fileGet)
+	r.POST("/file", f.filePost)
+	r.GET("/file/:fid", f.fileIDGet)
+	r.DELETE("/file/:fid", f.fileIDDelete)
 }
 
 func (f *fileHandle) fileGet(c *gin.Context) {

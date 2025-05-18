@@ -317,8 +317,10 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	}
 
 	// Rest Handle
-	restHandle := restexecutor.New(work, fs, conf.SrcPrefix, logger)
-	restHandle.Register(r)
+	cmdHandle := restexecutor.NewCmdHandle(work, conf.SrcPrefix, logger)
+	cmdHandle.Register(r)
+	fileHandle := restexecutor.NewFileHandle(fs)
+	fileHandle.Register(r)
 
 	// WebSocket Handle
 	wsHandle := wsexecutor.New(work, conf.SrcPrefix, logger)

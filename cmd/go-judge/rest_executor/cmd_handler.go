@@ -2,7 +2,6 @@ package restexecutor
 
 import (
 	"encoding/json"
-	"github.com/criyle/go-judge/cmd/go-judge/register"
 	"net/http"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
@@ -18,7 +17,7 @@ type cmdHandle struct {
 }
 
 // NewCmdHandle creates a new command handle
-func NewCmdHandle(worker worker.Worker, srcPrefix []string, logger *zap.Logger) register.Register {
+func NewCmdHandle(worker worker.Worker, srcPrefix []string, logger *zap.Logger) Register {
 	return &cmdHandle{
 		worker:    worker,
 		srcPrefix: srcPrefix,

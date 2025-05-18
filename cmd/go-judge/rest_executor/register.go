@@ -1,4 +1,4 @@
-package register
+package restexecutor
 
 import "github.com/gin-gonic/gin"
 

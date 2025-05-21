@@ -28,13 +28,11 @@ type mockWorker struct {
 
 func (m *mockWorker) Submit(_ context.Context, req *worker.Request) (<-chan worker.Response, <-chan struct{}) {
 	// Mock implementation
-	rtCh := make(chan worker.Response)
-	go func() {
-		rtCh <- worker.Response{
-			RequestID: req.RequestID,
-			Results:   []worker.Result{m.Result},
-		}
-	}()
+	rtCh := make(chan worker.Response, 1)
+	rtCh <- worker.Response{
+		RequestID: req.RequestID,
+		Results:   []worker.Result{m.Result},
+	}
 	return rtCh, nil
 }
 

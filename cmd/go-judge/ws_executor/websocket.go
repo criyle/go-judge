@@ -71,7 +71,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 
 	handleRequest := func(baseCtx context.Context, req *wsRequest) error {
 		if req.CancelRequestID != "" {
-			h.logger.Sugar().Debugf("ws cancel: %s", req.CancelRequestID)
+			h.logger.Debug("ws cancel", zap.String("requestId", req.CancelRequestID))
 			cm.Remove(req.CancelRequestID)
 			return nil
 		}
@@ -90,14 +90,16 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			}:
 			}
 			cancel()
-			h.logger.Sugar().Debugf("ws request error: %v", err)
+			h.logger.Debug("ws request error: %v", zap.Error(err))
 			return nil
 		}
 
 		go func() {
 			defer cm.Remove(r.RequestID)
 
-			h.logger.Sugar().Debugf("ws request: %+v", r)
+			if ce := h.logger.Check(zap.DebugLevel, "ws request"); ce != nil {
+				ce.Write(zap.String("body", fmt.Sprintf("%+v", r)))
+			}
 			retCh, started := h.worker.Submit(ctx, r)
 			var ret worker.Response
 			select {
@@ -115,7 +117,9 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 				}
 			case ret = <-retCh:
 			}
-			h.logger.Sugar().Debugf("ws response: %+v", ret)
+			if ce := h.logger.Check(zap.DebugLevel, "response"); ce != nil {
+				ce.Write(zap.String("body", fmt.Sprintf("%+v", ret)))
+			}
 
 			resp, err := model.ConvertResponse(ret, false)
 			if err != nil {
@@ -147,11 +151,11 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 		for {
 			req := new(wsRequest)
 			if err := conn.ReadJSON(req); err != nil {
-				h.logger.Sugar().Info("ws read error:", err)
+				h.logger.Info("ws read error", zap.Error(err))
 				return
 			}
 			if err := handleRequest(baseCtx, req); err != nil {
-				h.logger.Sugar().Info("ws handle error:", err)
+				h.logger.Info("ws handle error", zap.Error(err))
 				return
 			}
 		}
@@ -167,7 +171,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			case r := <-resultCh:
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
-					h.logger.Sugar().Info("ws write error:", err)
+					h.logger.Info("ws write error:", zap.Error(err))
 					return
 				}
 			case <-ticker.C:
@@ -198,7 +202,7 @@ func (h *wsHandle) handleStream(c *gin.Context) {
 	w := &streamWrapper{ctx: ctx, conn: conn, sendCh: make(chan stream.Response)}
 	go w.sendLoop()
 	if err := stream.Start(ctx, w, h.worker, h.srcPrefix, h.logger); err != nil {
-		h.logger.Sugar().Debugln("stream start: ", err)
+		h.logger.Debug("stream start", zap.Error(err))
 		c.Error(err)
 	}
 }

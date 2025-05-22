@@ -91,7 +91,9 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 	}
 	defer closeFunc()
 
-	logger.Sugar().Debugf("request: %+v", rq)
+	if ce := logger.Check(zap.DebugLevel, "request"); ce != nil {
+		ce.Write(zap.String("body", fmt.Sprintf("%+v", rq)))
+	}
 
 	var wg errgroup.Group
 	execCtx, execCancel := context.WithCancel(baseCtx)
@@ -143,7 +145,9 @@ func sendLoop(ctx context.Context, s Stream, outCh chan *OutputResponse, rtCh <-
 			}
 
 		case rt := <-rtCh:
-			logger.Sugar().Debugf("response: %+v", rt)
+			if ce := logger.Check(zap.DebugLevel, "response"); ce != nil {
+				ce.Write(zap.String("body", fmt.Sprintf("%+v", rt)))
+			}
 			ret, err := model.ConvertResponse(rt, false)
 			if err != nil {
 				return fmt.Errorf("convert response: %w", err)

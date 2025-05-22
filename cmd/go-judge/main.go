@@ -58,7 +58,9 @@ func main() {
 	}
 	initLogger(conf)
 	defer logger.Sync()
-	logger.Sugar().Infof("config loaded: %+v", conf)
+	if ce := logger.Check(zap.InfoLevel, "Config loaded"); ce != nil {
+		ce.Write(zap.String("config", fmt.Sprintf("%+v", conf)))
+	}
 	warnIfNotLinux()
 
 	// Init environment pool
@@ -68,8 +70,10 @@ func main() {
 	prefork(envPool, conf.PreFork)
 	work := newWorker(conf, envPool, fs)
 	work.Start()
-	logger.Sugar().Infof("Started worker with parallelism=%d, workDir=%s, timeLimitCheckInterval=%v",
-		conf.Parallelism, conf.Dir, conf.TimeLimitCheckerInterval)
+	logger.Info("Worker stated ",
+		zap.Int("parallelism", conf.Parallelism),
+		zap.String("dir", conf.Dir),
+		zap.Duration("timeLimitCheckInterval", conf.TimeLimitCheckerInterval))
 	initCgroupMetrics(conf, builderParam)
 
 	servers := []initFunc{
@@ -106,7 +110,7 @@ func main() {
 	<-sig
 	signal.Reset(os.Interrupt)
 
-	logger.Sugar().Info("Shutting Down...")
+	logger.Info("Shutting Down...")
 
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
 	defer cancel()
@@ -120,7 +124,7 @@ func main() {
 	}
 
 	go func() {
-		logger.Sugar().Info("Shutdown Finished ", eg.Wait())
+		logger.Info("Shutdown Finished", zap.Error(eg.Wait()))
 		cancel()
 	}()
 	<-ctx.Done()
@@ -128,9 +132,9 @@ func main() {
 
 func warnIfNotLinux() {
 	if runtime.GOOS != "linux" {
-		logger.Sugar().Warn("Platform is ", runtime.GOOS)
-		logger.Sugar().Warn("Please notice that the primary supporting platform is Linux")
-		logger.Sugar().Warn("Windows and macOS(darwin) support are only recommended in development environment")
+		logger.Warn("Platform is not primarily supported", zap.String("GOOS", runtime.GOOS))
+		logger.Warn("Please notice that the primary supporting platform is Linux")
+		logger.Warn("Windows and macOS(darwin) support are only recommended in development environment")
 	}
 }
 
@@ -152,7 +156,7 @@ func cleanUpWorker(work worker.Worker) initFunc {
 	return func() (start func(), cleanUp stopFunc) {
 		return nil, func(ctx context.Context) error {
 			work.Shutdown()
-			logger.Sugar().Info("Worker shutdown")
+			logger.Info("Worker shutdown")
 			return nil
 		}
 	}
@@ -165,7 +169,7 @@ func cleanUpFs(fsCleanUp func() error) initFunc {
 		}
 		return nil, func(ctx context.Context) error {
 			err := fsCleanUp()
-			logger.Sugar().Info("FileStore cleaned up")
+			logger.Info("FileStore cleaned up")
 			return err
 		}
 	}
@@ -183,17 +187,17 @@ func initHTTPServer(conf *config.Config, work worker.Worker, fs filestore.FileSt
 		return func() {
 				lis, err := newListener(conf.HTTPAddr)
 				if err != nil {
-					logger.Sugar().Error("Http server listen failed: ", err)
+					logger.Error("Http server listen failed", zap.Error(err))
 					return
 				}
-				logger.Sugar().Info("Starting http server at ", conf.HTTPAddr, " with listener ", printListener(lis))
+				logger.Info("Starting http server", zap.String("addr", conf.HTTPAddr), zap.String("listener", printListener(lis)))
 				if err := srv.Serve(lis); errors.Is(err, http.ErrServerClosed) {
-					logger.Sugar().Info("Http server stopped: ", err)
+					logger.Info("Http server stopped", zap.Error(err))
 				} else {
-					logger.Sugar().Error("Http server stopped: ", err)
+					logger.Error("Http server stopped", zap.Error(err))
 				}
 			}, func(ctx context.Context) error {
-				logger.Sugar().Info("Http server shutdown")
+				logger.Info("Http server shutting down")
 				return srv.Shutdown(ctx)
 			}
 	}
@@ -213,13 +217,13 @@ func initMonitorHTTPServer(conf *config.Config) initFunc {
 		return func() {
 				lis, err := newListener(conf.MonitorAddr)
 				if err != nil {
-					logger.Sugar().Error("Monitoring http listen failed: ", err)
+					logger.Error("Monitoring http listen failed", zap.Error(err))
 					return
 				}
-				logger.Sugar().Info("Starting monitoring http server at ", conf.MonitorAddr, " with listener ", printListener(lis))
-				logger.Sugar().Info("Monitoring http server stopped: ", msrv.Serve(lis))
+				logger.Info("Starting monitoring http server", zap.String("addr", conf.MonitorAddr), zap.String("listener", printListener(lis)))
+				logger.Info("Monitoring http server stopped", zap.Error(msrv.Serve(lis)))
 			}, func(ctx context.Context) error {
-				logger.Sugar().Info("Monitoring http server shutdown")
+				logger.Info("Monitoring http server shutdown")
 				return msrv.Shutdown(ctx)
 			}
 	}
@@ -237,14 +241,14 @@ func initGRPCServer(conf *config.Config, work worker.Worker, fs filestore.FileSt
 		return func() {
 				lis, err := newListener(conf.GRPCAddr)
 				if err != nil {
-					logger.Sugar().Error("gRPC listen failed: ", err)
+					logger.Error("gRPC listen failed: ", zap.Error(err))
 					return
 				}
-				logger.Sugar().Info("Starting gRPC server at ", conf.GRPCAddr, " with listener ", printListener(lis))
-				logger.Sugar().Info("gRPC server stopped: ", grpcServer.Serve(lis))
+				logger.Info("Starting gRPC server", zap.String("addr", conf.GRPCAddr), zap.String("listener", printListener(lis)))
+				logger.Info("gRPC server stopped", zap.Error(grpcServer.Serve(lis)))
 			}, func(ctx context.Context) error {
 				grpcServer.GracefulStop()
-				logger.Sugar().Info("GRPC server shutdown")
+				logger.Info("GRPC server shutdown")
 				return nil
 			}
 	}
@@ -276,7 +280,7 @@ func prefork(envPool worker.EnvironmentPool, prefork int) {
 	if prefork <= 0 {
 		return
 	}
-	logger.Sugar().Info("create ", prefork, " prefork containers")
+	logger.Info("Create prefork containers", zap.Int("count", prefork))
 	m := make([]envexec.Environment, 0, prefork)
 	for i := 0; i < prefork; i++ {
 		e, err := envPool.Get()
@@ -313,7 +317,7 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	// Add auth token
 	if conf.AuthToken != "" {
 		r.Use(tokenAuth(conf.AuthToken))
-		logger.Sugar().Info("Attach token auth with token: ", conf.AuthToken)
+		logger.Info("Attach token auth", zap.String("token", conf.AuthToken))
 	}
 
 	// Rest Handle
@@ -464,7 +468,7 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 		conf.Dir = path.Join(conf.Dir, "go-judge")
 		err = os.Mkdir(conf.Dir, os.ModePerm)
 		if err != nil && !errors.Is(err, os.ErrExist) {
-			logger.Sugar().Fatal("failed to create file store default dir", err)
+			logger.Fatal("Failed to create file store default dir", zap.Error(err))
 		}
 		cleanUp = func() error {
 			return os.RemoveAll(conf.Dir)
@@ -482,6 +486,8 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 }
 
 func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
+	l := logger.Sugar()
+	defer l.Sync()
 	b, param, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  conf.ContainerInitPath,
 		MountConf:          conf.MountConf,
@@ -493,10 +499,10 @@ func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 		EnableCPURate:      conf.EnableCPURate,
 		CPUCfsPeriod:       conf.CPUCfsPeriod,
 		SeccompConf:        conf.SeccompConf,
-		Logger:             logger.Sugar(),
+		Logger:             l,
 	})
 	if err != nil {
-		logger.Sugar().Fatal("create environment builder failed ", err)
+		logger.Fatal("create environment builder failed ", zap.Error(err))
 	}
 	if conf.EnableMetrics {
 		b = &metricsEnvBuilder{b}
@@ -538,8 +544,9 @@ func newForceGCWorker(conf *config.Config) {
 			var mem runtime.MemStats
 			runtime.ReadMemStats(&mem)
 			if mem.HeapInuse > uint64(*conf.ForceGCTarget) {
-				logger.Sugar().Infof("Force GC as heap_in_use(%v) > target(%v)",
-					envexec.Size(mem.HeapInuse), *conf.ForceGCTarget)
+				logger.Info("Force GC as heap_in_use > target",
+					zap.Stringer("heap_in_use", envexec.Size(mem.HeapInuse)),
+					zap.Stringer("target", *conf.ForceGCTarget))
 				runtime.GC()
 				debug.FreeOSMemory()
 			}

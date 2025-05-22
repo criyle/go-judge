@@ -40,10 +40,14 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	e.logger.Sugar().Debugf("request: %+v", r)
+	if ce := e.logger.Check(zap.DebugLevel, "request"); ce != nil {
+		ce.Write(zap.String("body", fmt.Sprintf("%+v", r)))
+	}
 	rtCh, _ := e.worker.Submit(ctx, r)
 	rt := <-rtCh
-	e.logger.Sugar().Debugf("response: %+v", rt)
+	if ce := e.logger.Check(zap.DebugLevel, "response"); ce != nil {
+		ce.Write(zap.String("body", fmt.Sprintf("%+v", rt)))
+	}
 	if rt.Error != nil {
 		return nil, status.Error(codes.Internal, rt.Error.Error())
 	}

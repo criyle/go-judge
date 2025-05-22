@@ -2,6 +2,7 @@ package restexecutor
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
@@ -48,10 +49,14 @@ func (c *cmdHandle) handleRun(ctx *gin.Context) {
 		ctx.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
 		return
 	}
-	c.logger.Sugar().Debugf("request: %+v", r)
+	if ce := c.logger.Check(zap.DebugLevel, "request"); ce != nil {
+		ce.Write(zap.String("body", fmt.Sprintf("%+v", r)))
+	}
 	rtCh, _ := c.worker.Submit(ctx.Request.Context(), r)
 	rt := <-rtCh
-	c.logger.Sugar().Debugf("response: %+v", rt)
+	if ce := c.logger.Check(zap.DebugLevel, "response"); ce != nil {
+		ce.Write(zap.String("body", fmt.Sprintf("%+v", rt)))
+	}
 	if rt.Error != nil {
 		ctx.Error(rt.Error)
 		ctx.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())

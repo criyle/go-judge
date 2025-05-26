@@ -60,7 +60,7 @@ type CachedFile struct {
 func (f *CachedFile) EnvFile(fs filestore.FileStore) (envexec.File, error) {
 	_, fd := fs.Get(f.FileID)
 	if fd == nil {
-		return nil, fmt.Errorf("file not exists with id %v", f.FileID)
+		return nil, fmt.Errorf("file does not exists with id: %q", f.FileID)
 	}
 	return fd, nil
 }

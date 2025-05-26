@@ -12,7 +12,7 @@ import (
 	"net/http/pprof"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"strings"
@@ -465,7 +465,7 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 			conf.Dir = os.TempDir()
 		}
 		var err error
-		conf.Dir = path.Join(conf.Dir, "go-judge")
+		conf.Dir = filepath.Join(conf.Dir, "go-judge")
 		err = os.Mkdir(conf.Dir, os.ModePerm)
 		if err != nil && !errors.Is(err, os.ErrExist) {
 			logger.Fatal("Failed to create file store default dir", zap.Error(err))

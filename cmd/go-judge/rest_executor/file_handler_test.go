@@ -2,15 +2,16 @@ package restexecutor
 
 import (
 	"bytes"
-	"github.com/criyle/go-judge/filestore"
-	"github.com/gin-gonic/gin"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/criyle/go-judge/filestore"
+	"github.com/gin-gonic/gin"
 )
 
 func TestFilePost(t *testing.T) {
@@ -65,7 +66,7 @@ func TestFilePost(t *testing.T) {
 	fileID = fileID[1 : len(fileID)-1]
 
 	// Check if the file is stored correctly
-	filePath := path.Join(tempDir, fileID)
+	filePath := filepath.Join(tempDir, fileID)
 	_, err = os.Stat(filePath)
 	if os.IsNotExist(err) {
 		t.Fatalf("File should exist in the storage: %v", err)
@@ -116,7 +117,7 @@ func TestFileGet(t *testing.T) {
 
 	// Create files in the temporary directory
 	for _, file := range filesToCreate {
-		filePath := path.Join(tempDir, file.Name)
+		filePath := filepath.Join(tempDir, file.Name)
 		err := CreateFileWithContent(filePath, file.Content)
 		if err != nil {
 			t.Fatalf("Failed to create file: %v", err)
@@ -158,7 +159,7 @@ func TestFileIDGet(t *testing.T) {
 
 	// Create a test file
 	testFileName := "test.py"
-	testFilePath := path.Join(tempDir, testFileName)
+	testFilePath := filepath.Join(tempDir, testFileName)
 	err := CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -182,7 +183,7 @@ func TestFileIDGet(t *testing.T) {
 		t.Fatalf("Expected status %d, got %d", http.StatusOK, w.Code)
 	}
 
-	bodyBytes, err := os.ReadFile(path.Join(tempDir, fileID))
+	bodyBytes, err := os.ReadFile(filepath.Join(tempDir, fileID))
 	if err != nil {
 		t.Fatalf("Failed to read response body: %v", err)
 	}
@@ -206,7 +207,7 @@ func TestFileIDDelete(t *testing.T) {
 
 	// Create a test file
 	testFileName := "test.py"
-	testFilePath := path.Join(tempDir, testFileName)
+	testFilePath := filepath.Join(tempDir, testFileName)
 	err := CreateFileWithContent(testFilePath, "print(58 - 7 * 3)")
 	if err != nil {
 		t.Fatalf("Failed to create test file: %v", err)
@@ -231,7 +232,7 @@ func TestFileIDDelete(t *testing.T) {
 	}
 
 	// Check if the file is deleted from the storage
-	if _, err := os.Stat(path.Join(tempDir, fileID)); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(tempDir, fileID)); !os.IsNotExist(err) {
 		t.Fatalf("Expected file to be deleted, but it still exists")
 	}
 }

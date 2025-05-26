@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"sync"
 
@@ -41,7 +40,7 @@ func (s *fileLocalStore) Get(id string) (string, envexec.File) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	p := path.Join(s.dir, id)
+	p := filepath.Join(s.dir, id)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		return "", nil
 	}
@@ -57,7 +56,7 @@ func (s *fileLocalStore) Remove(id string) bool {
 	defer s.mu.Unlock()
 
 	delete(s.name, id)
-	p := path.Join(s.dir, id)
+	p := filepath.Join(s.dir, id)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		return false
 	}
@@ -87,7 +86,7 @@ func (s *fileLocalStore) New() (*os.File, error) {
 		if err != nil {
 			return nil, err
 		}
-		f, err := os.OpenFile(path.Join(s.dir, id), os.O_CREATE|os.O_RDWR|os.O_EXCL, 0644)
+		f, err := os.OpenFile(filepath.Join(s.dir, id), os.O_CREATE|os.O_RDWR|os.O_EXCL, 0644)
 		if err == nil {
 			return f, nil
 		}

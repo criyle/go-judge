@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"syscall"
 	"time"
 	"unicode/utf16"
@@ -286,15 +286,15 @@ func (e *Environment) WorkDir() *os.File {
 
 // Open opens file related to root
 func (e *Environment) Open(p string, flags int, perm os.FileMode) (*os.File, error) {
-	return os.OpenFile(path.Join(e.root, p), flags, perm)
+	return os.OpenFile(filepath.Join(e.root, p), flags, perm)
 }
 
 func (e *Environment) MkdirAll(p string, perm os.FileMode) error {
-	return os.MkdirAll(path.Join(e.root, p), perm)
+	return os.MkdirAll(filepath.Join(e.root, p), perm)
 }
 
 func (e *Environment) Symlink(oldName, newName string) error {
-	return os.Symlink(oldName, path.Join(e.root, newName))
+	return os.Symlink(oldName, filepath.Join(e.root, newName))
 }
 
 // Destroy destroys the environment
@@ -327,7 +327,7 @@ func removeContents(dir string) error {
 	}
 
 	for _, name := range names {
-		err = os.RemoveAll(path.Join(dir, name))
+		err = os.RemoveAll(filepath.Join(dir, name))
 		if err != nil {
 			return err
 		}

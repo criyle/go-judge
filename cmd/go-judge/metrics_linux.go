@@ -1,7 +1,7 @@
 package main
 
 import (
-	"path"
+	"path/filepath"
 	"time"
 
 	"github.com/criyle/go-judge/cmd/go-judge/config"
@@ -89,7 +89,7 @@ func initCgroupMetrics(conf *config.Config, param map[string]any) {
 	}
 
 	// current cgroup is xxx/api, get the dir
-	prefix = path.Dir(prefix)
+	prefix = filepath.Dir(prefix)
 	control, err := cgroup.GetAvailableControllerWithPrefix(prefix)
 	if err != nil {
 		return
@@ -107,7 +107,7 @@ func initCgroupMetrics(conf *config.Config, param map[string]any) {
 	}
 	newCgroupMetrics(apiCg, "controller")
 
-	containersCg, err := cgroup.New(path.Join(prefix, "containers"), control)
+	containersCg, err := cgroup.New(filepath.Join(prefix, "containers"), control)
 	if err != nil {
 		return
 	}

@@ -71,7 +71,7 @@ func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileList
 func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, error) {
 	name, file := e.fs.Get(f.GetFileID())
 	if file == nil {
-		return nil, status.Errorf(codes.NotFound, "file %v not found", f.GetFileID())
+		return nil, status.Errorf(codes.NotFound, "file not found: %q", f.GetFileID())
 	}
 	r, err := envexec.FileToReader(file)
 	if err != nil {
@@ -111,7 +111,7 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty, error) {
 	ok := e.fs.Remove(f.GetFileID())
 	if !ok {
-		return nil, status.Errorf(codes.NotFound, "file id does not exists for %v", f.GetFileID())
+		return nil, status.Errorf(codes.NotFound, "file id does not exists: %q", f.GetFileID())
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -241,10 +241,10 @@ func convertPBFile(c *pb.Request_File, srcPrefix []string) (worker.CmdFile, erro
 		if len(srcPrefix) > 0 {
 			ok, err := model.CheckPathPrefixes(c.Local.GetSrc(), srcPrefix)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("check path prefixes: %w", err)
 			}
 			if !ok {
-				return nil, fmt.Errorf("file (%s) does not under (%s)", c.Local.GetSrc(), srcPrefix)
+				return nil, fmt.Errorf("file outside of prefix: %q, %q", c.Local.GetSrc(), srcPrefix)
 			}
 		}
 		return &worker.LocalFile{Src: c.Local.GetSrc()}, nil
@@ -255,7 +255,7 @@ func convertPBFile(c *pb.Request_File, srcPrefix []string) (worker.CmdFile, erro
 	case *pb.Request_File_Pipe:
 		return &worker.Collector{Name: c.Pipe.GetName(), Max: envexec.Size(c.Pipe.GetMax()), Pipe: c.Pipe.GetPipe()}, nil
 	}
-	return nil, fmt.Errorf("request file type not supported yet %v", c)
+	return nil, fmt.Errorf("request file type not supported: %T", c)
 }
 
 func convertCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []worker.CmdCopyOutFile {

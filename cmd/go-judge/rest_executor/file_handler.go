@@ -5,7 +5,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"path"
+	"path/filepath"
 
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
@@ -82,7 +82,7 @@ func (f *fileHandle) fileIDGet(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	typ := mime.TypeByExtension(path.Ext(name))
+	typ := mime.TypeByExtension(filepath.Ext(name))
 	c.Header("Content-Type", typ)
 
 	fi, ok := file.(*envexec.FileInput) // fast path

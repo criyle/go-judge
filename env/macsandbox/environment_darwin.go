@@ -3,7 +3,7 @@ package macsandbox
 import (
 	"context"
 	"os"
-	"path"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -137,15 +137,15 @@ func (e *environment) WorkDir() *os.File {
 }
 
 func (e *environment) Open(p string, flags int, perm os.FileMode) (*os.File, error) {
-	return os.OpenFile(path.Join(e.wdPath, p), flags, perm)
+	return os.OpenFile(filepath.Join(e.wdPath, p), flags, perm)
 }
 
 func (e *environment) MkdirAll(p string, perm os.FileMode) error {
-	return os.MkdirAll(path.Join(e.wdPath, p), perm)
+	return os.MkdirAll(filepath.Join(e.wdPath, p), perm)
 }
 
 func (e *environment) Symlink(oldName, newName string) error {
-	return os.Symlink(oldName, path.Join(e.wdPath, newName))
+	return os.Symlink(oldName, filepath.Join(e.wdPath, newName))
 }
 
 func (e *environment) Destroy() error {
@@ -171,7 +171,7 @@ func removeContents(dir string) error {
 	}
 
 	for _, name := range names {
-		err = os.RemoveAll(path.Join(dir, name))
+		err = os.RemoveAll(filepath.Join(dir, name))
 		if err != nil {
 			return err
 		}

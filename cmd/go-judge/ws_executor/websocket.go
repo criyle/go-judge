@@ -77,7 +77,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 		}
 		r, err := model.ConvertRequest(&req.Request, h.srcPrefix)
 		if err != nil {
-			return fmt.Errorf("ws convert error: %v", err)
+			return fmt.Errorf("ws convert error: %w", err)
 		}
 
 		ctx, cancel := context.WithCancel(baseCtx)
@@ -90,7 +90,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			}:
 			}
 			cancel()
-			h.logger.Debug("ws request error: %v", zap.Error(err))
+			h.logger.Debug("ws request error", zap.Error(err))
 			return nil
 		}
 
@@ -171,7 +171,7 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			case r := <-resultCh:
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
-					h.logger.Info("ws write error:", zap.Error(err))
+					h.logger.Info("ws write error", zap.Error(err))
 					return
 				}
 			case <-ticker.C:
@@ -224,7 +224,7 @@ func (c *contextMap) Add(reqID string, cancel context.CancelFunc) error {
 	defer c.mu.Unlock()
 
 	if _, exist := c.m[reqID]; exist {
-		return fmt.Errorf("duplicated request id: %v", reqID)
+		return fmt.Errorf("duplicated request id: %q", reqID)
 	}
 	c.m[reqID] = cancel
 	return nil

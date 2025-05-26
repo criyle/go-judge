@@ -97,6 +97,10 @@ func (s Status) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON convert string into status
 func (s *Status) UnmarshalJSON(b []byte) error {
 	str := string(b)
+	if len(str) < 2 || str[0] != '"' || str[len(str)-1] != '"' {
+		return fmt.Errorf("invalid status string: %s", str)
+	}
+	// remove quotes
 	v, err := envexec.StringToStatus(str[1 : len(str)-1])
 	if err != nil {
 		return err
@@ -361,7 +365,7 @@ func convertCmdFile(f *CmdFile, srcPrefix []string) (worker.CmdFile, error) {
 	case f.Max != nil && f.Name != nil:
 		return &worker.Collector{Name: *f.Name, Max: envexec.Size(*f.Max), Pipe: f.Pipe}, nil
 	default:
-		return nil, fmt.Errorf("file is not valid for cmd")
+		return nil, fmt.Errorf("file type is not valid for cmd: %v", f)
 	}
 }
 

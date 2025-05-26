@@ -17,8 +17,10 @@ type waiter struct {
 }
 
 func (w *waiter) Wait(ctx context.Context, u envexec.Process) bool {
-	if w.clockTimeLimit < w.timeLimit {
-		w.clockTimeLimit = w.timeLimit
+	clockTimeLimit := w.clockTimeLimit
+	timeLimit := w.timeLimit
+	if clockTimeLimit < w.timeLimit {
+		clockTimeLimit = w.timeLimit
 	}
 
 	start := time.Now()
@@ -40,11 +42,11 @@ func (w *waiter) Wait(ctx context.Context, u envexec.Process) bool {
 			return false
 
 		case <-ticker.C:
-			if time.Since(start) > w.clockTimeLimit {
+			if time.Since(start) > clockTimeLimit {
 				return true
 			}
 			u := u.Usage()
-			if u.Time > w.timeLimit {
+			if u.Time > timeLimit {
 				return true
 			}
 		}

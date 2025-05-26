@@ -3,7 +3,7 @@ package env
 import (
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/mount"
@@ -61,12 +61,12 @@ func parseMountConfig(m *Mounts) (*mount.Builder, error) {
 	}
 	for _, mt := range m.Mount {
 		target := mt.Target
-		if path.IsAbs(target) {
-			target = path.Clean(target[1:])
+		if filepath.IsAbs(target) {
+			target = filepath.Clean(target[1:])
 		}
 		source := mt.Source
-		if !path.IsAbs(source) {
-			source = path.Join(wd, source)
+		if !filepath.IsAbs(source) {
+			source = filepath.Join(wd, source)
 		}
 		switch mt.Type {
 		case "bind":

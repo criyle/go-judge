@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
+	"path/filepath"
 )
 
 func readerToFile(reader io.Reader) (*os.File, error) {
@@ -49,13 +49,13 @@ func copyDir(src *os.File, dst string) error {
 }
 
 func copyDirFile(src, dst, name string) error {
-	s, err := os.Open(path.Join(src, name))
+	s, err := os.Open(filepath.Join(src, name))
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 
-	t, err := os.OpenFile(path.Join(dst, name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
+	t, err := os.OpenFile(filepath.Join(dst, name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
 		return err
 	}

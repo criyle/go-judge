@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -347,10 +347,10 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool) (*envexec.Cmd,
 
 	var copyOutDir string
 	if rc.CopyOutDir != "" {
-		if path.IsAbs(rc.CopyOutDir) {
+		if filepath.IsAbs(rc.CopyOutDir) {
 			copyOutDir = rc.CopyOutDir
 		} else {
-			copyOutDir = path.Join(w.workDir, rc.CopyOutDir)
+			copyOutDir = filepath.Join(w.workDir, rc.CopyOutDir)
 		}
 	}
 

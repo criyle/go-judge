@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	_ worker.CmdFile = &fileStreamIn{}
-	_ worker.CmdFile = &fileStreamOut{}
+	_ worker.CmdFile    = &fileStreamIn{}
+	_ worker.CmdFile    = &fileStreamOut{}
+	_ envexec.ReaderTTY = &fileStreamInReader{}
 )
 
 type fileStreamIn struct {

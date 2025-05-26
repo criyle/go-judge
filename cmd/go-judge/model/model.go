@@ -97,7 +97,7 @@ func (s Status) MarshalJSON() ([]byte, error) {
 // UnmarshalJSON convert string into status
 func (s *Status) UnmarshalJSON(b []byte) error {
 	str := string(b)
-	v, err := envexec.StringToStatus(str)
+	v, err := envexec.StringToStatus(str[1 : len(str)-1])
 	if err != nil {
 		return err
 	}

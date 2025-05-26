@@ -68,7 +68,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			var f *os.File
 			f, err = os.Open(t.Path)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to open file %v", t.Path)
+				return nil, nil, fmt.Errorf("failed to open file: %v", t.Path)
 			}
 			files[j] = f
 
@@ -163,7 +163,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 		case *FileInput:
 			f, err := os.Open(t.Path)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to open file %v", t.Path)
+				return nil, nil, fmt.Errorf("failed to open file: %v", t.Path)
 			}
 			files[j] = f
 

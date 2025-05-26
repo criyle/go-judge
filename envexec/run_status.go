@@ -77,6 +77,6 @@ func StringToStatus(s string) (Status, error) {
 
 func init() {
 	for i, v := range statusToString {
-		stringToStatus["\""+v+"\""] = Status(i)
+		stringToStatus[v] = Status(i)
 	}
 }

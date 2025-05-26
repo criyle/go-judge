@@ -144,7 +144,7 @@ func (t FileErrorType) MarshalJSON() ([]byte, error) {
 func (t *FileErrorType) UnmarshalJSON(b []byte) error {
 	str := string(b)
 	v, ok := fileErrorStringReverse[str]
-	if ok {
+	if !ok {
 		return fmt.Errorf("%s is not file error type", str)
 	}
 	*t = v

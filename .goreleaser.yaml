@@ -9,6 +9,7 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./cmd/...
+    - go test ./... -v
 builds:
   - main: ./cmd/go-judge
     binary: go-judge

@@ -51,29 +51,29 @@ func copyDir(src *os.File, dst string) error {
 func copyDirFile(src, dst, name string) error {
 	s, err := os.Open(filepath.Join(src, name))
 	if err != nil {
-		return err
+		return fmt.Errorf("copydir: open src %q: %w", filepath.Join(src, name), err)
 	}
 	defer s.Close()
 
 	t, err := os.OpenFile(filepath.Join(dst, name), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	if err != nil {
-		return err
+		return fmt.Errorf("copydir: open dst %q: %w", filepath.Join(dst, name), err)
 	}
 	defer t.Close()
 
 	stat, err := t.Stat()
 	if err != nil {
-		return err
+		return fmt.Errorf("copydir: stat dst %q: %w", filepath.Join(dst, name), err)
 	}
 
 	// check regular file
 	if stat.Mode()&os.ModeType != 0 {
-		return fmt.Errorf("File(%s) is not a regular file", name)
+		return fmt.Errorf("copydir: %q is not a regular file", name)
 	}
 
 	_, err = t.ReadFrom(s)
 	if err != nil {
-		return err
+		return fmt.Errorf("copydir: copy content for %q: %w", name, err)
 	}
 	return nil
 }

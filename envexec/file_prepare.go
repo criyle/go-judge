@@ -46,7 +46,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 
 		case *FileReader:
 			if hasInput {
-				return nil, nil, fmt.Errorf("cannot have multiple input when tty enabled")
+				return nil, nil, fmt.Errorf("tty: multiple input not allowed")
 			}
 			hasInput = true
 
@@ -68,7 +68,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			var f *os.File
 			f, err = os.Open(t.Path)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to open file: %v", t.Path)
+				return nil, nil, fmt.Errorf("tty: open file %v: %w", t.Path, err)
 			}
 			files[j] = f
 
@@ -82,7 +82,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			done := make(chan struct{})
 			buf, err := newStoreFile()
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to create store file %v", err)
+				return nil, nil, fmt.Errorf("tty: create store file: %w", err)
 			}
 			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name, true})
 
@@ -107,7 +107,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			}()
 
 		default:
-			return nil, nil, fmt.Errorf("unknown file type %v %t", t, t)
+			return nil, nil, fmt.Errorf("tty: unknown file type: %T", t)
 		}
 	}
 
@@ -147,7 +147,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			if t.Stream {
 				r, w, err := os.Pipe()
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to create pipe %v", err)
+					return nil, nil, fmt.Errorf("pipe: create: %w", err)
 				}
 				go w.ReadFrom(t.Reader)
 
@@ -155,7 +155,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			} else {
 				f, err := readerToFile(t.Reader)
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to open reader %v", err)
+					return nil, nil, fmt.Errorf("pipe: open reader: %w", err)
 				}
 				files[j] = f
 			}
@@ -163,7 +163,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 		case *FileInput:
 			f, err := os.Open(t.Path)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to open file: %v", t.Path)
+				return nil, nil, fmt.Errorf("pipe: open file %v: %w", t.Path, err)
 			}
 			files[j] = f
 
@@ -176,7 +176,7 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			if t.Pipe {
 				b, err := newPipeBuffer(t.Limit, newFileStore)
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to create pipe %v", err)
+					return nil, nil, fmt.Errorf("pipe: create: %w", err)
 				}
 				cf[t.Name] = b.W
 
@@ -185,13 +185,13 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			} else {
 				f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to create container file %v", err)
+					return nil, nil, fmt.Errorf("container: create file %v: %w", t.Name, err)
 				}
 				cf[t.Name] = f
 
 				buffer, err := c.Environment.Open(t.Name, os.O_RDWR, 0777)
 				if err != nil {
-					return nil, nil, fmt.Errorf("failed to open created container file %v", err)
+					return nil, nil, fmt.Errorf("container: open created file %v: %w", t.Name, err)
 				}
 
 				files[j] = f
@@ -201,12 +201,12 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 		case *FileWriter:
 			_, w, err := newPipe(t.Writer, t.Limit)
 			if err != nil {
-				return nil, nil, fmt.Errorf("failed to create pipe %v", err)
+				return nil, nil, fmt.Errorf("pipe: create: %w", err)
 			}
 			files[j] = w
 
 		default:
-			return nil, nil, fmt.Errorf("unknown file type %v %t", t, t)
+			return nil, nil, fmt.Errorf("unknown file type: %T", t)
 		}
 	}
 	return files, pipeToCollect, nil
@@ -237,21 +237,21 @@ func prepareFds(r *Group, newStoreFile NewStoreFile) (f [][]*os.File, p [][]pipe
 	for i, c := range r.Cmd {
 		files[i], pipeToCollect[i], err = prepareCmdFd(c, fdCount[i], newStoreFile)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("prepare fds: prepareCmdFd: %w", err)
 		}
 	}
 
 	// prepare pipes
 	for _, p := range r.Pipes {
 		if files[p.Out.Index][p.Out.Fd] != nil {
-			return nil, nil, fmt.Errorf("pipe mapping to existing file descriptor: out %d/%d", p.Out.Index, p.Out.Fd)
+			return nil, nil, fmt.Errorf("pipe: mapping to existing file descriptor: out %d/%d", p.Out.Index, p.Out.Fd)
 		}
 		if files[p.In.Index][p.In.Fd] != nil {
-			return nil, nil, fmt.Errorf("pipe mapping to existing file descriptor: in %d/%d", p.In.Index, p.In.Fd)
+			return nil, nil, fmt.Errorf("pipe: mapping to existing file descriptor: in %d/%d", p.In.Index, p.In.Fd)
 		}
 		out, in, pc, err := pipe(p, newStoreFile)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("pipe: create: %w", err)
 		}
 		files[p.Out.Index][p.Out.Fd] = out
 		files[p.In.Index][p.In.Fd] = in
@@ -265,7 +265,7 @@ func prepareFds(r *Group, newStoreFile NewStoreFile) (f [][]*os.File, p [][]pipe
 	for i, fds := range files {
 		for j, f := range fds {
 			if f == nil {
-				return nil, nil, fmt.Errorf("null passed to files for index/fd: %d/%d", i, j)
+				return nil, nil, fmt.Errorf("null file for index/fd: %d/%d", i, j)
 			}
 		}
 	}
@@ -280,10 +280,10 @@ func countFd(r *Group) ([]int, error) {
 	for _, pi := range r.Pipes {
 		for _, p := range []PipeIndex{pi.In, pi.Out} {
 			if p.Index < 0 || p.Index >= len(r.Cmd) {
-				return nil, fmt.Errorf("pipe index out of range %v", p.Index)
+				return nil, fmt.Errorf("pipe: index out of range %v", p.Index)
 			}
 			if p.Fd < len(r.Cmd[p.Index].Files) && r.Cmd[p.Index].Files[p.Fd] != nil {
-				return nil, fmt.Errorf("pipe fd have been occupied %v %v", p.Index, p.Fd)
+				return nil, fmt.Errorf("pipe: fd already occupied %v %v", p.Index, p.Fd)
 			}
 			if p.Fd+1 > fdCount[p.Index] {
 				fdCount[p.Index] = p.Fd + 1
@@ -297,12 +297,12 @@ func pipe(p Pipe, newStoreFile NewStoreFile) (out *os.File, in *os.File, pc *pip
 	if p.Proxy {
 		buffer, err := newStoreFile()
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, fmt.Errorf("pipe: create store file: %w", err)
 		}
 		out1, in1, out2, in2, err := pipe2()
 		if err != nil {
 			buffer.Close()
-			return nil, nil, nil, err
+			return nil, nil, nil, fmt.Errorf("pipe: create: %w", err)
 		}
 
 		pc := pipeProxy(p, out1, in2, buffer)
@@ -311,7 +311,7 @@ func pipe(p Pipe, newStoreFile NewStoreFile) (out *os.File, in *os.File, pc *pip
 
 	out, in, err = os.Pipe()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, fmt.Errorf("pipe: create: %w", err)
 	}
 	return out, in, nil, nil
 }

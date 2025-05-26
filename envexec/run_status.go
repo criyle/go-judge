@@ -51,8 +51,6 @@ var statusToString = []string{
 	"Judgement Failed",
 	"Invalid Interaction",
 	"Internal Error",
-	"CGroup Error",
-	"Container Error",
 }
 
 // stringToStatus map string to corresponding Status

@@ -38,26 +38,26 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 
 			hf, err := FileToReader(f)
 			if err != nil {
-				return fmt.Errorf("failed to copyIn %v", err)
+				return fmt.Errorf("copyin: file to reader: %w", err)
 			}
 			defer hf.Close()
 
 			// ensure path exists
 			if err := m.MkdirAll(filepath.Dir(n), 0777); err != nil {
 				t = ErrCopyInCreateDir
-				return fmt.Errorf("failed to create dir %v", err)
+				return fmt.Errorf("copyin: create dir %q: %w", filepath.Dir(n), err)
 			}
 			cf, err := m.Open(n, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0777)
 			if err != nil {
 				t = ErrCopyInCreateFile
-				return err
+				return fmt.Errorf("copyin: open file %q: %w", n, err)
 			}
 			defer cf.Close()
 
 			_, err = io.Copy(cf, hf)
 			if err != nil {
 				t = ErrCopyInCopyContent
-				return err
+				return fmt.Errorf("copyin: copy content: %w", err)
 			}
 			return nil
 		})
@@ -72,7 +72,7 @@ func symlink(m Environment, symlinks map[string]string) (*FileError, error) {
 				Name:    k,
 				Type:    ErrSymlink,
 				Message: err.Error(),
-			}, err
+			}, fmt.Errorf("symlink: %q -> %q: %w", k, v, err)
 		}
 	}
 	return nil, nil

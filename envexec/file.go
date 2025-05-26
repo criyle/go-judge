@@ -101,6 +101,6 @@ func FileToReader(f File) (io.ReadCloser, error) {
 		return file, nil
 
 	default:
-		return nil, fmt.Errorf("file cannot open as reader %v", f)
+		return nil, fmt.Errorf("file cannot open as reader: %T", f)
 	}
 }

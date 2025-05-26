@@ -53,7 +53,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	if c.cgPool != nil {
 		cg, err = c.cgPool.Get()
 		if err != nil {
-			return nil, fmt.Errorf("execve: failed to get cgroup %v", err)
+			return nil, fmt.Errorf("execve: failed to get cgroup: %w", err)
 		}
 		if err := c.setCgroupLimit(cg, limit); err != nil {
 			return nil, err
@@ -61,7 +61,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		if c.cgFd {
 			f, err := cg.Open()
 			if err != nil {
-				return nil, fmt.Errorf("execve: failed to get cgroup fd %v", err)
+				return nil, fmt.Errorf("execve: failed to get cgroup fd: %w", err)
 			}
 			defer f.Close()
 			cgFd = f.Fd()
@@ -130,7 +130,7 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 		var err error
 		path, err = filepath.Rel(c.workDir, path)
 		if err != nil {
-			return nil, fmt.Errorf("openAtWorkDir: %v", err)
+			return nil, fmt.Errorf("openatworkdir: %w", err)
 		}
 	}
 	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_CLOEXEC, uint32(perm))
@@ -139,7 +139,7 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 	}
 	f := os.NewFile(uintptr(fd), path)
 	if f == nil {
-		return nil, fmt.Errorf("openAtWorkDir: failed to NewFile")
+		return nil, fmt.Errorf("openatworkdir: failed to create file")
 	}
 	return f, nil
 }
@@ -220,19 +220,19 @@ func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
 	}
 	if cpuSet != "" {
 		if err := cg.SetCpuset(cpuSet); isCgroupSetHasError(err) {
-			return fmt.Errorf("execve: cgroup failed to set cpu_set limit %v", err)
+			return fmt.Errorf("execve: cgroup: failed to set cpuset limit: %w", err)
 		}
 	}
 	if c.cpuRate && limit.Rate > 0 {
 		if err := cg.SetCPURate(limit.Rate); isCgroupSetHasError(err) {
-			return fmt.Errorf("execve: cgroup failed to set cpu_rate limit %v", err)
+			return fmt.Errorf("execve: cgroup: failed to set cpu rate limit: %w", err)
 		}
 	}
 	if err := cg.SetMemoryLimit(limit.Memory); isCgroupSetHasError(err) {
-		return fmt.Errorf("execve: cgroup failed to set memory limit %v", err)
+		return fmt.Errorf("execve: cgroup: failed to set memory limit: %w", err)
 	}
 	if err := cg.SetProcLimit(limit.Proc); isCgroupSetHasError(err) {
-		return fmt.Errorf("execve: cgroup failed to set process limit %v", err)
+		return fmt.Errorf("execve: cgroup: failed to set process limit: %w", err)
 	}
 	return nil
 }

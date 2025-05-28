@@ -18,6 +18,7 @@ import (
 	"github.com/criyle/go-sandbox/runner"
 	ddbus "github.com/godbus/dbus/v5"
 	"github.com/google/shlex"
+	"go.uber.org/zap"
 	"golang.org/x/sys/unix"
 )
 
@@ -29,7 +30,7 @@ const (
 )
 
 // NewBuilder build a environment builder
-func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
+func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, error) {
 	var (
 		mountBuilder  *mount.Builder
 		symbolicLinks []container.SymbolicLink
@@ -39,13 +40,15 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	mc, err := readMountConfig(c.MountConf)
 	if err != nil {
 		if !os.IsNotExist(err) {
+			logger.Error("failed to read mount config", zap.String("path", c.MountConf), zap.Error(err))
 			return nil, nil, err
 		}
-		c.Info("Mount.yaml(", c.MountConf, ") does not exists, use the default container mount")
+		logger.Info("mount.yaml does not exist, using default container mount", zap.String("path", c.MountConf))
 		mountBuilder = getDefaultMount(c.TmpFsParam)
 	} else {
 		mountBuilder, err = parseMountConfig(mc)
 		if err != nil {
+			logger.Error("failed to parse mount config", zap.Error(err))
 			return nil, nil, err
 		}
 	}
@@ -63,14 +66,15 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		maskPaths = defaultMaskPaths
 	}
 	m := mountBuilder.FilterNotExist().Mounts
-	c.Info("Created container mount at:", mountBuilder)
+	logger.Info("created container mount", zap.Any("mountBuilder", mountBuilder))
 
 	seccomp, err := readSeccompConf(c.SeccompConf)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to load seccomp config: %v", err)
+		logger.Error("failed to load seccomp config", zap.String("path", c.SeccompConf), zap.Error(err))
+		return nil, nil, fmt.Errorf("failed to load seccomp config: %w", err)
 	}
 	if seccomp != nil {
-		c.Info("Load seccomp filter: ", c.SeccompConf)
+		logger.Info("loaded seccomp filter", zap.String("path", c.SeccompConf))
 	}
 
 	unshareFlags := uintptr(forkexec.UnshareFlags)
@@ -81,7 +85,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	unshareFlags ^= unix.CLONE_NEWCGROUP
 	if major < 4 || (major == 4 && minor < 6) {
 		unshareCgroup = false
-		c.Info("Kernel version (", major, ".", minor, ") < 4.6, don't unshare cgroup")
+		logger.Info("kernel version < 4.6, don't unshare cgroup", zap.Int("major", major), zap.Int("minor", minor))
 	}
 
 	// use setuid container only if running in root privilege
@@ -105,12 +109,17 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		if mc.InitCmd != "" {
 			initCmd, err = shlex.Split(mc.InitCmd)
 			if err != nil {
+				logger.Error("failed to parse init_cmd", zap.String("init_cmd", mc.InitCmd), zap.Error(err))
 				return nil, nil, fmt.Errorf("failed to parse initCmd: %s %w", mc.InitCmd, err)
 			}
-			c.Info("Initialize container with command: ", mc.InitCmd)
+			logger.Info("initialize container with command", zap.String("init_cmd", mc.InitCmd))
 		}
 	}
-	c.Info("Creating container builder: hostName=", hostName, ", domainName=", domainName, ", workDir=", workDir)
+	logger.Info("creating container builder",
+		zap.String("host_name", hostName),
+		zap.String("domain_name", domainName),
+		zap.String("work_dir", workDir),
+	)
 
 	b := &container.Builder{
 		TmpRoot:       "go-judge",
@@ -130,7 +139,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 
 		UnshareCgroupBeforeExec: unshareCgroup,
 	}
-	cgb, ct, err := newCgroup(c)
+	cgb, ct, err := newCgroup(c, logger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -161,7 +170,8 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 		"cgroupControllers": cgroupControllers,
 	}
 	if cgb != nil && cgroupType == cgroup.TypeV2 && (major > 5 || major == 5 && minor >= 7) {
-		c.Info("Running kernel ", major, ".", minor, " >= 5.7 with cgroup V2, trying faster clone3(CLONE_INTO_CGROUP)")
+		logger.Info("running kernel >= 5.7 with cgroup V2, trying faster clone3(CLONE_INTO_CGROUP)",
+			zap.Int("major", major), zap.Int("minor", minor))
 		if b := func() pool.EnvBuilder {
 			b := linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
 				Builder:    b,
@@ -174,7 +184,7 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 			})
 			e, err := b.Build()
 			if err != nil {
-				c.Info("Environment build failed: ", err)
+				logger.Info("environment build failed", zap.Error(err))
 				return nil
 			}
 			defer e.Destroy()
@@ -186,13 +196,13 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 				},
 			})
 			if err != nil {
-				c.Info("Environment run failed: ", err)
+				logger.Info("environment run failed", zap.Error(err))
 				return nil
 			}
 			<-p.Done()
 			r := p.Result()
 			if r.Status == runner.StatusRunnerError {
-				c.Info("Environment result failed: ", r)
+				logger.Info("environment result failed", zap.Stringer("result", r))
 				return nil
 			}
 			return b
@@ -212,17 +222,16 @@ func NewBuilder(c Config) (pool.EnvBuilder, map[string]any, error) {
 	}), conf, nil
 }
 
-func newCgroup(c Config) (cgroup.Cgroup, *cgroup.Controllers, error) {
+func newCgroup(c Config, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controllers, error) {
 	prefix := c.CgroupPrefix
 	t := cgroup.DetectedCgroupType
 	ct, err := cgroup.GetAvailableController()
 	if err != nil {
-		c.Error("Failed to get available controllers", err)
+		logger.Error("failed to get available controllers", zap.Error(err))
 		return nil, nil, err
 	}
 	if t == cgroup.TypeV2 {
-		// Check if running on a systemd enabled system
-		c.Info("Running with cgroup v2, connecting systemd dbus to create cgroup")
+		logger.Info("running with cgroup v2, connecting systemd dbus to create cgroup")
 		var conn *dbus.Conn
 		if os.Getuid() == 0 {
 			conn, err = dbus.NewSystemConnectionContext(context.TODO())
@@ -230,14 +239,13 @@ func newCgroup(c Config) (cgroup.Cgroup, *cgroup.Controllers, error) {
 			conn, err = dbus.NewUserConnectionContext(context.TODO())
 		}
 		if err != nil {
-			c.Info("Connecting to systemd dbus failed:", err)
-			c.Info("Assuming running in container, enable cgroup v2 nesting support and take control of the whole cgroupfs")
+			logger.Info("connecting to systemd dbus failed, assuming running in container, enable cgroup v2 nesting support and take control of the whole cgroupfs", zap.Error(err))
 			prefix = ""
 		} else {
 			defer conn.Close()
 
 			scopeName := c.CgroupPrefix + ".scope"
-			c.Info("Connected to systemd bus, attempting to create transient unit: ", scopeName)
+			logger.Info("connected to systemd bus, attempting to create transient unit", zap.String("scopeName", scopeName))
 
 			properties := []dbus.Property{
 				dbus.PropDescription("go judge - a high performance sandbox service base on container technologies"),
@@ -247,20 +255,24 @@ func newCgroup(c Config) (cgroup.Cgroup, *cgroup.Controllers, error) {
 			}
 			ch := make(chan string, 1)
 			if _, err := conn.StartTransientUnitContext(context.TODO(), scopeName, "replace", properties, ch); err != nil {
+				logger.Error("failed to start transient unit", zap.Error(err))
 				return nil, nil, fmt.Errorf("failed to start transient unit: %w", err)
 			}
 			s := <-ch
 			if s != "done" {
+				logger.Error("starting transient unit returns error", zap.String("status", s), zap.Error(err))
 				return nil, nil, fmt.Errorf("starting transient unit returns error: %w", err)
 			}
 			scopeName, err := cgroup.GetCurrentCgroupPrefix()
 			if err != nil {
+				logger.Error("failed to get current cgroup prefix", zap.Error(err))
 				return nil, nil, err
 			}
-			c.Info("Current cgroup is ", scopeName)
+			logger.Info("current cgroup", zap.String("scope_name", scopeName))
 			prefix = scopeName
 			ct, err = cgroup.GetAvailableControllerWithPrefix(prefix)
 			if err != nil {
+				logger.Error("failed to get available controller with prefix", zap.Error(err))
 				return nil, nil, err
 			}
 		}
@@ -268,36 +280,32 @@ func newCgroup(c Config) (cgroup.Cgroup, *cgroup.Controllers, error) {
 	cgb, err := cgroup.New(prefix, ct)
 	if err != nil {
 		if os.Getuid() == 0 {
-			c.Error("Failed to create cgroup ", prefix, " ", err)
+			logger.Error("failed to create cgroup", zap.String("prefix", prefix), zap.Error(err))
 			return nil, nil, err
 		}
-		c.Warn("Not running in root and have no permission on cgroup, falling back to rlimit / rusage mode")
+		logger.Warn("not running in root and have no permission on cgroup, falling back to rlimit / rusage mode", zap.Error(err))
 		return nil, nil, nil
 	}
-	// Create api and migrate current process into it
-	c.Info("Creating nesting api cgroup ", cgb)
+	logger.Info("creating nesting api cgroup", zap.Any("cgroup", cgb))
 	if _, err = cgb.Nest("api"); err != nil {
-		// Only allow to fall back to rlimit mode when not running with root
 		if os.Getuid() != 0 {
-			c.Warn("Creating api cgroup with error: ", err)
-			c.Warn("As running in non-root mode, falling back back to rlimit / rusage mode")
+			logger.Warn("creating api cgroup with error, falling back to rlimit / rusage mode", zap.Error(err))
 			cgb.Destroy()
 			return nil, nil, nil
 		}
 	}
 
-	c.Info("Creating containers cgroup")
+	logger.Info("creating containers cgroup")
 	cg, err := cgb.New("containers")
 	if err != nil {
-		c.Warn("Creating containers cgroup with error: ", err)
-		c.Warn("Falling back to rlimit / rusage mode")
+		logger.Warn("creating containers cgroup with error, falling back to rlimit / rusage mode", zap.Error(err))
 		cgb = nil
 	}
 	if !ct.Memory {
-		c.Warn("Memory cgroup is not enabled, failling back to rlimit / rusage mode")
+		logger.Warn("memory cgroup is not enabled, falling back to rlimit / rusage mode")
 	}
 	if !ct.Pids {
-		c.Warn("Pid cgroup is not enabled, proc limit does not have effect")
+		logger.Warn("pid cgroup is not enabled, proc limit does not have effect")
 	}
 	return cg, ct, nil
 }

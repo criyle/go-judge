@@ -20,6 +20,7 @@ import (
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 	"github.com/criyle/go-judge/worker"
+	"go.uber.org/zap"
 )
 
 type initParameter struct {
@@ -95,8 +96,7 @@ func Init(i *C.char) C.int {
 		CgroupPrefix:       ip.CgroupPrefix,
 		Cpuset:             ip.CPUSet,
 		ContainerCredStart: ip.CredStart,
-		Logger:             nopLogger{},
-	})
+	}, zap.NewNop())
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)
 	}

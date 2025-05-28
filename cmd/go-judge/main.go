@@ -486,8 +486,6 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 }
 
 func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
-	l := logger.Sugar()
-	defer l.Sync()
 	b, param, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  conf.ContainerInitPath,
 		MountConf:          conf.MountConf,
@@ -499,8 +497,7 @@ func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 		EnableCPURate:      conf.EnableCPURate,
 		CPUCfsPeriod:       conf.CPUCfsPeriod,
 		SeccompConf:        conf.SeccompConf,
-		Logger:             l,
-	})
+	}, logger)
 	if err != nil {
 		logger.Fatal("create environment builder failed ", zap.Error(err))
 	}

@@ -44,7 +44,7 @@ type MemoryFile struct {
 
 // EnvFile prepares file for envexec file
 func (f *MemoryFile) EnvFile(fs filestore.FileStore) (envexec.File, error) {
-	return envexec.NewFileReader(bytes.NewReader(f.Content), false), nil
+	return envexec.NewFileReader(bytes.NewReader(f.Content)), nil
 }
 
 func (f *MemoryFile) String() string {

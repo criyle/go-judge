@@ -127,7 +127,6 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 
 	cancel()
 	closeFunc()
-	streamOut = nil
 	wg.Wait()
 	return err
 }

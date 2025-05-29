@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"sync"
 
 	"github.com/creack/pty"
 )
@@ -16,9 +15,15 @@ func init() {
 	close(closedChan)
 }
 
+func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
+	if c.TTY {
+		return prepareCmdFdTTY(c, count, newFileStore)
+	}
+	return prepareCmdFdNoTty(c, count, newFileStore)
+}
+
 // prepare Files for tty input / output
 func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
-	var wg sync.WaitGroup
 	var hasInput, hasOutput bool
 
 	fPty, fTty, err := pty.Open()
@@ -26,6 +31,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 		err = fmt.Errorf("failed to open tty %v", err)
 		return nil, nil, err
 	}
+	sf := newShreadFile(fPty)
 
 	files := make([]*os.File, count)
 	pipeToCollect := make([]pipeCollector, 0)
@@ -34,7 +40,6 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 		if err != nil {
 			closeFiles(files...)
 			closeFiles(fTty, fPty)
-			wg.Wait()
 		}
 	}()
 
@@ -43,6 +48,24 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 		case nil: // ignore
 		case *FileOpened:
 			files[j] = t.File
+
+		case *fileStreamIn:
+			if hasInput {
+				return nil, nil, fmt.Errorf("tty: multiple input not allowed")
+			}
+			hasInput = true
+
+			files[j] = fTty
+			// provide TTY
+			sf.Acquire()
+			t.start(sf)
+
+		case *fileStreamOut:
+			files[j] = fTty
+			hasOutput = true
+			// Provide TTY
+			sf.Acquire()
+			t.start(sf)
 
 		case *FileReader:
 			if hasInput {
@@ -53,16 +76,11 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			files[j] = fTty
 
 			// copy input
-			wg.Add(1)
+			sf.Acquire()
 			go func() {
-				defer wg.Done()
+				defer sf.Close()
 				io.Copy(fPty, t.Reader)
 			}()
-
-			// provide TTY
-			if tty, ok := t.Reader.(ReaderTTY); ok {
-				tty.TTY(fPty)
-			}
 
 		case *FileInput:
 			var f *os.File
@@ -86,10 +104,10 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			}
 			pipeToCollect = append(pipeToCollect, pipeCollector{done, buf, t.Limit, t.Name, true})
 
-			wg.Add(1)
+			sf.Acquire()
 			go func() {
 				defer close(done)
-				defer wg.Done()
+				defer sf.Close()
 				io.CopyN(buf, fPty, int64(t.Limit)+1)
 			}()
 
@@ -100,9 +118,9 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			}
 			hasOutput = true
 
-			wg.Add(1)
+			sf.Acquire()
 			go func() {
-				defer wg.Done()
+				defer sf.Close()
 				io.Copy(t.Writer, fPty)
 			}()
 
@@ -110,19 +128,10 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 			return nil, nil, fmt.Errorf("tty: unknown file type: %T", t)
 		}
 	}
-
-	// ensure pty close after use
-	go func() {
-		wg.Wait()
-		fPty.Close()
-	}()
 	return files, pipeToCollect, nil
 }
 
-func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
-	if c.TTY {
-		return prepareCmdFdTTY(c, count, newFileStore)
-	}
+func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
 	files := make([]*os.File, count)
 	pipeToCollect := make([]pipeCollector, 0)
 	defer func() {
@@ -144,21 +153,11 @@ func prepareCmdFd(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p
 			files[j] = t.File
 
 		case *FileReader:
-			if t.Stream {
-				r, w, err := os.Pipe()
-				if err != nil {
-					return nil, nil, fmt.Errorf("pipe: create: %w", err)
-				}
-				go w.ReadFrom(t.Reader)
-
-				files[j] = r
-			} else {
-				f, err := readerToFile(t.Reader)
-				if err != nil {
-					return nil, nil, fmt.Errorf("pipe: open reader: %w", err)
-				}
-				files[j] = f
+			f, err := readerToFile(t.Reader)
+			if err != nil {
+				return nil, nil, fmt.Errorf("pipe: open reader: %w", err)
 			}
+			files[j] = f
 
 		case *FileInput:
 			f, err := os.Open(t.Path)

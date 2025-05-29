@@ -4,6 +4,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
+)
+
+var (
+	_ File = &FileReader{}
+	_ File = &fileStreamIn{}
+	_ File = &fileStreamOut{}
+	_ File = &FileInput{}
+	_ File = &FileCollector{}
+	_ File = &FileWriter{}
+	_ File = &FileOpened{}
 )
 
 // File defines interface of envexec files
@@ -20,16 +31,98 @@ type FileReader struct {
 
 func (*FileReader) isFile() {}
 
-// NewFileReader creates File input which can be fully read before exec
-// or piped into exec
-func NewFileReader(r io.Reader, s bool) File {
-	return &FileReader{Reader: r, Stream: s}
+// NewFileReader creates File input which can be fully read before exec.
+// If pipe is required, use the FileStream to get the write end of pipe instead
+func NewFileReader(r io.Reader) File {
+	return &FileReader{Reader: r}
 }
 
-// ReaderTTY will be asserts when File Reader is provided and TTY is enabled
-// and then TTY will be called with pty file
-type ReaderTTY interface {
-	TTY(*os.File)
+// FileStreamIn represent a input streaming pipe and the streamer is able to write
+// to the write end of the pipe after pipe created. It is the callers
+// responsibility to close the WritePipe
+type FileStreamIn interface {
+	File
+	Done() <-chan struct{}
+	WritePipe() *os.File
+	Close() error
+}
+
+type fileStreamIn struct {
+	done chan struct{}
+	w    *sharedFile
+}
+
+func NewFileStreamIn() FileStreamIn {
+	return &fileStreamIn{
+		done: make(chan struct{}),
+	}
+}
+
+func (*fileStreamIn) isFile() {}
+
+func (f *fileStreamIn) start(w *sharedFile) {
+	f.w = w
+	close(f.done)
+}
+
+func (f *fileStreamIn) Done() <-chan struct{} {
+	return f.done
+}
+
+func (f *fileStreamIn) WritePipe() *os.File {
+	<-f.done
+	return f.w.f
+}
+
+func (f *fileStreamIn) Close() error {
+	if f.w != nil {
+		return f.w.Close()
+	}
+	return nil
+}
+
+// FileStreamOut represent a out streaming pipe and the streamer is able to read
+// to the read end of the pipe after pipe created. It is the callers
+// responsibility to close the ReadPipe
+type FileStreamOut interface {
+	File
+	Done() <-chan struct{}
+	ReadPipe() *os.File
+	Close() error
+}
+
+type fileStreamOut struct {
+	done chan struct{}
+	r    *sharedFile
+}
+
+func NewFileStreamOut() FileStreamOut {
+	return &fileStreamOut{
+		done: make(chan struct{}),
+	}
+}
+
+func (*fileStreamOut) isFile() {}
+
+func (f *fileStreamOut) start(r *sharedFile) {
+	f.r = r
+	close(f.done)
+}
+
+func (f *fileStreamOut) Done() <-chan struct{} {
+	return f.done
+}
+
+func (f *fileStreamOut) ReadPipe() *os.File {
+	<-f.done
+	return f.r.f
+}
+
+func (f *fileStreamOut) Close() error {
+	if f.r != nil {
+		return f.r.Close()
+	}
+	return nil
 }
 
 // FileInput represent file input which will be opened in read-only mode
@@ -103,4 +196,30 @@ func FileToReader(f File) (io.ReadCloser, error) {
 	default:
 		return nil, fmt.Errorf("file cannot open as reader: %T", f)
 	}
+}
+
+type sharedFile struct {
+	mu    sync.Mutex
+	f     *os.File
+	count int
+}
+
+func newShreadFile(f *os.File) *sharedFile {
+	return &sharedFile{f: f, count: 0}
+}
+
+func (s *sharedFile) Acquire() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.count++
+}
+
+func (s *sharedFile) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.count--
+	if s.count == 0 {
+		return s.f.Close()
+	}
+	return nil
 }

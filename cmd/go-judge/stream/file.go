@@ -2,8 +2,6 @@ package stream
 
 import (
 	"fmt"
-	"io"
-	"math"
 	"os"
 
 	"github.com/criyle/go-judge/envexec"
@@ -12,52 +10,39 @@ import (
 )
 
 var (
-	_ worker.CmdFile    = &fileStreamIn{}
-	_ worker.CmdFile    = &fileStreamOut{}
-	_ envexec.ReaderTTY = &fileStreamInReader{}
+	_ worker.CmdFile = &fileStreamIn{}
+	_ worker.CmdFile = &fileStreamOut{}
 )
 
 type fileStreamIn struct {
+	stream envexec.FileStreamIn
 	index  int
 	fd     int
-	r      io.ReadCloser
-	w      *io.PipeWriter
-	tty    *os.File
-	done   chan struct{}
 	hasTTY bool
 }
 
-type fileStreamInReader struct {
-	*io.PipeReader
-	fi *fileStreamIn
-}
-
-func (f *fileStreamInReader) TTY(tty *os.File) {
-	f.fi.tty = tty
-	close(f.fi.done)
-}
-
 func newFileStreamIn(index, fd int, hasTTY bool) *fileStreamIn {
-	r, w := io.Pipe()
-	fi := &fileStreamIn{index: index, fd: fd, w: w, done: make(chan struct{}), hasTTY: hasTTY}
-	fi.r = &fileStreamInReader{r, fi}
-	return fi
+	return &fileStreamIn{
+		stream: envexec.NewFileStreamIn(),
+		index:  index,
+		fd:     fd,
+		hasTTY: hasTTY,
+	}
 }
 
 func (f *fileStreamIn) GetTTY() *os.File {
 	if !f.hasTTY {
 		return nil
 	}
-	<-f.done
-	return f.tty
+	return f.stream.WritePipe()
 }
 
 func (f *fileStreamIn) Write(b []byte) (int, error) {
-	return f.w.Write(b)
+	return f.stream.WritePipe().Write(b)
 }
 
 func (f *fileStreamIn) EnvFile(fs filestore.FileStore) (envexec.File, error) {
-	return envexec.NewFileReader(f.r, true), nil
+	return f.stream, nil
 }
 
 func (f *fileStreamIn) String() string {
@@ -65,28 +50,29 @@ func (f *fileStreamIn) String() string {
 }
 
 func (f *fileStreamIn) Close() error {
-	f.r.Close()
-	return f.w.Close()
+	return f.stream.Close()
 }
 
 type fileStreamOut struct {
-	index int
-	fd    int
-	r     *io.PipeReader
-	w     *io.PipeWriter
+	stream envexec.FileStreamOut
+	index  int
+	fd     int
 }
 
 func newFileStreamOut(index, fd int) *fileStreamOut {
-	r, w := io.Pipe()
-	return &fileStreamOut{index: index, fd: fd, r: r, w: w}
+	return &fileStreamOut{
+		stream: envexec.NewFileStreamOut(),
+		index:  index,
+		fd:     fd,
+	}
 }
 
 func (f *fileStreamOut) Read(b []byte) (int, error) {
-	return f.r.Read(b)
+	return f.stream.ReadPipe().Read(b)
 }
 
 func (f *fileStreamOut) EnvFile(fs filestore.FileStore) (envexec.File, error) {
-	return envexec.NewFileWriter(f.w, envexec.Size(math.MaxInt32)), nil
+	return f.stream, nil
 }
 
 func (f *fileStreamOut) String() string {
@@ -94,6 +80,5 @@ func (f *fileStreamOut) String() string {
 }
 
 func (f *fileStreamOut) Close() error {
-	f.w.Close()
-	return f.r.Close()
+	return f.stream.Close()
 }

@@ -1,8 +1,8 @@
 package stream
 
 import (
+	"errors"
 	"fmt"
-	"os"
 
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
@@ -12,6 +12,8 @@ import (
 var (
 	_ worker.CmdFile = &fileStreamIn{}
 	_ worker.CmdFile = &fileStreamOut{}
+
+	errNoTTY = errors.New("stream is not a tty")
 )
 
 type fileStreamIn struct {
@@ -30,15 +32,15 @@ func newFileStreamIn(index, fd int, hasTTY bool) *fileStreamIn {
 	}
 }
 
-func (f *fileStreamIn) GetTTY() *os.File {
+func (f *fileStreamIn) SetSize(s *envexec.TerminalSize) error {
 	if !f.hasTTY {
-		return nil
+		return errNoTTY
 	}
-	return f.stream.WritePipe()
+	return f.stream.SetSize(s)
 }
 
 func (f *fileStreamIn) Write(b []byte) (int, error) {
-	return f.stream.WritePipe().Write(b)
+	return f.stream.Write(b)
 }
 
 func (f *fileStreamIn) EnvFile(fs filestore.FileStore) (envexec.File, error) {
@@ -68,7 +70,7 @@ func newFileStreamOut(index, fd int) *fileStreamOut {
 }
 
 func (f *fileStreamOut) Read(b []byte) (int, error) {
-	return f.stream.ReadPipe().Read(b)
+	return f.stream.Read(b)
 }
 
 func (f *fileStreamOut) EnvFile(fs filestore.FileStore) (envexec.File, error) {

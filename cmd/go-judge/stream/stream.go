@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
+	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/worker"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -242,11 +243,12 @@ func streamInput(ctx context.Context, s Stream, si []*fileStreamIn, execCancel f
 			if !ok {
 				return fmt.Errorf("input does not exist: %d/%d", in.Resize.Index, in.Resize.Fd)
 			}
-			tty := f.GetTTY()
-			if tty == nil {
-				return fmt.Errorf("resize input does not have tty: %d/%d", in.Resize.Index, in.Resize.Fd)
-			}
-			if err = setWinsize(tty, in.Resize); err != nil {
+			if err = f.SetSize(&envexec.TerminalSize{
+				Cols: uint16(in.Resize.Cols),
+				Rows: uint16(in.Resize.Rows),
+				X:    uint16(in.Resize.X),
+				Y:    uint16(in.Resize.Y),
+			}); err != nil {
 				return fmt.Errorf("resize %d/%d: %w", in.Resize.Index, in.Resize.Fd, err)
 			}
 

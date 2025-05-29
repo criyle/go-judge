@@ -31,7 +31,7 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 		err = fmt.Errorf("failed to open tty %v", err)
 		return nil, nil, err
 	}
-	sf := newShreadFile(fPty)
+	sf := newSharedFile(fPty)
 
 	files := make([]*os.File, count)
 	pipeToCollect := make([]pipeCollector, 0)
@@ -145,6 +145,34 @@ func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.Fi
 	}()
 	// record the same file to avoid multiple file open
 	cf := make(map[string]*os.File)
+	prepareFileCollector := func(t *FileCollector) (*os.File, error) {
+		if f, ok := cf[t.Name]; ok {
+			return f, nil
+		}
+
+		if t.Pipe {
+			b, err := newPipeBuffer(t.Limit, newFileStore)
+			if err != nil {
+				return nil, fmt.Errorf("pipe: create: %w", err)
+			}
+			cf[t.Name] = b.W
+			pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name, true})
+			return b.W, nil
+		} else {
+			f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
+			if err != nil {
+				return nil, fmt.Errorf("container: create file %v: %w", t.Name, err)
+			}
+			buffer, err := c.Environment.Open(t.Name, os.O_RDWR, 0777)
+			if err != nil {
+				f.Close()
+				return nil, fmt.Errorf("container: open created file %v: %w", t.Name, err)
+			}
+			cf[t.Name] = f
+			pipeToCollect = append(pipeToCollect, pipeCollector{closedChan, buffer, t.Limit, t.Name, false})
+			return f, nil
+		}
+	}
 
 	for j, t := range c.Files {
 		switch t := t.(type) {
@@ -167,35 +195,11 @@ func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.Fi
 			files[j] = f
 
 		case *FileCollector:
-			if f, ok := cf[t.Name]; ok {
-				files[j] = f
-				break
+			f, err := prepareFileCollector(t)
+			if err != nil {
+				return nil, nil, err
 			}
-
-			if t.Pipe {
-				b, err := newPipeBuffer(t.Limit, newFileStore)
-				if err != nil {
-					return nil, nil, fmt.Errorf("pipe: create: %w", err)
-				}
-				cf[t.Name] = b.W
-
-				files[j] = b.W
-				pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name, true})
-			} else {
-				f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
-				if err != nil {
-					return nil, nil, fmt.Errorf("container: create file %v: %w", t.Name, err)
-				}
-				cf[t.Name] = f
-
-				buffer, err := c.Environment.Open(t.Name, os.O_RDWR, 0777)
-				if err != nil {
-					return nil, nil, fmt.Errorf("container: open created file %v: %w", t.Name, err)
-				}
-
-				files[j] = f
-				pipeToCollect = append(pipeToCollect, pipeCollector{closedChan, buffer, t.Limit, t.Name, false})
-			}
+			files[j] = f
 
 		case *FileWriter:
 			_, w, err := newPipe(t.Writer, t.Limit)

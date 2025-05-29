@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"sync"
+
+	"github.com/creack/pty"
 )
 
 var (
@@ -42,43 +44,82 @@ func NewFileReader(r io.Reader) File {
 // responsibility to close the WritePipe
 type FileStreamIn interface {
 	File
-	Done() <-chan struct{}
-	WritePipe() *os.File
-	Close() error
+	io.WriteCloser
+	SetSize(*TerminalSize) error
+}
+
+// TerminalSize controls the size of the terminal if TTY is enabled
+type TerminalSize struct {
+	Rows uint16 // ws_row: Number of rows (in cells).
+	Cols uint16 // ws_col: Number of columns (in cells).
+	X    uint16 // ws_xpixel: Width in pixels.
+	Y    uint16 // ws_ypixel: Height in pixels.
 }
 
 type fileStreamIn struct {
-	done chan struct{}
-	w    *sharedFile
+	started chan struct{}
+	closed  chan struct{}
+	w       *sharedFile
 }
 
 func NewFileStreamIn() FileStreamIn {
 	return &fileStreamIn{
-		done: make(chan struct{}),
+		started: make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }
 
 func (*fileStreamIn) isFile() {}
 
 func (f *fileStreamIn) start(w *sharedFile) {
-	f.w = w
-	close(f.done)
+	select {
+	case <-f.closed:
+		w.Close()
+
+	default:
+		f.w = w
+		close(f.started)
+	}
 }
 
-func (f *fileStreamIn) Done() <-chan struct{} {
-	return f.done
+func (f *fileStreamIn) Write(b []byte) (int, error) {
+	select {
+	case <-f.started:
+		return f.w.f.Write(b)
+
+	case <-f.closed:
+		return 0, io.EOF
+	}
 }
 
-func (f *fileStreamIn) WritePipe() *os.File {
-	<-f.done
-	return f.w.f
+func (f *fileStreamIn) SetSize(s *TerminalSize) error {
+	select {
+	case <-f.started:
+		return pty.Setsize(f.w.f, &pty.Winsize{
+			Rows: s.Rows,
+			Cols: s.Cols,
+			X:    s.X,
+			Y:    s.Y,
+		})
+
+	case <-f.closed:
+		return io.ErrClosedPipe
+	}
 }
 
 func (f *fileStreamIn) Close() error {
-	if f.w != nil {
+	select {
+	case <-f.started:
+		close(f.closed)
 		return f.w.Close()
+
+	case <-f.closed:
+		return io.ErrClosedPipe
+
+	default:
+		close(f.closed)
+		return nil
 	}
-	return nil
 }
 
 // FileStreamOut represent a out streaming pipe and the streamer is able to read
@@ -86,43 +127,58 @@ func (f *fileStreamIn) Close() error {
 // responsibility to close the ReadPipe
 type FileStreamOut interface {
 	File
-	Done() <-chan struct{}
-	ReadPipe() *os.File
-	Close() error
+	io.ReadCloser
 }
 
 type fileStreamOut struct {
-	done chan struct{}
-	r    *sharedFile
+	started chan struct{}
+	closed  chan struct{}
+	r       *sharedFile
 }
 
 func NewFileStreamOut() FileStreamOut {
 	return &fileStreamOut{
-		done: make(chan struct{}),
+		started: make(chan struct{}),
+		closed:  make(chan struct{}),
 	}
 }
 
 func (*fileStreamOut) isFile() {}
 
 func (f *fileStreamOut) start(r *sharedFile) {
-	f.r = r
-	close(f.done)
+	select {
+	case <-f.closed:
+		r.Close()
+
+	default:
+		f.r = r
+		close(f.started)
+	}
 }
 
-func (f *fileStreamOut) Done() <-chan struct{} {
-	return f.done
-}
+func (f *fileStreamOut) Read(p []byte) (n int, err error) {
+	select {
+	case <-f.started:
+		return f.r.f.Read(p)
 
-func (f *fileStreamOut) ReadPipe() *os.File {
-	<-f.done
-	return f.r.f
+	case <-f.closed:
+		return 0, io.EOF
+	}
 }
 
 func (f *fileStreamOut) Close() error {
-	if f.r != nil {
+	select {
+	case <-f.started:
+		close(f.closed)
 		return f.r.Close()
+
+	case <-f.closed:
+		return io.ErrClosedPipe
+
+	default:
+		close(f.closed)
+		return nil
 	}
-	return nil
 }
 
 // FileInput represent file input which will be opened in read-only mode
@@ -204,7 +260,7 @@ type sharedFile struct {
 	count int
 }
 
-func newShreadFile(f *os.File) *sharedFile {
+func newSharedFile(f *os.File) *sharedFile {
 	return &sharedFile{f: f, count: 0}
 }
 

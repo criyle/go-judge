@@ -7,7 +7,7 @@ import (
 
 	"github.com/criyle/go-sandbox/container"
 	"github.com/criyle/go-sandbox/pkg/mount"
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 )
 
 // Mount defines single mount point configuration.

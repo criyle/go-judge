@@ -149,8 +149,10 @@ func loadConf() *config.Config {
 	return &conf
 }
 
-type stopFunc func(ctx context.Context) error
-type initFunc func() (start func(), cleanUp stopFunc)
+type (
+	stopFunc func(ctx context.Context) error
+	initFunc func() (start func(), cleanUp stopFunc)
+)
 
 func cleanUpWorker(work worker.Worker) initFunc {
 	return func() (start func(), cleanUp stopFunc) {
@@ -474,7 +476,7 @@ func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
 			return os.RemoveAll(conf.Dir)
 		}
 	}
-	os.MkdirAll(conf.Dir, 0755)
+	os.MkdirAll(conf.Dir, 0o755)
 	fs = filestore.NewFileLocalStore(conf.Dir)
 	if conf.EnableMetrics {
 		fs = newMetricsFileStore(fs)
@@ -497,6 +499,7 @@ func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 		EnableCPURate:      conf.EnableCPURate,
 		CPUCfsPeriod:       conf.CPUCfsPeriod,
 		SeccompConf:        conf.SeccompConf,
+		NoFallback:         conf.NoFallback,
 	}, logger)
 	if err != nil {
 		logger.Fatal("create environment builder failed ", zap.Error(err))

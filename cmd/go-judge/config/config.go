@@ -21,6 +21,7 @@ type Config struct {
 	Parallelism        int    `flagUsage:"control the # of concurrency execution (default equal to number of cpu)"`
 	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"gojudge"`
 	ContainerCredStart int    `flagUsage:"control the start uid&gid for container (0 uses unprivileged root)" default:"0"`
+	NoFallback         bool   `flagUsage:"exit if fallback to rlimit / rusage mode"`
 
 	// file store
 	SrcPrefix []string `flagUsage:"specifies directory prefix for source type copyin (example: -src-prefix=/home,/usr)"`

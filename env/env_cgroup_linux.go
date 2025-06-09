@@ -29,7 +29,7 @@ func setupCgroup(c Config, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controlle
 		}
 	}
 
-	return createAndNestCgroup(prefix, ct, logger)
+	return createAndNestCgroup(prefix, ct, c.NoFallback, logger)
 }
 
 func setupCgroupV2(prefix string, logger *zap.Logger) (string, *cgroup.Controllers, error) {
@@ -99,7 +99,7 @@ func getControllersWithPrefix(prefix string, logger *zap.Logger) *cgroup.Control
 	return ct
 }
 
-func createAndNestCgroup(prefix string, ct *cgroup.Controllers, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controllers, error) {
+func createAndNestCgroup(prefix string, ct *cgroup.Controllers, noFallback bool, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controllers, error) {
 	cgb, err := cgroup.New(prefix, ct)
 	if err != nil {
 		if os.Getuid() == 0 {
@@ -107,6 +107,9 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, logger *zap.Logg
 			return nil, nil, err
 		}
 		logger.Warn("not running in root and have no permission on cgroup, falling back to rlimit / rusage mode", zap.Error(err))
+		if noFallback {
+			return nil, nil, fmt.Errorf("failed to create cgroup with no fallback: %w", err)
+		}
 		return nil, nil, nil
 	}
 	logger.Info("creating nesting api cgroup", zap.Any("cgroup", cgb))
@@ -114,6 +117,9 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, logger *zap.Logg
 		if os.Getuid() != 0 {
 			logger.Warn("creating api cgroup with error, falling back to rlimit / rusage mode", zap.Error(err))
 			cgb.Destroy()
+			if noFallback {
+				return nil, nil, fmt.Errorf("failed to create nesting api cgroup with no fallback: %w", err)
+			}
 			return nil, nil, nil
 		}
 	}
@@ -122,10 +128,16 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, logger *zap.Logg
 	cg, err := cgb.New("containers")
 	if err != nil {
 		logger.Warn("creating containers cgroup with error, falling back to rlimit / rusage mode", zap.Error(err))
+		if noFallback {
+			return nil, nil, fmt.Errorf("failed to create containers cgroup with no fallback: %w", err)
+		}
 		return nil, nil, nil
 	}
 	if ct != nil && !ct.Memory {
 		logger.Warn("memory cgroup is not enabled, falling back to rlimit / rusage mode")
+		if noFallback {
+			return nil, nil, fmt.Errorf("memory cgroup is not enabled with no fallback: %w", err)
+		}
 	}
 	if ct != nil && !ct.Pids {
 		logger.Warn("pid cgroup is not enabled, proc limit does not have effect")

@@ -14,4 +14,5 @@ type Config struct {
 	ContainerCredStart int
 	EnableCPURate      bool
 	CPUCfsPeriod       time.Duration
+	NoFallback         bool
 }

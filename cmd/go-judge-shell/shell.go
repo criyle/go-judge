@@ -74,8 +74,12 @@ func run(sc Stream, args []string) (*model.Response, error) {
 				if err != nil {
 					return nil
 				}
+				relPath, err := filepath.Rel(*copyInDir, path)
+				if err != nil {
+					return nil
+				}
 				if !info.IsDir() {
-					copyIn[path] = model.CmdFile{Src: &absPath}
+					copyIn[relPath] = model.CmdFile{Src: &absPath}
 				}
 				return nil
 			})

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -19,6 +20,7 @@ var (
 	transport = flag.String("transport", "websocket", "defines transport layer (websocket / grpc)")
 	wsURL     = flag.String("ws-url", "ws://localhost:5050/stream", "HTTP server url")
 	grpcAddr  = flag.String("grpc-addr", "localhost:5051", "GRPC server addr")
+	copyInDir = flag.String("copy-in-dir", "", "directory to copy files from")
 )
 
 const (
@@ -61,6 +63,23 @@ func main() {
 }
 
 func run(sc Stream, args []string) (*model.Response, error) {
+	copyIn := make(map[string]model.CmdFile, 0)
+	if *copyInDir != "" {
+		_ = filepath.Walk(*copyInDir,
+			func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return nil
+				}
+				absPath, err := filepath.Abs(path)
+				if err != nil {
+					return nil
+				}
+				if !info.IsDir() {
+					copyIn[path] = model.CmdFile{Src: &absPath}
+				}
+				return nil
+			})
+	}
 	req := model.Request{
 		Cmd: []model.Cmd{{
 			Args: args,
@@ -70,6 +89,7 @@ func run(sc Stream, args []string) (*model.Response, error) {
 				{StreamOut: true},
 				{StreamOut: true},
 			},
+			CopyIn:      copyIn,
 			CPULimit:    uint64(cpuLimit.Nanoseconds()),
 			ClockLimit:  uint64(sessionLimit.Nanoseconds()),
 			MemoryLimit: memoryLimit,

@@ -30,14 +30,15 @@ func newListener(addr string) (net.Listener, error) {
 	}
 
 	var ips []net.IP
-	if host == "" {
+	switch host {
+	case "":
 		return net.Listen("tcp", addr)
-	} else if host == "localhost" {
+	case "localhost":
 		ips, err = getLocalhostIP()
 		if err != nil {
 			return nil, err
 		}
-	} else {
+	default:
 		ips, err = net.LookupIP(host)
 		if err != nil {
 			return nil, err

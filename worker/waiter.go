@@ -19,8 +19,8 @@ type waiter struct {
 func (w *waiter) Wait(ctx context.Context, u envexec.Process) bool {
 	clockTimeLimit := w.clockTimeLimit
 	timeLimit := w.timeLimit
-	if clockTimeLimit < w.timeLimit {
-		clockTimeLimit = w.timeLimit
+	if clockTimeLimit == 0 {
+		clockTimeLimit = timeLimit
 	}
 
 	start := time.Now()

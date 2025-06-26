@@ -43,7 +43,7 @@ var (
 	srcPrefix []string
 )
 
-func newFilsStore(dir string) (filestore.FileStore, error) {
+func newFileStore(dir string) (filestore.FileStore, error) {
 	if dir == "" {
 		if runtime.GOOS == "linux" {
 			dir = "/dev/shm"
@@ -83,7 +83,7 @@ func Init(i *C.char) C.int {
 	srcPrefix = strings.Split(ip.SrcPrefix, ",")
 
 	var err error
-	fs, err = newFilsStore(ip.Dir)
+	fs, err = newFileStore(ip.Dir)
 	if err != nil {
 		log.Fatalln("file store create failed", err)
 	}

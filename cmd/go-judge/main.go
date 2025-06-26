@@ -64,7 +64,7 @@ func main() {
 	warnIfNotLinux()
 
 	// Init environment pool
-	fs, fsCleanUp := newFilsStore(conf)
+	fs, fsCleanUp := newFileStore(conf)
 	b, builderParam := newEnvBuilder(conf)
 	envPool := newEnvPool(b, conf.EnableMetrics)
 	prefork(envPool, conf.PreFork)
@@ -455,7 +455,7 @@ func grpcTokenAuth(token string) func(context.Context) (context.Context, error) 
 	}
 }
 
-func newFilsStore(conf *config.Config) (filestore.FileStore, func() error) {
+func newFileStore(conf *config.Config) (filestore.FileStore, func() error) {
 	const timeoutCheckInterval = 15 * time.Second
 	var cleanUp func() error
 
@@ -555,7 +555,7 @@ func newForceGCWorker(conf *config.Config) {
 	}()
 }
 
-func generateHandleVersion(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
+func generateHandleVersion(_ *config.Config, _ map[string]any) func(*gin.Context) {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"buildVersion":      version.Version,

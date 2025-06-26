@@ -555,7 +555,7 @@ func newForceGCWorker(conf *config.Config) {
 	}()
 }
 
-func generateHandleVersion(conf *config.Config, builderParam map[string]any) func(*gin.Context) {
+func generateHandleVersion(_ *config.Config, _ map[string]any) func(*gin.Context) {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"buildVersion":      version.Version,

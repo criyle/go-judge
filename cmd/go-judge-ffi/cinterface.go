@@ -24,16 +24,19 @@ import (
 )
 
 type initParameter struct {
-	CInitPath    string `json:"cinitPath"`
-	Parallelism  int    `json:"parallelism"`
-	TmpFsParam   string `json:"tmpfsParam"`
-	Dir          string `json:"dir"`
-	NetShare     bool   `json:"netShare"`
-	MountConf    string `json:"mountConf"`
-	SrcPrefix    string `json:"srcPrefix"`
-	CgroupPrefix string `json:"cgroupPrefix"`
-	CPUSet       string `json:"cpuset"`
-	CredStart    int    `json:"credStart"`
+	CInitPath     string        `json:"cinitPath"`
+	Parallelism   int           `json:"parallelism"`
+	TmpFsParam    string        `json:"tmpfsParam"`
+	Dir           string        `json:"dir"`
+	NetShare      bool          `json:"netShare"`
+	MountConf     string        `json:"mountConf"`
+	SrcPrefix     string        `json:"srcPrefix"`
+	CgroupPrefix  string        `json:"cgroupPrefix"`
+	CPUSet        string        `json:"cpuset"`
+	CredStart     int           `json:"credStart"`
+	EnableCPURate bool          `json:"enableCpuRate"`
+	CPUCfsPeriod  time.Duration `json:"cpuCfsPeriod"`
+	NoFallback    bool          `json:"noFallback"`
 }
 
 var (
@@ -80,6 +83,10 @@ func Init(i *C.char) C.int {
 		ip.MountConf = "mount.yaml"
 	}
 
+	if ip.CPUCfsPeriod == 0 {
+		ip.CPUCfsPeriod = 100 * time.Millisecond
+	}
+
 	srcPrefix = strings.Split(ip.SrcPrefix, ",")
 
 	var err error
@@ -96,6 +103,9 @@ func Init(i *C.char) C.int {
 		CgroupPrefix:       ip.CgroupPrefix,
 		Cpuset:             ip.CPUSet,
 		ContainerCredStart: ip.CredStart,
+		EnableCPURate:      ip.EnableCPURate,
+		CPUCfsPeriod:       ip.CPUCfsPeriod,
+		NoFallback:         ip.NoFallback,
 	}, zap.NewNop())
 	if err != nil {
 		log.Fatalln("create environment builder failed", err)

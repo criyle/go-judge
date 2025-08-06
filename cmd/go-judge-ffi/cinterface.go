@@ -239,17 +239,3 @@ func FileDelete(e *C.char) C.int {
 	}
 	return 1
 }
-
-type nopLogger struct{}
-
-func (nopLogger) Debug(args ...any) {
-}
-
-func (nopLogger) Info(args ...any) {
-}
-
-func (nopLogger) Warn(args ...any) {
-}
-
-func (nopLogger) Error(args ...any) {
-}

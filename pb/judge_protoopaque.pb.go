@@ -4,7 +4,7 @@
 // 	protoc        v6.31.1
 // source: judge.proto
 
-//go:build !protoopaque
+//go:build protoopaque
 
 package pb
 

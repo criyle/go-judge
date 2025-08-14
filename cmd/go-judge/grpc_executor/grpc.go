@@ -63,9 +63,9 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 }
 
 func (e *execServer) FileList(c context.Context, n *emptypb.Empty) (*pb.FileListType, error) {
-	return &pb.FileListType{
+	return pb.FileListType_builder{
 		FileIDs: e.fs.List(),
-	}, nil
+	}.Build(), nil
 }
 
 func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, error) {
@@ -83,10 +83,10 @@ func (e *execServer) FileGet(c context.Context, f *pb.FileID) (*pb.FileContent, 
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.FileContent{
+	return pb.FileContent_builder{
 		Name:    name,
 		Content: content,
-	}, nil
+	}.Build(), nil
 }
 
 func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID, error) {
@@ -103,9 +103,9 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
-	return &pb.FileID{
+	return pb.FileID_builder{
 		FileID: fid,
-	}, nil
+	}.Build(), nil
 }
 
 func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty, error) {
@@ -117,23 +117,23 @@ func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty
 }
 
 func convertPBResponse(r model.Response) (*pb.Response, error) {
-	res := &pb.Response{
+	res := pb.Response_builder{
 		RequestID: r.RequestID,
 		Results:   make([]*pb.Response_Result, 0, len(r.Results)),
 		Error:     r.ErrorMsg,
-	}
+	}.Build()
 	for _, c := range r.Results {
 		rt, err := convertPBResult(c)
 		if err != nil {
 			return nil, err
 		}
-		res.Results = append(res.Results, rt)
+		res.SetResults(append(res.GetResults(), rt))
 	}
 	return res, nil
 }
 
 func convertPBResult(r model.Result) (*pb.Response_Result, error) {
-	return &pb.Response_Result{
+	return pb.Response_Result_builder{
 		Status:     pb.Response_Result_StatusType(r.Status),
 		ExitStatus: int32(r.ExitStatus),
 		Error:      r.Error,
@@ -144,35 +144,35 @@ func convertPBResult(r model.Result) (*pb.Response_Result, error) {
 		Files:      r.Buffs,
 		FileIDs:    r.FileIDs,
 		FileError:  convertPBFileError(r.FileError),
-	}, nil
+	}.Build(), nil
 }
 
 func convertPBFileError(fe []envexec.FileError) []*pb.Response_FileError {
 	rt := make([]*pb.Response_FileError, 0, len(fe))
 	for _, e := range fe {
-		rt = append(rt, &pb.Response_FileError{
+		rt = append(rt, pb.Response_FileError_builder{
 			Name:    e.Name,
 			Type:    pb.Response_FileError_ErrorType(e.Type),
 			Message: e.Message,
-		})
+		}.Build())
 	}
 	return rt
 }
 
 func convertPBRequest(r *pb.Request, srcPrefix []string) (req *worker.Request, err error) {
 	req = &worker.Request{
-		RequestID:   r.RequestID,
-		Cmd:         make([]worker.Cmd, 0, len(r.Cmd)),
-		PipeMapping: make([]worker.PipeMap, 0, len(r.PipeMapping)),
+		RequestID:   r.GetRequestID(),
+		Cmd:         make([]worker.Cmd, 0, len(r.GetCmd())),
+		PipeMapping: make([]worker.PipeMap, 0, len(r.GetPipeMapping())),
 	}
-	for _, c := range r.Cmd {
+	for _, c := range r.GetCmd() {
 		cm, err := convertPBCmd(c, srcPrefix)
 		if err != nil {
 			return nil, err
 		}
 		req.Cmd = append(req.Cmd, cm)
 	}
-	for _, p := range r.PipeMapping {
+	for _, p := range r.GetPipeMapping() {
 		pm := convertPBPipeMap(p)
 		req.PipeMapping = append(req.PipeMapping, pm)
 	}
@@ -185,7 +185,7 @@ func convertPBPipeMap(p *pb.Request_PipeMap) worker.PipeMap {
 		Out:   convertPBPipeIndex(p.GetOut()),
 		Proxy: p.GetProxy(),
 		Name:  p.GetName(),
-		Limit: worker.Size(p.Max),
+		Limit: worker.Size(p.GetMax()),
 	}
 }
 
@@ -234,26 +234,26 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix []string) (cm worker.Cmd, err
 }
 
 func convertPBFile(c *pb.Request_File, srcPrefix []string) (worker.CmdFile, error) {
-	switch c := c.File.(type) {
-	case nil:
+	switch c.WhichFile() {
+	case 0:
 		return nil, nil
-	case *pb.Request_File_Local:
+	case pb.Request_File_Local_case:
 		if len(srcPrefix) > 0 {
-			ok, err := model.CheckPathPrefixes(c.Local.GetSrc(), srcPrefix)
+			ok, err := model.CheckPathPrefixes(c.GetLocal().GetSrc(), srcPrefix)
 			if err != nil {
 				return nil, fmt.Errorf("check path prefixes: %w", err)
 			}
 			if !ok {
-				return nil, fmt.Errorf("file outside of prefix: %q, %q", c.Local.GetSrc(), srcPrefix)
+				return nil, fmt.Errorf("file outside of prefix: %q, %q", c.GetLocal().GetSrc(), srcPrefix)
 			}
 		}
-		return &worker.LocalFile{Src: c.Local.GetSrc()}, nil
-	case *pb.Request_File_Memory:
-		return &worker.MemoryFile{Content: c.Memory.GetContent()}, nil
-	case *pb.Request_File_Cached:
-		return &worker.CachedFile{FileID: c.Cached.GetFileID()}, nil
-	case *pb.Request_File_Pipe:
-		return &worker.Collector{Name: c.Pipe.GetName(), Max: envexec.Size(c.Pipe.GetMax()), Pipe: c.Pipe.GetPipe()}, nil
+		return &worker.LocalFile{Src: c.GetLocal().GetSrc()}, nil
+	case pb.Request_File_Memory_case:
+		return &worker.MemoryFile{Content: c.GetMemory().GetContent()}, nil
+	case pb.Request_File_Cached_case:
+		return &worker.CachedFile{FileID: c.GetCached().GetFileID()}, nil
+	case pb.Request_File_Pipe_case:
+		return &worker.Collector{Name: c.GetPipe().GetName(), Max: envexec.Size(c.GetPipe().GetMax()), Pipe: c.GetPipe().GetPipe()}, nil
 	}
 	return nil, fmt.Errorf("request file type not supported: %T", c)
 }

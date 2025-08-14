@@ -8,6 +8,7 @@ import (
 	"github.com/criyle/go-judge/pb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 )
 
 var _ stream.Stream = &streamWrapper{}
@@ -24,13 +25,13 @@ func (sw *streamWrapper) Send(r stream.Response) error {
 		if err != nil {
 			return status.Errorf(codes.Aborted, "response: %v", err)
 		}
-		res.Response = &pb.StreamResponse_ExecResponse{ExecResponse: resp}
+		res.SetExecResponse(proto.ValueOrDefault(resp))
 	case r.Output != nil:
-		res.Response = &pb.StreamResponse_ExecOutput{ExecOutput: &pb.StreamResponse_Output{
+		res.SetExecOutput(pb.StreamResponse_Output_builder{
 			Index:   uint32(r.Output.Index),
 			Fd:      uint32(r.Output.Fd),
 			Content: r.Output.Content,
-		}}
+		}.Build())
 	}
 	return sw.es.Send(res)
 }
@@ -40,25 +41,25 @@ func (sw *streamWrapper) Recv() (*stream.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch i := req.Request.(type) {
-	case *pb.StreamRequest_ExecRequest:
-		return &stream.Request{Request: convertPBStreamRequest(i.ExecRequest)}, nil
-	case *pb.StreamRequest_ExecInput:
+	switch req.WhichRequest() {
+	case pb.StreamRequest_ExecRequest_case:
+		return &stream.Request{Request: convertPBStreamRequest(req.GetExecRequest())}, nil
+	case pb.StreamRequest_ExecInput_case:
 		return &stream.Request{Input: &stream.InputRequest{
-			Index:   int(i.ExecInput.Index),
-			Fd:      int(i.ExecInput.Fd),
-			Content: i.ExecInput.Content,
+			Index:   int(req.GetExecInput().GetIndex()),
+			Fd:      int(req.GetExecInput().GetFd()),
+			Content: req.GetExecInput().GetContent(),
 		}}, nil
-	case *pb.StreamRequest_ExecResize:
+	case pb.StreamRequest_ExecResize_case:
 		return &stream.Request{Resize: &stream.ResizeRequest{
-			Index: int(i.ExecResize.Index),
-			Fd:    int(i.ExecResize.Fd),
-			Rows:  int(i.ExecResize.Rows),
-			Cols:  int(i.ExecResize.Cols),
-			X:     int(i.ExecResize.X),
-			Y:     int(i.ExecResize.Y),
+			Index: int(req.GetExecResize().GetIndex()),
+			Fd:    int(req.GetExecResize().GetFd()),
+			Rows:  int(req.GetExecResize().GetRows()),
+			Cols:  int(req.GetExecResize().GetCols()),
+			X:     int(req.GetExecResize().GetX()),
+			Y:     int(req.GetExecResize().GetY()),
 		}}, nil
-	case *pb.StreamRequest_ExecCancel:
+	case pb.StreamRequest_ExecCancel_case:
 		return &stream.Request{Cancel: &struct{}{}}, nil
 	}
 	return nil, errors.ErrUnsupported
@@ -66,44 +67,44 @@ func (sw *streamWrapper) Recv() (*stream.Request, error) {
 
 func convertPBStreamRequest(req *pb.Request) *model.Request {
 	ret := &model.Request{
-		RequestID: req.RequestID,
+		RequestID: req.GetRequestID(),
 	}
-	for _, cmd := range req.Cmd {
+	for _, cmd := range req.GetCmd() {
 		ret.Cmd = append(ret.Cmd, model.Cmd{
-			Args:              cmd.Args,
-			Env:               cmd.Env,
-			TTY:               cmd.Tty,
-			Files:             convertPBStreamFiles(cmd.Files),
-			CPULimit:          cmd.CpuTimeLimit,
-			ClockLimit:        cmd.ClockTimeLimit,
-			MemoryLimit:       cmd.MemoryLimit,
-			StackLimit:        cmd.StackLimit,
-			ProcLimit:         cmd.ProcLimit,
-			CPURateLimit:      cmd.CpuRateLimit,
-			CPUSetLimit:       cmd.CpuSetLimit,
-			DataSegmentLimit:  cmd.DataSegmentLimit,
-			AddressSpaceLimit: cmd.AddressSpaceLimit,
+			Args:              cmd.GetArgs(),
+			Env:               cmd.GetEnv(),
+			TTY:               cmd.GetTty(),
+			Files:             convertPBStreamFiles(cmd.GetFiles()),
+			CPULimit:          cmd.GetCpuTimeLimit(),
+			ClockLimit:        cmd.GetClockTimeLimit(),
+			MemoryLimit:       cmd.GetMemoryLimit(),
+			StackLimit:        cmd.GetStackLimit(),
+			ProcLimit:         cmd.GetProcLimit(),
+			CPURateLimit:      cmd.GetCpuRateLimit(),
+			CPUSetLimit:       cmd.GetCpuSetLimit(),
+			DataSegmentLimit:  cmd.GetDataSegmentLimit(),
+			AddressSpaceLimit: cmd.GetAddressSpaceLimit(),
 			CopyIn:            convertPBStreamCopyIn(cmd),
-			CopyOut:           convertStreamCopyOut(cmd.CopyOut),
-			CopyOutCached:     convertStreamCopyOut(cmd.CopyOutCached),
-			CopyOutMax:        cmd.CopyOutMax,
-			CopyOutDir:        cmd.CopyOutDir,
+			CopyOut:           convertStreamCopyOut(cmd.GetCopyOut()),
+			CopyOutCached:     convertStreamCopyOut(cmd.GetCopyOutCached()),
+			CopyOutMax:        cmd.GetCopyOutMax(),
+			CopyOutDir:        cmd.GetCopyOutDir(),
 		})
 	}
-	for _, p := range req.PipeMapping {
+	for _, p := range req.GetPipeMapping() {
 		ret.PipeMapping = append(ret.PipeMapping, model.PipeMap{
-			In:    convertPBStreamPipeIndex(p.In),
-			Out:   convertPBStreamPipeIndex(p.Out),
-			Max:   int64(p.Max),
-			Name:  p.Name,
-			Proxy: p.Proxy,
+			In:    convertPBStreamPipeIndex(p.GetIn()),
+			Out:   convertPBStreamPipeIndex(p.GetOut()),
+			Max:   int64(p.GetMax()),
+			Name:  p.GetName(),
+			Proxy: p.GetProxy(),
 		})
 	}
 	return ret
 }
 
 func convertPBStreamPipeIndex(pi *pb.Request_PipeMap_PipeIndex) model.PipeIndex {
-	return model.PipeIndex{Index: int(pi.Index), Fd: int(pi.Fd)}
+	return model.PipeIndex{Index: int(pi.GetIndex()), Fd: int(pi.GetFd())}
 }
 
 func convertPBStreamFiles(files []*pb.Request_File) []*model.CmdFile {
@@ -120,33 +121,33 @@ func convertPBStreamFiles(files []*pb.Request_File) []*model.CmdFile {
 }
 
 func convertPBStreamCopyIn(cmd *pb.Request_CmdType) map[string]model.CmdFile {
-	rt := make(map[string]model.CmdFile, len(cmd.CopyIn)+len(cmd.Symlinks))
-	for k, i := range cmd.CopyIn {
-		if i.File == nil {
+	rt := make(map[string]model.CmdFile, len(cmd.GetCopyIn())+len(cmd.GetSymlinks()))
+	for k, i := range cmd.GetCopyIn() {
+		if !i.HasFile() {
 			continue
 		}
 		rt[k] = convertPBStreamFile(i)
 	}
-	for k, v := range cmd.Symlinks {
+	for k, v := range cmd.GetSymlinks() {
 		rt[k] = model.CmdFile{Symlink: &v}
 	}
 	return rt
 }
 
 func convertPBStreamFile(i *pb.Request_File) model.CmdFile {
-	switch c := i.File.(type) {
-	case *pb.Request_File_Local:
-		return model.CmdFile{Src: &c.Local.Src}
-	case *pb.Request_File_Memory:
-		s := byteArrayToString(c.Memory.Content)
+	switch i.WhichFile() {
+	case pb.Request_File_Local_case:
+		return model.CmdFile{Src: proto.String(i.GetLocal().GetSrc())}
+	case pb.Request_File_Memory_case:
+		s := byteArrayToString(i.GetMemory().GetContent())
 		return model.CmdFile{Content: &s}
-	case *pb.Request_File_Cached:
-		return model.CmdFile{FileID: &c.Cached.FileID}
-	case *pb.Request_File_Pipe:
-		return model.CmdFile{Name: &c.Pipe.Name, Max: &c.Pipe.Max, Pipe: c.Pipe.Pipe}
-	case *pb.Request_File_StreamIn:
+	case pb.Request_File_Cached_case:
+		return model.CmdFile{FileID: proto.String(i.GetCached().GetFileID())}
+	case pb.Request_File_Pipe_case:
+		return model.CmdFile{Name: proto.String(i.GetPipe().GetName()), Max: proto.Int64(i.GetPipe().GetMax()), Pipe: i.GetPipe().GetPipe()}
+	case pb.Request_File_StreamIn_case:
 		return model.CmdFile{StreamIn: true}
-	case *pb.Request_File_StreamOut:
+	case pb.Request_File_StreamOut_case:
 		return model.CmdFile{StreamOut: true}
 	}
 	return model.CmdFile{}
@@ -155,8 +156,8 @@ func convertPBStreamFile(i *pb.Request_File) model.CmdFile {
 func convertStreamCopyOut(copyOut []*pb.Request_CmdCopyOutFile) []string {
 	rt := make([]string, 0, len(copyOut))
 	for _, n := range copyOut {
-		name := n.Name
-		if n.Optional {
+		name := n.GetName()
+		if n.GetOptional() {
 			name += "?"
 		}
 		rt = append(rt, name)

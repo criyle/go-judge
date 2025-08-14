@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var _ Stream = &grpcWrapper{}
@@ -45,22 +46,22 @@ func (w *grpcWrapper) Send(req *stream.Request) error {
 	case req.Request != nil:
 		w.sc.Send(convertPBRequest(req.Request))
 	case req.Input != nil:
-		w.sc.Send(&pb.StreamRequest{Request: &pb.StreamRequest_ExecInput{ExecInput: &pb.StreamRequest_Input{
+		w.sc.Send(pb.StreamRequest_builder{ExecInput: pb.StreamRequest_Input_builder{
 			Index:   uint32(req.Input.Index),
 			Fd:      uint32(req.Input.Fd),
 			Content: req.Input.Content,
-		}}})
+		}.Build()}.Build())
 	case req.Resize != nil:
-		w.sc.Send(&pb.StreamRequest{Request: &pb.StreamRequest_ExecResize{ExecResize: &pb.StreamRequest_Resize{
+		w.sc.Send(pb.StreamRequest_builder{ExecResize: pb.StreamRequest_Resize_builder{
 			Index: uint32(req.Resize.Index),
 			Fd:    uint32(req.Resize.Fd),
 			Rows:  uint32(req.Resize.Rows),
 			Cols:  uint32(req.Resize.Cols),
 			X:     uint32(req.Resize.X),
 			Y:     uint32(req.Resize.Y),
-		}}})
+		}.Build()}.Build())
 	case req.Cancel != nil:
-		w.sc.Send(&pb.StreamRequest{Request: &pb.StreamRequest_ExecCancel{}})
+		w.sc.Send(pb.StreamRequest_builder{ExecCancel: &emptypb.Empty{}}.Build())
 	default:
 		return errors.New("send: unknown operation")
 	}
@@ -72,18 +73,18 @@ func (w *grpcWrapper) Recv() (*stream.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch i := resp.Response.(type) {
-	case *pb.StreamResponse_ExecOutput:
+	switch resp.WhichResponse() {
+	case pb.StreamResponse_ExecOutput_case:
 		return &stream.Response{Output: &stream.OutputResponse{
-			Index:   int(i.ExecOutput.Index),
-			Fd:      int(i.ExecOutput.Fd),
-			Content: i.ExecOutput.Content,
+			Index:   int(resp.GetExecOutput().GetIndex()),
+			Fd:      int(resp.GetExecOutput().GetFd()),
+			Content: resp.GetExecOutput().GetContent(),
 		}}, nil
-	case *pb.StreamResponse_ExecResponse:
+	case pb.StreamResponse_ExecResponse_case:
 		return &stream.Response{Response: &model.Response{
-			RequestID: i.ExecResponse.RequestID,
-			Results:   convertPBResult(i.ExecResponse.Results),
-			ErrorMsg:  i.ExecResponse.Error,
+			RequestID: resp.GetExecResponse().GetRequestID(),
+			Results:   convertPBResult(resp.GetExecResponse().GetResults()),
+			ErrorMsg:  resp.GetExecResponse().GetError(),
 		}}, nil
 	}
 	return nil, errors.New("recv: invalid response")
@@ -93,16 +94,16 @@ func convertPBResult(res []*pb.Response_Result) []model.Result {
 	var ret []model.Result
 	for _, r := range res {
 		ret = append(ret, model.Result{
-			Status:     model.Status(r.Status),
-			ExitStatus: int(r.ExitStatus),
-			Error:      r.Error,
-			Time:       r.Time,
-			RunTime:    r.RunTime,
-			Memory:     r.Memory,
-			Files:      convertFiles(r.Files),
-			Buffs:      r.Files,
-			FileIDs:    r.FileIDs,
-			FileError:  convertPBFileError(r.FileError),
+			Status:     model.Status(r.GetStatus()),
+			ExitStatus: int(r.GetExitStatus()),
+			Error:      r.GetError(),
+			Time:       r.GetTime(),
+			RunTime:    r.GetRunTime(),
+			Memory:     r.GetMemory(),
+			Files:      convertFiles(r.GetFiles()),
+			Buffs:      r.GetFiles(),
+			FileIDs:    r.GetFileIDs(),
+			FileError:  convertPBFileError(r.GetFileError()),
 		})
 	}
 	return ret
@@ -117,15 +118,13 @@ func convertFiles(buf map[string][]byte) map[string]string {
 }
 
 func convertPBRequest(req *model.Request) *pb.StreamRequest {
-	ret := &pb.StreamRequest{
-		Request: &pb.StreamRequest_ExecRequest{
-			ExecRequest: &pb.Request{
-				RequestID:   req.RequestID,
-				Cmd:         convertPBCmd(req.Cmd),
-				PipeMapping: convertPBPipeMapping(req.PipeMapping),
-			},
-		},
-	}
+	ret := pb.StreamRequest_builder{
+		ExecRequest: pb.Request_builder{
+			RequestID:   req.RequestID,
+			Cmd:         convertPBCmd(req.Cmd),
+			PipeMapping: convertPBPipeMapping(req.PipeMapping),
+		}.Build(),
+	}.Build()
 	return ret
 }
 
@@ -133,9 +132,9 @@ func convertPBFileError(fe []*pb.Response_FileError) []model.FileError {
 	var ret []model.FileError
 	for _, v := range fe {
 		ret = append(ret, model.FileError{
-			Name:    v.Name,
-			Type:    model.FileErrorType(v.Type),
-			Message: v.Message,
+			Name:    v.GetName(),
+			Type:    model.FileErrorType(v.GetType()),
+			Message: v.GetMessage(),
 		})
 	}
 	return ret
@@ -144,7 +143,7 @@ func convertPBFileError(fe []*pb.Response_FileError) []model.FileError {
 func convertPBCmd(cmd []model.Cmd) []*pb.Request_CmdType {
 	var ret []*pb.Request_CmdType
 	for _, c := range cmd {
-		ret = append(ret, &pb.Request_CmdType{
+		ret = append(ret, pb.Request_CmdType_builder{
 			Args:              c.Args,
 			Env:               c.Env,
 			Tty:               c.TTY,
@@ -164,7 +163,7 @@ func convertPBCmd(cmd []model.Cmd) []*pb.Request_CmdType {
 			CopyOutMax:        c.CopyOutMax,
 			CopyOutDir:        c.CopyOutDir,
 			Symlinks:          convertSymlink(c.CopyIn),
-		})
+		}.Build())
 	}
 	return ret
 }
@@ -188,10 +187,10 @@ func convertPBCopyOut(copyOut []string) []*pb.Request_CmdCopyOutFile {
 			optional = true
 			n = strings.TrimSuffix(n, "?")
 		}
-		rt = append(rt, &pb.Request_CmdCopyOutFile{
+		rt = append(rt, pb.Request_CmdCopyOutFile_builder{
 			Name:     n,
 			Optional: optional,
-		})
+		}.Build())
 	}
 	return rt
 }
@@ -222,18 +221,18 @@ func convertPBFiles(files []*model.CmdFile) []*pb.Request_File {
 func convertPBFile(i model.CmdFile) *pb.Request_File {
 	switch {
 	case i.Src != nil:
-		return &pb.Request_File{File: &pb.Request_File_Local{Local: &pb.Request_LocalFile{Src: *i.Src}}}
+		return pb.Request_File_builder{Local: pb.Request_LocalFile_builder{Src: *i.Src}.Build()}.Build()
 	case i.Content != nil:
 		s := strToBytes(*i.Content)
-		return &pb.Request_File{File: &pb.Request_File_Memory{Memory: &pb.Request_MemoryFile{Content: s}}}
+		return pb.Request_File_builder{Memory: pb.Request_MemoryFile_builder{Content: s}.Build()}.Build()
 	case i.FileID != nil:
-		return &pb.Request_File{File: &pb.Request_File_Cached{Cached: &pb.Request_CachedFile{FileID: *i.FileID}}}
+		return pb.Request_File_builder{Cached: pb.Request_CachedFile_builder{FileID: *i.FileID}.Build()}.Build()
 	case i.Name != nil && i.Max != nil:
-		return &pb.Request_File{File: &pb.Request_File_Pipe{Pipe: &pb.Request_PipeCollector{Name: *i.Name, Max: *i.Max, Pipe: i.Pipe}}}
+		return pb.Request_File_builder{Pipe: pb.Request_PipeCollector_builder{Name: *i.Name, Max: *i.Max, Pipe: i.Pipe}.Build()}.Build()
 	case i.StreamIn:
-		return &pb.Request_File{File: &pb.Request_File_StreamIn{}}
+		return pb.Request_File_builder{StreamIn: &emptypb.Empty{}}.Build()
 	case i.StreamOut:
-		return &pb.Request_File{File: &pb.Request_File_StreamOut{}}
+		return pb.Request_File_builder{StreamOut: &emptypb.Empty{}}.Build()
 	}
 	return nil
 }
@@ -241,19 +240,19 @@ func convertPBFile(i model.CmdFile) *pb.Request_File {
 func convertPBPipeMapping(pm []model.PipeMap) []*pb.Request_PipeMap {
 	var ret []*pb.Request_PipeMap
 	for _, p := range pm {
-		ret = append(ret, &pb.Request_PipeMap{
+		ret = append(ret, pb.Request_PipeMap_builder{
 			In:    convertPBPipeIndex(p.In),
 			Out:   convertPBPipeIndex(p.Out),
 			Name:  p.Name,
 			Proxy: p.Proxy,
 			Max:   uint64(p.Max),
-		})
+		}.Build())
 	}
 	return ret
 }
 
 func convertPBPipeIndex(pi model.PipeIndex) *pb.Request_PipeMap_PipeIndex {
-	return &pb.Request_PipeMap_PipeIndex{Index: int32(pi.Index), Fd: int32(pi.Fd)}
+	return pb.Request_PipeMap_PipeIndex_builder{Index: int32(pi.Index), Fd: int32(pi.Fd)}.Build()
 }
 
 type tokenAuth struct {

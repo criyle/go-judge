@@ -4,8 +4,10 @@ package pb;
 
 option features.field_presence = IMPLICIT;
 option go_package = "github.com/criyle/go-judge/pb";
+option features.(pb.go).api_level = API_HYBRID;
 
 import "response.proto";
+import "google/protobuf/go_features.proto";
 
 message StreamResponse {
   message Output {

@@ -66,9 +66,9 @@ func (p *execProxy) FileGet(c *gin.Context) {
 		return
 	}
 
-	fid := &pb.FileID{
+	fid := pb.FileID_builder{
 		FileID: uri.FileID,
-	}
+	}.Build()
 	rep, err := p.client.FileGet(c, fid)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -95,10 +95,10 @@ func (p *execProxy) FilePost(c *gin.Context) {
 		return
 	}
 
-	req := &pb.FileContent{
+	req := pb.FileContent_builder{
 		Name:    fh.Filename,
 		Content: b,
-	}
+	}.Build()
 	rep, err := p.client.FileAdd(c, req)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -117,9 +117,9 @@ func (p *execProxy) FileDelete(c *gin.Context) {
 		return
 	}
 
-	fid := &pb.FileID{
+	fid := pb.FileID_builder{
 		FileID: uri.FileID,
-	}
+	}.Build()
 	rep, err := p.client.FileDelete(c, fid)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)

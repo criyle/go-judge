@@ -22,7 +22,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: "1.25"
           cache-dependency-path: |
             go.sum
       - name: Remove unsupported tags
@@ -78,5 +78,3 @@ jobs:
         with:
           name: go-judge-shell_${{ matrix.os == 'darwin' && 'macos' || matrix.os }}_${{ matrix.arch }}
           path: dist/go-judge-shell_${{ matrix.os }}_${{ matrix.arch }}/go-judge-shell${{ matrix.os == 'windows' && '.exe' || ''}}
-
-    

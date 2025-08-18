@@ -186,16 +186,16 @@ dockers:
       - "mount.yaml"
     build_flag_templates:
       - "--platform=linux/s390x"
-  # Debian is not supporting riscv64 on stable branch, skip it first
-  # - image_templates:
-  #   - "criyle/go-judge:{{ .Tag }}-riscv64"
-  #   use: buildx
-  #   dockerfile: "Dockerfile.goreleaser"
-  #   goarch: riscv64
-  #   extra_files:
-  #     - "mount.yaml"
-  #   build_flag_templates:
-  #     - "--platform=linux/riscv64"
+  # Debian is now supporting riscv64 on trixie
+  - image_templates:
+    - "criyle/go-judge:{{ .Tag }}-riscv64"
+    use: buildx
+    dockerfile: "Dockerfile.goreleaser"
+    goarch: riscv64
+    extra_files:
+      - "mount.yaml"
+    build_flag_templates:
+      - "--platform=linux/riscv64"
 docker_manifests:
   - name_template: "criyle/go-judge:{{ .Tag }}"
     image_templates:
@@ -205,7 +205,7 @@ docker_manifests:
       - "criyle/go-judge:{{ .Tag }}-armv5"
       - "criyle/go-judge:{{ .Tag }}-ppc64le"
       - "criyle/go-judge:{{ .Tag }}-s390x"
-      # - "criyle/go-judge:{{ .Tag }}-riscv64"
+      - "criyle/go-judge:{{ .Tag }}-riscv64"
   - name_template: "criyle/go-judge:latest"
     image_templates:
       - "criyle/go-judge:{{ .Tag }}-amd64"
@@ -214,7 +214,7 @@ docker_manifests:
       - "criyle/go-judge:{{ .Tag }}-armv5"
       - "criyle/go-judge:{{ .Tag }}-ppc64le"
       - "criyle/go-judge:{{ .Tag }}-s390x"
-      # - "criyle/go-judge:{{ .Tag }}-riscv64"
+      - "criyle/go-judge:{{ .Tag }}-riscv64"
     skip_push: auto
 checksum:
   name_template: "checksums.txt"

@@ -423,7 +423,10 @@ func newGRPCServer(conf *config.Config, esServer pb.ExecutorServer) *grpc.Server
 }
 
 func initGinMetrics(r *gin.Engine) {
-	p := ginprometheus.NewPrometheus("gin")
+	p := ginprometheus.NewWithConfig(ginprometheus.Config{
+		Subsystem:          "gin",
+		DisableBodyReading: true,
+	})
 	p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
 		return c.FullPath()
 	}

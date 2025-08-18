@@ -19,7 +19,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
 	github.com/koding/multiconfig v0.0.0-20171124222453-69c27309b2d7
 	github.com/prometheus/client_golang v1.23.0
-	github.com/zsais/go-gin-prometheus v0.1.0
+	github.com/zsais/go-gin-prometheus v1.0.2
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0

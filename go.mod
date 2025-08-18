@@ -5,7 +5,7 @@ go 1.24
 require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/creack/pty v1.1.24
-	github.com/criyle/go-judge/pb v1.1.0
+	github.com/criyle/go-judge/pb v1.2.0
 	github.com/criyle/go-sandbox v0.11.7
 	github.com/elastic/go-seccomp-bpf v1.6.0
 	github.com/elastic/go-ucfg v0.8.8

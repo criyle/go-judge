@@ -4,8 +4,6 @@
 // 	protoc        v6.31.1
 // source: judge.proto
 
-//go:build !protoopaque
-
 package pb
 
 import (
@@ -41,7 +39,7 @@ const file_judge_proto_rawDesc = "" +
 	".pb.FileID\x120\n" +
 	"\n" +
 	"FileDelete\x12\n" +
-	".pb.FileID\x1a\x16.google.protobuf.EmptyB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x02\b\x02b\beditionsp\xe8\a"
+	".pb.FileID\x1a\x16.google.protobuf.EmptyB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
 
 var file_judge_proto_goTypes = []any{
 	(*Request)(nil),        // 0: pb.Request

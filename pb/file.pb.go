@@ -4,8 +4,6 @@
 // 	protoc        v6.31.1
 // source: file.proto
 
-//go:build !protoopaque
-
 package pb
 
 import (
@@ -24,10 +22,10 @@ const (
 )
 
 type FileID struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	FileID        string                 `protobuf:"bytes,1,opt,name=fileID" json:"fileID,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_FileID string                 `protobuf:"bytes,1,opt,name=fileID"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *FileID) Reset() {
@@ -57,13 +55,13 @@ func (x *FileID) ProtoReflect() protoreflect.Message {
 
 func (x *FileID) GetFileID() string {
 	if x != nil {
-		return x.FileID
+		return x.xxx_hidden_FileID
 	}
 	return ""
 }
 
 func (x *FileID) SetFileID(v string) {
-	x.FileID = v
+	x.xxx_hidden_FileID = v
 }
 
 type FileID_builder struct {
@@ -76,16 +74,16 @@ func (b0 FileID_builder) Build() *FileID {
 	m0 := &FileID{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.FileID = b.FileID
+	x.xxx_hidden_FileID = b.FileID
 	return m0
 }
 
 type FileContent struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name    string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Content []byte                 `protobuf:"bytes,2,opt,name=content"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *FileContent) Reset() {
@@ -115,27 +113,27 @@ func (x *FileContent) ProtoReflect() protoreflect.Message {
 
 func (x *FileContent) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *FileContent) GetContent() []byte {
 	if x != nil {
-		return x.Content
+		return x.xxx_hidden_Content
 	}
 	return nil
 }
 
 func (x *FileContent) SetName(v string) {
-	x.Name = v
+	x.xxx_hidden_Name = v
 }
 
 func (x *FileContent) SetContent(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
-	x.Content = v
+	x.xxx_hidden_Content = v
 }
 
 type FileContent_builder struct {
@@ -149,16 +147,16 @@ func (b0 FileContent_builder) Build() *FileContent {
 	m0 := &FileContent{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Name = b.Name
-	x.Content = b.Content
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Content = b.Content
 	return m0
 }
 
 type FileListType struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	FileIDs       map[string]string      `protobuf:"bytes,1,rep,name=fileIDs" json:"fileIDs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_FileIDs map[string]string      `protobuf:"bytes,1,rep,name=fileIDs" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *FileListType) Reset() {
@@ -188,13 +186,13 @@ func (x *FileListType) ProtoReflect() protoreflect.Message {
 
 func (x *FileListType) GetFileIDs() map[string]string {
 	if x != nil {
-		return x.FileIDs
+		return x.xxx_hidden_FileIDs
 	}
 	return nil
 }
 
 func (x *FileListType) SetFileIDs(v map[string]string) {
-	x.FileIDs = v
+	x.xxx_hidden_FileIDs = v
 }
 
 type FileListType_builder struct {
@@ -207,7 +205,7 @@ func (b0 FileListType_builder) Build() *FileListType {
 	m0 := &FileListType{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.FileIDs = b.FileIDs
+	x.xxx_hidden_FileIDs = b.FileIDs
 	return m0
 }
 
@@ -226,7 +224,7 @@ const file_file_proto_rawDesc = "" +
 	"\afileIDs\x18\x01 \x03(\v2\x1d.pb.FileListType.FileIDsEntryR\afileIDs\x1a:\n" +
 	"\fFileIDsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x02\b\x02b\beditionsp\xe8\a"
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01B)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
 
 var file_file_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_file_proto_goTypes = []any{

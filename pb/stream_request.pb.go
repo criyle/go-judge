@@ -4,8 +4,6 @@
 // 	protoc        v6.31.1
 // source: stream_request.proto
 
-//go:build !protoopaque
-
 package pb
 
 import (
@@ -25,16 +23,10 @@ const (
 )
 
 type StreamRequest struct {
-	state protoimpl.MessageState `protogen:"hybrid.v1"`
-	// Types that are valid to be assigned to Request:
-	//
-	//	*StreamRequest_ExecRequest
-	//	*StreamRequest_ExecInput
-	//	*StreamRequest_ExecResize
-	//	*StreamRequest_ExecCancel
-	Request       isStreamRequest_Request `protobuf_oneof:"request"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Request isStreamRequest_Request `protobuf_oneof:"request"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *StreamRequest) Reset() {
@@ -62,16 +54,9 @@ func (x *StreamRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *StreamRequest) GetRequest() isStreamRequest_Request {
-	if x != nil {
-		return x.Request
-	}
-	return nil
-}
-
 func (x *StreamRequest) GetExecRequest() *Request {
 	if x != nil {
-		if x, ok := x.Request.(*StreamRequest_ExecRequest); ok {
+		if x, ok := x.xxx_hidden_Request.(*streamRequest_ExecRequest); ok {
 			return x.ExecRequest
 		}
 	}
@@ -80,7 +65,7 @@ func (x *StreamRequest) GetExecRequest() *Request {
 
 func (x *StreamRequest) GetExecInput() *StreamRequest_Input {
 	if x != nil {
-		if x, ok := x.Request.(*StreamRequest_ExecInput); ok {
+		if x, ok := x.xxx_hidden_Request.(*streamRequest_ExecInput); ok {
 			return x.ExecInput
 		}
 	}
@@ -89,7 +74,7 @@ func (x *StreamRequest) GetExecInput() *StreamRequest_Input {
 
 func (x *StreamRequest) GetExecResize() *StreamRequest_Resize {
 	if x != nil {
-		if x, ok := x.Request.(*StreamRequest_ExecResize); ok {
+		if x, ok := x.xxx_hidden_Request.(*streamRequest_ExecResize); ok {
 			return x.ExecResize
 		}
 	}
@@ -98,7 +83,7 @@ func (x *StreamRequest) GetExecResize() *StreamRequest_Resize {
 
 func (x *StreamRequest) GetExecCancel() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.Request.(*StreamRequest_ExecCancel); ok {
+		if x, ok := x.xxx_hidden_Request.(*streamRequest_ExecCancel); ok {
 			return x.ExecCancel
 		}
 	}
@@ -107,48 +92,48 @@ func (x *StreamRequest) GetExecCancel() *emptypb.Empty {
 
 func (x *StreamRequest) SetExecRequest(v *Request) {
 	if v == nil {
-		x.Request = nil
+		x.xxx_hidden_Request = nil
 		return
 	}
-	x.Request = &StreamRequest_ExecRequest{v}
+	x.xxx_hidden_Request = &streamRequest_ExecRequest{v}
 }
 
 func (x *StreamRequest) SetExecInput(v *StreamRequest_Input) {
 	if v == nil {
-		x.Request = nil
+		x.xxx_hidden_Request = nil
 		return
 	}
-	x.Request = &StreamRequest_ExecInput{v}
+	x.xxx_hidden_Request = &streamRequest_ExecInput{v}
 }
 
 func (x *StreamRequest) SetExecResize(v *StreamRequest_Resize) {
 	if v == nil {
-		x.Request = nil
+		x.xxx_hidden_Request = nil
 		return
 	}
-	x.Request = &StreamRequest_ExecResize{v}
+	x.xxx_hidden_Request = &streamRequest_ExecResize{v}
 }
 
 func (x *StreamRequest) SetExecCancel(v *emptypb.Empty) {
 	if v == nil {
-		x.Request = nil
+		x.xxx_hidden_Request = nil
 		return
 	}
-	x.Request = &StreamRequest_ExecCancel{v}
+	x.xxx_hidden_Request = &streamRequest_ExecCancel{v}
 }
 
 func (x *StreamRequest) HasRequest() bool {
 	if x == nil {
 		return false
 	}
-	return x.Request != nil
+	return x.xxx_hidden_Request != nil
 }
 
 func (x *StreamRequest) HasExecRequest() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.Request.(*StreamRequest_ExecRequest)
+	_, ok := x.xxx_hidden_Request.(*streamRequest_ExecRequest)
 	return ok
 }
 
@@ -156,7 +141,7 @@ func (x *StreamRequest) HasExecInput() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.Request.(*StreamRequest_ExecInput)
+	_, ok := x.xxx_hidden_Request.(*streamRequest_ExecInput)
 	return ok
 }
 
@@ -164,7 +149,7 @@ func (x *StreamRequest) HasExecResize() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.Request.(*StreamRequest_ExecResize)
+	_, ok := x.xxx_hidden_Request.(*streamRequest_ExecResize)
 	return ok
 }
 
@@ -172,35 +157,35 @@ func (x *StreamRequest) HasExecCancel() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.Request.(*StreamRequest_ExecCancel)
+	_, ok := x.xxx_hidden_Request.(*streamRequest_ExecCancel)
 	return ok
 }
 
 func (x *StreamRequest) ClearRequest() {
-	x.Request = nil
+	x.xxx_hidden_Request = nil
 }
 
 func (x *StreamRequest) ClearExecRequest() {
-	if _, ok := x.Request.(*StreamRequest_ExecRequest); ok {
-		x.Request = nil
+	if _, ok := x.xxx_hidden_Request.(*streamRequest_ExecRequest); ok {
+		x.xxx_hidden_Request = nil
 	}
 }
 
 func (x *StreamRequest) ClearExecInput() {
-	if _, ok := x.Request.(*StreamRequest_ExecInput); ok {
-		x.Request = nil
+	if _, ok := x.xxx_hidden_Request.(*streamRequest_ExecInput); ok {
+		x.xxx_hidden_Request = nil
 	}
 }
 
 func (x *StreamRequest) ClearExecResize() {
-	if _, ok := x.Request.(*StreamRequest_ExecResize); ok {
-		x.Request = nil
+	if _, ok := x.xxx_hidden_Request.(*streamRequest_ExecResize); ok {
+		x.xxx_hidden_Request = nil
 	}
 }
 
 func (x *StreamRequest) ClearExecCancel() {
-	if _, ok := x.Request.(*StreamRequest_ExecCancel); ok {
-		x.Request = nil
+	if _, ok := x.xxx_hidden_Request.(*streamRequest_ExecCancel); ok {
+		x.xxx_hidden_Request = nil
 	}
 }
 
@@ -214,14 +199,14 @@ func (x *StreamRequest) WhichRequest() case_StreamRequest_Request {
 	if x == nil {
 		return StreamRequest_Request_not_set_case
 	}
-	switch x.Request.(type) {
-	case *StreamRequest_ExecRequest:
+	switch x.xxx_hidden_Request.(type) {
+	case *streamRequest_ExecRequest:
 		return StreamRequest_ExecRequest_case
-	case *StreamRequest_ExecInput:
+	case *streamRequest_ExecInput:
 		return StreamRequest_ExecInput_case
-	case *StreamRequest_ExecResize:
+	case *streamRequest_ExecResize:
 		return StreamRequest_ExecResize_case
-	case *StreamRequest_ExecCancel:
+	case *streamRequest_ExecCancel:
 		return StreamRequest_ExecCancel_case
 	default:
 		return StreamRequest_Request_not_set_case
@@ -231,12 +216,12 @@ func (x *StreamRequest) WhichRequest() case_StreamRequest_Request {
 type StreamRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Fields of oneof Request:
+	// Fields of oneof xxx_hidden_Request:
 	ExecRequest *Request
 	ExecInput   *StreamRequest_Input
 	ExecResize  *StreamRequest_Resize
 	ExecCancel  *emptypb.Empty
-	// -- end of Request
+	// -- end of xxx_hidden_Request
 }
 
 func (b0 StreamRequest_builder) Build() *StreamRequest {
@@ -244,16 +229,16 @@ func (b0 StreamRequest_builder) Build() *StreamRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ExecRequest != nil {
-		x.Request = &StreamRequest_ExecRequest{b.ExecRequest}
+		x.xxx_hidden_Request = &streamRequest_ExecRequest{b.ExecRequest}
 	}
 	if b.ExecInput != nil {
-		x.Request = &StreamRequest_ExecInput{b.ExecInput}
+		x.xxx_hidden_Request = &streamRequest_ExecInput{b.ExecInput}
 	}
 	if b.ExecResize != nil {
-		x.Request = &StreamRequest_ExecResize{b.ExecResize}
+		x.xxx_hidden_Request = &streamRequest_ExecResize{b.ExecResize}
 	}
 	if b.ExecCancel != nil {
-		x.Request = &StreamRequest_ExecCancel{b.ExecCancel}
+		x.xxx_hidden_Request = &streamRequest_ExecCancel{b.ExecCancel}
 	}
 	return m0
 }
@@ -272,37 +257,37 @@ type isStreamRequest_Request interface {
 	isStreamRequest_Request()
 }
 
-type StreamRequest_ExecRequest struct {
+type streamRequest_ExecRequest struct {
 	ExecRequest *Request `protobuf:"bytes,1,opt,name=execRequest,oneof"`
 }
 
-type StreamRequest_ExecInput struct {
+type streamRequest_ExecInput struct {
 	ExecInput *StreamRequest_Input `protobuf:"bytes,2,opt,name=execInput,oneof"`
 }
 
-type StreamRequest_ExecResize struct {
+type streamRequest_ExecResize struct {
 	ExecResize *StreamRequest_Resize `protobuf:"bytes,3,opt,name=execResize,oneof"`
 }
 
-type StreamRequest_ExecCancel struct {
+type streamRequest_ExecCancel struct {
 	ExecCancel *emptypb.Empty `protobuf:"bytes,4,opt,name=execCancel,oneof"`
 }
 
-func (*StreamRequest_ExecRequest) isStreamRequest_Request() {}
+func (*streamRequest_ExecRequest) isStreamRequest_Request() {}
 
-func (*StreamRequest_ExecInput) isStreamRequest_Request() {}
+func (*streamRequest_ExecInput) isStreamRequest_Request() {}
 
-func (*StreamRequest_ExecResize) isStreamRequest_Request() {}
+func (*streamRequest_ExecResize) isStreamRequest_Request() {}
 
-func (*StreamRequest_ExecCancel) isStreamRequest_Request() {}
+func (*streamRequest_ExecCancel) isStreamRequest_Request() {}
 
 type StreamRequest_Input struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
-	Fd            uint32                 `protobuf:"varint,3,opt,name=fd" json:"fd,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Index   uint32                 `protobuf:"varint,1,opt,name=index"`
+	xxx_hidden_Fd      uint32                 `protobuf:"varint,3,opt,name=fd"`
+	xxx_hidden_Content []byte                 `protobuf:"bytes,2,opt,name=content"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *StreamRequest_Input) Reset() {
@@ -332,38 +317,38 @@ func (x *StreamRequest_Input) ProtoReflect() protoreflect.Message {
 
 func (x *StreamRequest_Input) GetIndex() uint32 {
 	if x != nil {
-		return x.Index
+		return x.xxx_hidden_Index
 	}
 	return 0
 }
 
 func (x *StreamRequest_Input) GetFd() uint32 {
 	if x != nil {
-		return x.Fd
+		return x.xxx_hidden_Fd
 	}
 	return 0
 }
 
 func (x *StreamRequest_Input) GetContent() []byte {
 	if x != nil {
-		return x.Content
+		return x.xxx_hidden_Content
 	}
 	return nil
 }
 
 func (x *StreamRequest_Input) SetIndex(v uint32) {
-	x.Index = v
+	x.xxx_hidden_Index = v
 }
 
 func (x *StreamRequest_Input) SetFd(v uint32) {
-	x.Fd = v
+	x.xxx_hidden_Fd = v
 }
 
 func (x *StreamRequest_Input) SetContent(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
-	x.Content = v
+	x.xxx_hidden_Content = v
 }
 
 type StreamRequest_Input_builder struct {
@@ -378,22 +363,22 @@ func (b0 StreamRequest_Input_builder) Build() *StreamRequest_Input {
 	m0 := &StreamRequest_Input{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Index = b.Index
-	x.Fd = b.Fd
-	x.Content = b.Content
+	x.xxx_hidden_Index = b.Index
+	x.xxx_hidden_Fd = b.Fd
+	x.xxx_hidden_Content = b.Content
 	return m0
 }
 
 type StreamRequest_Resize struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
-	Fd            uint32                 `protobuf:"varint,6,opt,name=fd" json:"fd,omitempty"`
-	Rows          uint32                 `protobuf:"varint,2,opt,name=rows" json:"rows,omitempty"`
-	Cols          uint32                 `protobuf:"varint,3,opt,name=cols" json:"cols,omitempty"`
-	X             uint32                 `protobuf:"varint,4,opt,name=x" json:"x,omitempty"`
-	Y             uint32                 `protobuf:"varint,5,opt,name=y" json:"y,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Index uint32                 `protobuf:"varint,1,opt,name=index"`
+	xxx_hidden_Fd    uint32                 `protobuf:"varint,6,opt,name=fd"`
+	xxx_hidden_Rows  uint32                 `protobuf:"varint,2,opt,name=rows"`
+	xxx_hidden_Cols  uint32                 `protobuf:"varint,3,opt,name=cols"`
+	xxx_hidden_X     uint32                 `protobuf:"varint,4,opt,name=x"`
+	xxx_hidden_Y     uint32                 `protobuf:"varint,5,opt,name=y"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *StreamRequest_Resize) Reset() {
@@ -423,68 +408,68 @@ func (x *StreamRequest_Resize) ProtoReflect() protoreflect.Message {
 
 func (x *StreamRequest_Resize) GetIndex() uint32 {
 	if x != nil {
-		return x.Index
+		return x.xxx_hidden_Index
 	}
 	return 0
 }
 
 func (x *StreamRequest_Resize) GetFd() uint32 {
 	if x != nil {
-		return x.Fd
+		return x.xxx_hidden_Fd
 	}
 	return 0
 }
 
 func (x *StreamRequest_Resize) GetRows() uint32 {
 	if x != nil {
-		return x.Rows
+		return x.xxx_hidden_Rows
 	}
 	return 0
 }
 
 func (x *StreamRequest_Resize) GetCols() uint32 {
 	if x != nil {
-		return x.Cols
+		return x.xxx_hidden_Cols
 	}
 	return 0
 }
 
 func (x *StreamRequest_Resize) GetX() uint32 {
 	if x != nil {
-		return x.X
+		return x.xxx_hidden_X
 	}
 	return 0
 }
 
 func (x *StreamRequest_Resize) GetY() uint32 {
 	if x != nil {
-		return x.Y
+		return x.xxx_hidden_Y
 	}
 	return 0
 }
 
 func (x *StreamRequest_Resize) SetIndex(v uint32) {
-	x.Index = v
+	x.xxx_hidden_Index = v
 }
 
 func (x *StreamRequest_Resize) SetFd(v uint32) {
-	x.Fd = v
+	x.xxx_hidden_Fd = v
 }
 
 func (x *StreamRequest_Resize) SetRows(v uint32) {
-	x.Rows = v
+	x.xxx_hidden_Rows = v
 }
 
 func (x *StreamRequest_Resize) SetCols(v uint32) {
-	x.Cols = v
+	x.xxx_hidden_Cols = v
 }
 
 func (x *StreamRequest_Resize) SetX(v uint32) {
-	x.X = v
+	x.xxx_hidden_X = v
 }
 
 func (x *StreamRequest_Resize) SetY(v uint32) {
-	x.Y = v
+	x.xxx_hidden_Y = v
 }
 
 type StreamRequest_Resize_builder struct {
@@ -502,12 +487,12 @@ func (b0 StreamRequest_Resize_builder) Build() *StreamRequest_Resize {
 	m0 := &StreamRequest_Resize{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Index = b.Index
-	x.Fd = b.Fd
-	x.Rows = b.Rows
-	x.Cols = b.Cols
-	x.X = b.X
-	x.Y = b.Y
+	x.xxx_hidden_Index = b.Index
+	x.xxx_hidden_Fd = b.Fd
+	x.xxx_hidden_Rows = b.Rows
+	x.xxx_hidden_Cols = b.Cols
+	x.xxx_hidden_X = b.X
+	x.xxx_hidden_Y = b.Y
 	return m0
 }
 
@@ -536,7 +521,7 @@ const file_stream_request_proto_rawDesc = "" +
 	"\x04cols\x18\x03 \x01(\rR\x04cols\x12\f\n" +
 	"\x01x\x18\x04 \x01(\rR\x01x\x12\f\n" +
 	"\x01y\x18\x05 \x01(\rR\x01yB\t\n" +
-	"\arequestB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x02\b\x02b\beditionsp\xe8\a"
+	"\arequestB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
 
 var file_stream_request_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_stream_request_proto_goTypes = []any{
@@ -565,10 +550,10 @@ func file_stream_request_proto_init() {
 	}
 	file_request_proto_init()
 	file_stream_request_proto_msgTypes[0].OneofWrappers = []any{
-		(*StreamRequest_ExecRequest)(nil),
-		(*StreamRequest_ExecInput)(nil),
-		(*StreamRequest_ExecResize)(nil),
-		(*StreamRequest_ExecCancel)(nil),
+		(*streamRequest_ExecRequest)(nil),
+		(*streamRequest_ExecInput)(nil),
+		(*streamRequest_ExecResize)(nil),
+		(*streamRequest_ExecCancel)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

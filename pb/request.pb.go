@@ -4,8 +4,6 @@
 // 	protoc        v6.31.1
 // source: request.proto
 
-//go:build !protoopaque
-
 package pb
 
 import (
@@ -25,12 +23,12 @@ const (
 )
 
 type Request struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	RequestID     string                 `protobuf:"bytes,1,opt,name=requestID" json:"requestID,omitempty"`
-	Cmd           []*Request_CmdType     `protobuf:"bytes,2,rep,name=cmd" json:"cmd,omitempty"`
-	PipeMapping   []*Request_PipeMap     `protobuf:"bytes,3,rep,name=pipeMapping" json:"pipeMapping,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RequestID   string                 `protobuf:"bytes,1,opt,name=requestID"`
+	xxx_hidden_Cmd         *[]*Request_CmdType    `protobuf:"bytes,2,rep,name=cmd"`
+	xxx_hidden_PipeMapping *[]*Request_PipeMap    `protobuf:"bytes,3,rep,name=pipeMapping"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *Request) Reset() {
@@ -60,35 +58,39 @@ func (x *Request) ProtoReflect() protoreflect.Message {
 
 func (x *Request) GetRequestID() string {
 	if x != nil {
-		return x.RequestID
+		return x.xxx_hidden_RequestID
 	}
 	return ""
 }
 
 func (x *Request) GetCmd() []*Request_CmdType {
 	if x != nil {
-		return x.Cmd
+		if x.xxx_hidden_Cmd != nil {
+			return *x.xxx_hidden_Cmd
+		}
 	}
 	return nil
 }
 
 func (x *Request) GetPipeMapping() []*Request_PipeMap {
 	if x != nil {
-		return x.PipeMapping
+		if x.xxx_hidden_PipeMapping != nil {
+			return *x.xxx_hidden_PipeMapping
+		}
 	}
 	return nil
 }
 
 func (x *Request) SetRequestID(v string) {
-	x.RequestID = v
+	x.xxx_hidden_RequestID = v
 }
 
 func (x *Request) SetCmd(v []*Request_CmdType) {
-	x.Cmd = v
+	x.xxx_hidden_Cmd = &v
 }
 
 func (x *Request) SetPipeMapping(v []*Request_PipeMap) {
-	x.PipeMapping = v
+	x.xxx_hidden_PipeMapping = &v
 }
 
 type Request_builder struct {
@@ -103,17 +105,17 @@ func (b0 Request_builder) Build() *Request {
 	m0 := &Request{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.RequestID = b.RequestID
-	x.Cmd = b.Cmd
-	x.PipeMapping = b.PipeMapping
+	x.xxx_hidden_RequestID = b.RequestID
+	x.xxx_hidden_Cmd = &b.Cmd
+	x.xxx_hidden_PipeMapping = &b.PipeMapping
 	return m0
 }
 
 type Request_LocalFile struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Src           string                 `protobuf:"bytes,1,opt,name=src" json:"src,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Src string                 `protobuf:"bytes,1,opt,name=src"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Request_LocalFile) Reset() {
@@ -143,13 +145,13 @@ func (x *Request_LocalFile) ProtoReflect() protoreflect.Message {
 
 func (x *Request_LocalFile) GetSrc() string {
 	if x != nil {
-		return x.Src
+		return x.xxx_hidden_Src
 	}
 	return ""
 }
 
 func (x *Request_LocalFile) SetSrc(v string) {
-	x.Src = v
+	x.xxx_hidden_Src = v
 }
 
 type Request_LocalFile_builder struct {
@@ -162,15 +164,15 @@ func (b0 Request_LocalFile_builder) Build() *Request_LocalFile {
 	m0 := &Request_LocalFile{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Src = b.Src
+	x.xxx_hidden_Src = b.Src
 	return m0
 }
 
 type Request_MemoryFile struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Content       []byte                 `protobuf:"bytes,1,opt,name=content" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Content []byte                 `protobuf:"bytes,1,opt,name=content"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Request_MemoryFile) Reset() {
@@ -200,7 +202,7 @@ func (x *Request_MemoryFile) ProtoReflect() protoreflect.Message {
 
 func (x *Request_MemoryFile) GetContent() []byte {
 	if x != nil {
-		return x.Content
+		return x.xxx_hidden_Content
 	}
 	return nil
 }
@@ -209,7 +211,7 @@ func (x *Request_MemoryFile) SetContent(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
-	x.Content = v
+	x.xxx_hidden_Content = v
 }
 
 type Request_MemoryFile_builder struct {
@@ -222,15 +224,15 @@ func (b0 Request_MemoryFile_builder) Build() *Request_MemoryFile {
 	m0 := &Request_MemoryFile{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Content = b.Content
+	x.xxx_hidden_Content = b.Content
 	return m0
 }
 
 type Request_CachedFile struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	FileID        string                 `protobuf:"bytes,1,opt,name=fileID" json:"fileID,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_FileID string                 `protobuf:"bytes,1,opt,name=fileID"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *Request_CachedFile) Reset() {
@@ -260,13 +262,13 @@ func (x *Request_CachedFile) ProtoReflect() protoreflect.Message {
 
 func (x *Request_CachedFile) GetFileID() string {
 	if x != nil {
-		return x.FileID
+		return x.xxx_hidden_FileID
 	}
 	return ""
 }
 
 func (x *Request_CachedFile) SetFileID(v string) {
-	x.FileID = v
+	x.xxx_hidden_FileID = v
 }
 
 type Request_CachedFile_builder struct {
@@ -279,17 +281,17 @@ func (b0 Request_CachedFile_builder) Build() *Request_CachedFile {
 	m0 := &Request_CachedFile{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.FileID = b.FileID
+	x.xxx_hidden_FileID = b.FileID
 	return m0
 }
 
 type Request_PipeCollector struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Max           int64                  `protobuf:"varint,2,opt,name=max" json:"max,omitempty"`
-	Pipe          bool                   `protobuf:"varint,3,opt,name=pipe" json:"pipe,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Max  int64                  `protobuf:"varint,2,opt,name=max"`
+	xxx_hidden_Pipe bool                   `protobuf:"varint,3,opt,name=pipe"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Request_PipeCollector) Reset() {
@@ -319,35 +321,35 @@ func (x *Request_PipeCollector) ProtoReflect() protoreflect.Message {
 
 func (x *Request_PipeCollector) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Request_PipeCollector) GetMax() int64 {
 	if x != nil {
-		return x.Max
+		return x.xxx_hidden_Max
 	}
 	return 0
 }
 
 func (x *Request_PipeCollector) GetPipe() bool {
 	if x != nil {
-		return x.Pipe
+		return x.xxx_hidden_Pipe
 	}
 	return false
 }
 
 func (x *Request_PipeCollector) SetName(v string) {
-	x.Name = v
+	x.xxx_hidden_Name = v
 }
 
 func (x *Request_PipeCollector) SetMax(v int64) {
-	x.Max = v
+	x.xxx_hidden_Max = v
 }
 
 func (x *Request_PipeCollector) SetPipe(v bool) {
-	x.Pipe = v
+	x.xxx_hidden_Pipe = v
 }
 
 type Request_PipeCollector_builder struct {
@@ -362,25 +364,17 @@ func (b0 Request_PipeCollector_builder) Build() *Request_PipeCollector {
 	m0 := &Request_PipeCollector{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Name = b.Name
-	x.Max = b.Max
-	x.Pipe = b.Pipe
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Max = b.Max
+	x.xxx_hidden_Pipe = b.Pipe
 	return m0
 }
 
 type Request_File struct {
-	state protoimpl.MessageState `protogen:"hybrid.v1"`
-	// Types that are valid to be assigned to File:
-	//
-	//	*Request_File_Local
-	//	*Request_File_Memory
-	//	*Request_File_Cached
-	//	*Request_File_Pipe
-	//	*Request_File_StreamIn
-	//	*Request_File_StreamOut
-	File          isRequest_File_File `protobuf_oneof:"file"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_File isRequest_File_File    `protobuf_oneof:"file"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Request_File) Reset() {
@@ -408,16 +402,9 @@ func (x *Request_File) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *Request_File) GetFile() isRequest_File_File {
-	if x != nil {
-		return x.File
-	}
-	return nil
-}
-
 func (x *Request_File) GetLocal() *Request_LocalFile {
 	if x != nil {
-		if x, ok := x.File.(*Request_File_Local); ok {
+		if x, ok := x.xxx_hidden_File.(*request_File_Local); ok {
 			return x.Local
 		}
 	}
@@ -426,7 +413,7 @@ func (x *Request_File) GetLocal() *Request_LocalFile {
 
 func (x *Request_File) GetMemory() *Request_MemoryFile {
 	if x != nil {
-		if x, ok := x.File.(*Request_File_Memory); ok {
+		if x, ok := x.xxx_hidden_File.(*request_File_Memory); ok {
 			return x.Memory
 		}
 	}
@@ -435,7 +422,7 @@ func (x *Request_File) GetMemory() *Request_MemoryFile {
 
 func (x *Request_File) GetCached() *Request_CachedFile {
 	if x != nil {
-		if x, ok := x.File.(*Request_File_Cached); ok {
+		if x, ok := x.xxx_hidden_File.(*request_File_Cached); ok {
 			return x.Cached
 		}
 	}
@@ -444,7 +431,7 @@ func (x *Request_File) GetCached() *Request_CachedFile {
 
 func (x *Request_File) GetPipe() *Request_PipeCollector {
 	if x != nil {
-		if x, ok := x.File.(*Request_File_Pipe); ok {
+		if x, ok := x.xxx_hidden_File.(*request_File_Pipe); ok {
 			return x.Pipe
 		}
 	}
@@ -453,7 +440,7 @@ func (x *Request_File) GetPipe() *Request_PipeCollector {
 
 func (x *Request_File) GetStreamIn() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.File.(*Request_File_StreamIn); ok {
+		if x, ok := x.xxx_hidden_File.(*request_File_StreamIn); ok {
 			return x.StreamIn
 		}
 	}
@@ -462,7 +449,7 @@ func (x *Request_File) GetStreamIn() *emptypb.Empty {
 
 func (x *Request_File) GetStreamOut() *emptypb.Empty {
 	if x != nil {
-		if x, ok := x.File.(*Request_File_StreamOut); ok {
+		if x, ok := x.xxx_hidden_File.(*request_File_StreamOut); ok {
 			return x.StreamOut
 		}
 	}
@@ -471,64 +458,64 @@ func (x *Request_File) GetStreamOut() *emptypb.Empty {
 
 func (x *Request_File) SetLocal(v *Request_LocalFile) {
 	if v == nil {
-		x.File = nil
+		x.xxx_hidden_File = nil
 		return
 	}
-	x.File = &Request_File_Local{v}
+	x.xxx_hidden_File = &request_File_Local{v}
 }
 
 func (x *Request_File) SetMemory(v *Request_MemoryFile) {
 	if v == nil {
-		x.File = nil
+		x.xxx_hidden_File = nil
 		return
 	}
-	x.File = &Request_File_Memory{v}
+	x.xxx_hidden_File = &request_File_Memory{v}
 }
 
 func (x *Request_File) SetCached(v *Request_CachedFile) {
 	if v == nil {
-		x.File = nil
+		x.xxx_hidden_File = nil
 		return
 	}
-	x.File = &Request_File_Cached{v}
+	x.xxx_hidden_File = &request_File_Cached{v}
 }
 
 func (x *Request_File) SetPipe(v *Request_PipeCollector) {
 	if v == nil {
-		x.File = nil
+		x.xxx_hidden_File = nil
 		return
 	}
-	x.File = &Request_File_Pipe{v}
+	x.xxx_hidden_File = &request_File_Pipe{v}
 }
 
 func (x *Request_File) SetStreamIn(v *emptypb.Empty) {
 	if v == nil {
-		x.File = nil
+		x.xxx_hidden_File = nil
 		return
 	}
-	x.File = &Request_File_StreamIn{v}
+	x.xxx_hidden_File = &request_File_StreamIn{v}
 }
 
 func (x *Request_File) SetStreamOut(v *emptypb.Empty) {
 	if v == nil {
-		x.File = nil
+		x.xxx_hidden_File = nil
 		return
 	}
-	x.File = &Request_File_StreamOut{v}
+	x.xxx_hidden_File = &request_File_StreamOut{v}
 }
 
 func (x *Request_File) HasFile() bool {
 	if x == nil {
 		return false
 	}
-	return x.File != nil
+	return x.xxx_hidden_File != nil
 }
 
 func (x *Request_File) HasLocal() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.File.(*Request_File_Local)
+	_, ok := x.xxx_hidden_File.(*request_File_Local)
 	return ok
 }
 
@@ -536,7 +523,7 @@ func (x *Request_File) HasMemory() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.File.(*Request_File_Memory)
+	_, ok := x.xxx_hidden_File.(*request_File_Memory)
 	return ok
 }
 
@@ -544,7 +531,7 @@ func (x *Request_File) HasCached() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.File.(*Request_File_Cached)
+	_, ok := x.xxx_hidden_File.(*request_File_Cached)
 	return ok
 }
 
@@ -552,7 +539,7 @@ func (x *Request_File) HasPipe() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.File.(*Request_File_Pipe)
+	_, ok := x.xxx_hidden_File.(*request_File_Pipe)
 	return ok
 }
 
@@ -560,7 +547,7 @@ func (x *Request_File) HasStreamIn() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.File.(*Request_File_StreamIn)
+	_, ok := x.xxx_hidden_File.(*request_File_StreamIn)
 	return ok
 }
 
@@ -568,47 +555,47 @@ func (x *Request_File) HasStreamOut() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.File.(*Request_File_StreamOut)
+	_, ok := x.xxx_hidden_File.(*request_File_StreamOut)
 	return ok
 }
 
 func (x *Request_File) ClearFile() {
-	x.File = nil
+	x.xxx_hidden_File = nil
 }
 
 func (x *Request_File) ClearLocal() {
-	if _, ok := x.File.(*Request_File_Local); ok {
-		x.File = nil
+	if _, ok := x.xxx_hidden_File.(*request_File_Local); ok {
+		x.xxx_hidden_File = nil
 	}
 }
 
 func (x *Request_File) ClearMemory() {
-	if _, ok := x.File.(*Request_File_Memory); ok {
-		x.File = nil
+	if _, ok := x.xxx_hidden_File.(*request_File_Memory); ok {
+		x.xxx_hidden_File = nil
 	}
 }
 
 func (x *Request_File) ClearCached() {
-	if _, ok := x.File.(*Request_File_Cached); ok {
-		x.File = nil
+	if _, ok := x.xxx_hidden_File.(*request_File_Cached); ok {
+		x.xxx_hidden_File = nil
 	}
 }
 
 func (x *Request_File) ClearPipe() {
-	if _, ok := x.File.(*Request_File_Pipe); ok {
-		x.File = nil
+	if _, ok := x.xxx_hidden_File.(*request_File_Pipe); ok {
+		x.xxx_hidden_File = nil
 	}
 }
 
 func (x *Request_File) ClearStreamIn() {
-	if _, ok := x.File.(*Request_File_StreamIn); ok {
-		x.File = nil
+	if _, ok := x.xxx_hidden_File.(*request_File_StreamIn); ok {
+		x.xxx_hidden_File = nil
 	}
 }
 
 func (x *Request_File) ClearStreamOut() {
-	if _, ok := x.File.(*Request_File_StreamOut); ok {
-		x.File = nil
+	if _, ok := x.xxx_hidden_File.(*request_File_StreamOut); ok {
+		x.xxx_hidden_File = nil
 	}
 }
 
@@ -624,18 +611,18 @@ func (x *Request_File) WhichFile() case_Request_File_File {
 	if x == nil {
 		return Request_File_File_not_set_case
 	}
-	switch x.File.(type) {
-	case *Request_File_Local:
+	switch x.xxx_hidden_File.(type) {
+	case *request_File_Local:
 		return Request_File_Local_case
-	case *Request_File_Memory:
+	case *request_File_Memory:
 		return Request_File_Memory_case
-	case *Request_File_Cached:
+	case *request_File_Cached:
 		return Request_File_Cached_case
-	case *Request_File_Pipe:
+	case *request_File_Pipe:
 		return Request_File_Pipe_case
-	case *Request_File_StreamIn:
+	case *request_File_StreamIn:
 		return Request_File_StreamIn_case
-	case *Request_File_StreamOut:
+	case *request_File_StreamOut:
 		return Request_File_StreamOut_case
 	default:
 		return Request_File_File_not_set_case
@@ -645,7 +632,7 @@ func (x *Request_File) WhichFile() case_Request_File_File {
 type Request_File_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Fields of oneof File:
+	// Fields of oneof xxx_hidden_File:
 	Local  *Request_LocalFile
 	Memory *Request_MemoryFile
 	Cached *Request_CachedFile
@@ -654,7 +641,7 @@ type Request_File_builder struct {
 	StreamIn *emptypb.Empty
 	// streamOut only valid in streaming RPC
 	StreamOut *emptypb.Empty
-	// -- end of File
+	// -- end of xxx_hidden_File
 }
 
 func (b0 Request_File_builder) Build() *Request_File {
@@ -662,22 +649,22 @@ func (b0 Request_File_builder) Build() *Request_File {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Local != nil {
-		x.File = &Request_File_Local{b.Local}
+		x.xxx_hidden_File = &request_File_Local{b.Local}
 	}
 	if b.Memory != nil {
-		x.File = &Request_File_Memory{b.Memory}
+		x.xxx_hidden_File = &request_File_Memory{b.Memory}
 	}
 	if b.Cached != nil {
-		x.File = &Request_File_Cached{b.Cached}
+		x.xxx_hidden_File = &request_File_Cached{b.Cached}
 	}
 	if b.Pipe != nil {
-		x.File = &Request_File_Pipe{b.Pipe}
+		x.xxx_hidden_File = &request_File_Pipe{b.Pipe}
 	}
 	if b.StreamIn != nil {
-		x.File = &Request_File_StreamIn{b.StreamIn}
+		x.xxx_hidden_File = &request_File_StreamIn{b.StreamIn}
 	}
 	if b.StreamOut != nil {
-		x.File = &Request_File_StreamOut{b.StreamOut}
+		x.xxx_hidden_File = &request_File_StreamOut{b.StreamOut}
 	}
 	return m0
 }
@@ -696,67 +683,67 @@ type isRequest_File_File interface {
 	isRequest_File_File()
 }
 
-type Request_File_Local struct {
+type request_File_Local struct {
 	Local *Request_LocalFile `protobuf:"bytes,1,opt,name=local,oneof"`
 }
 
-type Request_File_Memory struct {
+type request_File_Memory struct {
 	Memory *Request_MemoryFile `protobuf:"bytes,2,opt,name=memory,oneof"`
 }
 
-type Request_File_Cached struct {
+type request_File_Cached struct {
 	Cached *Request_CachedFile `protobuf:"bytes,3,opt,name=cached,oneof"`
 }
 
-type Request_File_Pipe struct {
+type request_File_Pipe struct {
 	Pipe *Request_PipeCollector `protobuf:"bytes,4,opt,name=pipe,oneof"`
 }
 
-type Request_File_StreamIn struct {
+type request_File_StreamIn struct {
 	// streamIn only valid in streaming RPC
 	StreamIn *emptypb.Empty `protobuf:"bytes,5,opt,name=streamIn,oneof"`
 }
 
-type Request_File_StreamOut struct {
+type request_File_StreamOut struct {
 	// streamOut only valid in streaming RPC
 	StreamOut *emptypb.Empty `protobuf:"bytes,6,opt,name=streamOut,oneof"`
 }
 
-func (*Request_File_Local) isRequest_File_File() {}
+func (*request_File_Local) isRequest_File_File() {}
 
-func (*Request_File_Memory) isRequest_File_File() {}
+func (*request_File_Memory) isRequest_File_File() {}
 
-func (*Request_File_Cached) isRequest_File_File() {}
+func (*request_File_Cached) isRequest_File_File() {}
 
-func (*Request_File_Pipe) isRequest_File_File() {}
+func (*request_File_Pipe) isRequest_File_File() {}
 
-func (*Request_File_StreamIn) isRequest_File_File() {}
+func (*request_File_StreamIn) isRequest_File_File() {}
 
-func (*Request_File_StreamOut) isRequest_File_File() {}
+func (*request_File_StreamOut) isRequest_File_File() {}
 
 type Request_CmdType struct {
-	state             protoimpl.MessageState    `protogen:"hybrid.v1"`
-	Args              []string                  `protobuf:"bytes,1,rep,name=args" json:"args,omitempty"`
-	Env               []string                  `protobuf:"bytes,2,rep,name=env" json:"env,omitempty"`
-	Files             []*Request_File           `protobuf:"bytes,3,rep,name=files" json:"files,omitempty"`
-	Tty               bool                      `protobuf:"varint,13,opt,name=tty" json:"tty,omitempty"`
-	CpuTimeLimit      uint64                    `protobuf:"varint,4,opt,name=cpuTimeLimit" json:"cpuTimeLimit,omitempty"`
-	ClockTimeLimit    uint64                    `protobuf:"varint,5,opt,name=clockTimeLimit" json:"clockTimeLimit,omitempty"`
-	MemoryLimit       uint64                    `protobuf:"varint,6,opt,name=memoryLimit" json:"memoryLimit,omitempty"`
-	StackLimit        uint64                    `protobuf:"varint,12,opt,name=stackLimit" json:"stackLimit,omitempty"`
-	ProcLimit         uint64                    `protobuf:"varint,7,opt,name=procLimit" json:"procLimit,omitempty"`
-	CpuRateLimit      uint64                    `protobuf:"varint,15,opt,name=cpuRateLimit" json:"cpuRateLimit,omitempty"`
-	CpuSetLimit       string                    `protobuf:"bytes,17,opt,name=cpuSetLimit" json:"cpuSetLimit,omitempty"`
-	DataSegmentLimit  bool                      `protobuf:"varint,16,opt,name=dataSegmentLimit" json:"dataSegmentLimit,omitempty"`
-	AddressSpaceLimit bool                      `protobuf:"varint,19,opt,name=addressSpaceLimit" json:"addressSpaceLimit,omitempty"`
-	CopyIn            map[string]*Request_File  `protobuf:"bytes,8,rep,name=copyIn" json:"copyIn,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Symlinks          map[string]string         `protobuf:"bytes,18,rep,name=symlinks" json:"symlinks,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	CopyOut           []*Request_CmdCopyOutFile `protobuf:"bytes,9,rep,name=copyOut" json:"copyOut,omitempty"`
-	CopyOutCached     []*Request_CmdCopyOutFile `protobuf:"bytes,10,rep,name=copyOutCached" json:"copyOutCached,omitempty"`
-	CopyOutDir        string                    `protobuf:"bytes,11,opt,name=copyOutDir" json:"copyOutDir,omitempty"`
-	CopyOutMax        uint64                    `protobuf:"varint,14,opt,name=copyOutMax" json:"copyOutMax,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                        protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Args              []string                   `protobuf:"bytes,1,rep,name=args"`
+	xxx_hidden_Env               []string                   `protobuf:"bytes,2,rep,name=env"`
+	xxx_hidden_Files             *[]*Request_File           `protobuf:"bytes,3,rep,name=files"`
+	xxx_hidden_Tty               bool                       `protobuf:"varint,13,opt,name=tty"`
+	xxx_hidden_CpuTimeLimit      uint64                     `protobuf:"varint,4,opt,name=cpuTimeLimit"`
+	xxx_hidden_ClockTimeLimit    uint64                     `protobuf:"varint,5,opt,name=clockTimeLimit"`
+	xxx_hidden_MemoryLimit       uint64                     `protobuf:"varint,6,opt,name=memoryLimit"`
+	xxx_hidden_StackLimit        uint64                     `protobuf:"varint,12,opt,name=stackLimit"`
+	xxx_hidden_ProcLimit         uint64                     `protobuf:"varint,7,opt,name=procLimit"`
+	xxx_hidden_CpuRateLimit      uint64                     `protobuf:"varint,15,opt,name=cpuRateLimit"`
+	xxx_hidden_CpuSetLimit       string                     `protobuf:"bytes,17,opt,name=cpuSetLimit"`
+	xxx_hidden_DataSegmentLimit  bool                       `protobuf:"varint,16,opt,name=dataSegmentLimit"`
+	xxx_hidden_AddressSpaceLimit bool                       `protobuf:"varint,19,opt,name=addressSpaceLimit"`
+	xxx_hidden_CopyIn            map[string]*Request_File   `protobuf:"bytes,8,rep,name=copyIn" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Symlinks          map[string]string          `protobuf:"bytes,18,rep,name=symlinks" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_CopyOut           *[]*Request_CmdCopyOutFile `protobuf:"bytes,9,rep,name=copyOut"`
+	xxx_hidden_CopyOutCached     *[]*Request_CmdCopyOutFile `protobuf:"bytes,10,rep,name=copyOutCached"`
+	xxx_hidden_CopyOutDir        string                     `protobuf:"bytes,11,opt,name=copyOutDir"`
+	xxx_hidden_CopyOutMax        uint64                     `protobuf:"varint,14,opt,name=copyOutMax"`
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
 }
 
 func (x *Request_CmdType) Reset() {
@@ -786,211 +773,217 @@ func (x *Request_CmdType) ProtoReflect() protoreflect.Message {
 
 func (x *Request_CmdType) GetArgs() []string {
 	if x != nil {
-		return x.Args
+		return x.xxx_hidden_Args
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetEnv() []string {
 	if x != nil {
-		return x.Env
+		return x.xxx_hidden_Env
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetFiles() []*Request_File {
 	if x != nil {
-		return x.Files
+		if x.xxx_hidden_Files != nil {
+			return *x.xxx_hidden_Files
+		}
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetTty() bool {
 	if x != nil {
-		return x.Tty
+		return x.xxx_hidden_Tty
 	}
 	return false
 }
 
 func (x *Request_CmdType) GetCpuTimeLimit() uint64 {
 	if x != nil {
-		return x.CpuTimeLimit
+		return x.xxx_hidden_CpuTimeLimit
 	}
 	return 0
 }
 
 func (x *Request_CmdType) GetClockTimeLimit() uint64 {
 	if x != nil {
-		return x.ClockTimeLimit
+		return x.xxx_hidden_ClockTimeLimit
 	}
 	return 0
 }
 
 func (x *Request_CmdType) GetMemoryLimit() uint64 {
 	if x != nil {
-		return x.MemoryLimit
+		return x.xxx_hidden_MemoryLimit
 	}
 	return 0
 }
 
 func (x *Request_CmdType) GetStackLimit() uint64 {
 	if x != nil {
-		return x.StackLimit
+		return x.xxx_hidden_StackLimit
 	}
 	return 0
 }
 
 func (x *Request_CmdType) GetProcLimit() uint64 {
 	if x != nil {
-		return x.ProcLimit
+		return x.xxx_hidden_ProcLimit
 	}
 	return 0
 }
 
 func (x *Request_CmdType) GetCpuRateLimit() uint64 {
 	if x != nil {
-		return x.CpuRateLimit
+		return x.xxx_hidden_CpuRateLimit
 	}
 	return 0
 }
 
 func (x *Request_CmdType) GetCpuSetLimit() string {
 	if x != nil {
-		return x.CpuSetLimit
+		return x.xxx_hidden_CpuSetLimit
 	}
 	return ""
 }
 
 func (x *Request_CmdType) GetDataSegmentLimit() bool {
 	if x != nil {
-		return x.DataSegmentLimit
+		return x.xxx_hidden_DataSegmentLimit
 	}
 	return false
 }
 
 func (x *Request_CmdType) GetAddressSpaceLimit() bool {
 	if x != nil {
-		return x.AddressSpaceLimit
+		return x.xxx_hidden_AddressSpaceLimit
 	}
 	return false
 }
 
 func (x *Request_CmdType) GetCopyIn() map[string]*Request_File {
 	if x != nil {
-		return x.CopyIn
+		return x.xxx_hidden_CopyIn
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetSymlinks() map[string]string {
 	if x != nil {
-		return x.Symlinks
+		return x.xxx_hidden_Symlinks
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetCopyOut() []*Request_CmdCopyOutFile {
 	if x != nil {
-		return x.CopyOut
+		if x.xxx_hidden_CopyOut != nil {
+			return *x.xxx_hidden_CopyOut
+		}
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetCopyOutCached() []*Request_CmdCopyOutFile {
 	if x != nil {
-		return x.CopyOutCached
+		if x.xxx_hidden_CopyOutCached != nil {
+			return *x.xxx_hidden_CopyOutCached
+		}
 	}
 	return nil
 }
 
 func (x *Request_CmdType) GetCopyOutDir() string {
 	if x != nil {
-		return x.CopyOutDir
+		return x.xxx_hidden_CopyOutDir
 	}
 	return ""
 }
 
 func (x *Request_CmdType) GetCopyOutMax() uint64 {
 	if x != nil {
-		return x.CopyOutMax
+		return x.xxx_hidden_CopyOutMax
 	}
 	return 0
 }
 
 func (x *Request_CmdType) SetArgs(v []string) {
-	x.Args = v
+	x.xxx_hidden_Args = v
 }
 
 func (x *Request_CmdType) SetEnv(v []string) {
-	x.Env = v
+	x.xxx_hidden_Env = v
 }
 
 func (x *Request_CmdType) SetFiles(v []*Request_File) {
-	x.Files = v
+	x.xxx_hidden_Files = &v
 }
 
 func (x *Request_CmdType) SetTty(v bool) {
-	x.Tty = v
+	x.xxx_hidden_Tty = v
 }
 
 func (x *Request_CmdType) SetCpuTimeLimit(v uint64) {
-	x.CpuTimeLimit = v
+	x.xxx_hidden_CpuTimeLimit = v
 }
 
 func (x *Request_CmdType) SetClockTimeLimit(v uint64) {
-	x.ClockTimeLimit = v
+	x.xxx_hidden_ClockTimeLimit = v
 }
 
 func (x *Request_CmdType) SetMemoryLimit(v uint64) {
-	x.MemoryLimit = v
+	x.xxx_hidden_MemoryLimit = v
 }
 
 func (x *Request_CmdType) SetStackLimit(v uint64) {
-	x.StackLimit = v
+	x.xxx_hidden_StackLimit = v
 }
 
 func (x *Request_CmdType) SetProcLimit(v uint64) {
-	x.ProcLimit = v
+	x.xxx_hidden_ProcLimit = v
 }
 
 func (x *Request_CmdType) SetCpuRateLimit(v uint64) {
-	x.CpuRateLimit = v
+	x.xxx_hidden_CpuRateLimit = v
 }
 
 func (x *Request_CmdType) SetCpuSetLimit(v string) {
-	x.CpuSetLimit = v
+	x.xxx_hidden_CpuSetLimit = v
 }
 
 func (x *Request_CmdType) SetDataSegmentLimit(v bool) {
-	x.DataSegmentLimit = v
+	x.xxx_hidden_DataSegmentLimit = v
 }
 
 func (x *Request_CmdType) SetAddressSpaceLimit(v bool) {
-	x.AddressSpaceLimit = v
+	x.xxx_hidden_AddressSpaceLimit = v
 }
 
 func (x *Request_CmdType) SetCopyIn(v map[string]*Request_File) {
-	x.CopyIn = v
+	x.xxx_hidden_CopyIn = v
 }
 
 func (x *Request_CmdType) SetSymlinks(v map[string]string) {
-	x.Symlinks = v
+	x.xxx_hidden_Symlinks = v
 }
 
 func (x *Request_CmdType) SetCopyOut(v []*Request_CmdCopyOutFile) {
-	x.CopyOut = v
+	x.xxx_hidden_CopyOut = &v
 }
 
 func (x *Request_CmdType) SetCopyOutCached(v []*Request_CmdCopyOutFile) {
-	x.CopyOutCached = v
+	x.xxx_hidden_CopyOutCached = &v
 }
 
 func (x *Request_CmdType) SetCopyOutDir(v string) {
-	x.CopyOutDir = v
+	x.xxx_hidden_CopyOutDir = v
 }
 
 func (x *Request_CmdType) SetCopyOutMax(v uint64) {
-	x.CopyOutMax = v
+	x.xxx_hidden_CopyOutMax = v
 }
 
 type Request_CmdType_builder struct {
@@ -1021,34 +1014,34 @@ func (b0 Request_CmdType_builder) Build() *Request_CmdType {
 	m0 := &Request_CmdType{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Args = b.Args
-	x.Env = b.Env
-	x.Files = b.Files
-	x.Tty = b.Tty
-	x.CpuTimeLimit = b.CpuTimeLimit
-	x.ClockTimeLimit = b.ClockTimeLimit
-	x.MemoryLimit = b.MemoryLimit
-	x.StackLimit = b.StackLimit
-	x.ProcLimit = b.ProcLimit
-	x.CpuRateLimit = b.CpuRateLimit
-	x.CpuSetLimit = b.CpuSetLimit
-	x.DataSegmentLimit = b.DataSegmentLimit
-	x.AddressSpaceLimit = b.AddressSpaceLimit
-	x.CopyIn = b.CopyIn
-	x.Symlinks = b.Symlinks
-	x.CopyOut = b.CopyOut
-	x.CopyOutCached = b.CopyOutCached
-	x.CopyOutDir = b.CopyOutDir
-	x.CopyOutMax = b.CopyOutMax
+	x.xxx_hidden_Args = b.Args
+	x.xxx_hidden_Env = b.Env
+	x.xxx_hidden_Files = &b.Files
+	x.xxx_hidden_Tty = b.Tty
+	x.xxx_hidden_CpuTimeLimit = b.CpuTimeLimit
+	x.xxx_hidden_ClockTimeLimit = b.ClockTimeLimit
+	x.xxx_hidden_MemoryLimit = b.MemoryLimit
+	x.xxx_hidden_StackLimit = b.StackLimit
+	x.xxx_hidden_ProcLimit = b.ProcLimit
+	x.xxx_hidden_CpuRateLimit = b.CpuRateLimit
+	x.xxx_hidden_CpuSetLimit = b.CpuSetLimit
+	x.xxx_hidden_DataSegmentLimit = b.DataSegmentLimit
+	x.xxx_hidden_AddressSpaceLimit = b.AddressSpaceLimit
+	x.xxx_hidden_CopyIn = b.CopyIn
+	x.xxx_hidden_Symlinks = b.Symlinks
+	x.xxx_hidden_CopyOut = &b.CopyOut
+	x.xxx_hidden_CopyOutCached = &b.CopyOutCached
+	x.xxx_hidden_CopyOutDir = b.CopyOutDir
+	x.xxx_hidden_CopyOutMax = b.CopyOutMax
 	return m0
 }
 
 type Request_CmdCopyOutFile struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Name          string                 `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Optional      bool                   `protobuf:"varint,2,opt,name=optional" json:"optional,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Name     string                 `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Optional bool                   `protobuf:"varint,2,opt,name=optional"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *Request_CmdCopyOutFile) Reset() {
@@ -1078,24 +1071,24 @@ func (x *Request_CmdCopyOutFile) ProtoReflect() protoreflect.Message {
 
 func (x *Request_CmdCopyOutFile) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Request_CmdCopyOutFile) GetOptional() bool {
 	if x != nil {
-		return x.Optional
+		return x.xxx_hidden_Optional
 	}
 	return false
 }
 
 func (x *Request_CmdCopyOutFile) SetName(v string) {
-	x.Name = v
+	x.xxx_hidden_Name = v
 }
 
 func (x *Request_CmdCopyOutFile) SetOptional(v bool) {
-	x.Optional = v
+	x.xxx_hidden_Optional = v
 }
 
 type Request_CmdCopyOutFile_builder struct {
@@ -1109,20 +1102,20 @@ func (b0 Request_CmdCopyOutFile_builder) Build() *Request_CmdCopyOutFile {
 	m0 := &Request_CmdCopyOutFile{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Name = b.Name
-	x.Optional = b.Optional
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Optional = b.Optional
 	return m0
 }
 
 type Request_PipeMap struct {
-	state         protoimpl.MessageState     `protogen:"hybrid.v1"`
-	In            *Request_PipeMap_PipeIndex `protobuf:"bytes,1,opt,name=in" json:"in,omitempty"`
-	Out           *Request_PipeMap_PipeIndex `protobuf:"bytes,2,opt,name=out" json:"out,omitempty"`
-	Proxy         bool                       `protobuf:"varint,3,opt,name=proxy" json:"proxy,omitempty"`
-	Name          string                     `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
-	Max           uint64                     `protobuf:"varint,5,opt,name=max" json:"max,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_In    *Request_PipeMap_PipeIndex `protobuf:"bytes,1,opt,name=in"`
+	xxx_hidden_Out   *Request_PipeMap_PipeIndex `protobuf:"bytes,2,opt,name=out"`
+	xxx_hidden_Proxy bool                       `protobuf:"varint,3,opt,name=proxy"`
+	xxx_hidden_Name  string                     `protobuf:"bytes,4,opt,name=name"`
+	xxx_hidden_Max   uint64                     `protobuf:"varint,5,opt,name=max"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Request_PipeMap) Reset() {
@@ -1152,79 +1145,79 @@ func (x *Request_PipeMap) ProtoReflect() protoreflect.Message {
 
 func (x *Request_PipeMap) GetIn() *Request_PipeMap_PipeIndex {
 	if x != nil {
-		return x.In
+		return x.xxx_hidden_In
 	}
 	return nil
 }
 
 func (x *Request_PipeMap) GetOut() *Request_PipeMap_PipeIndex {
 	if x != nil {
-		return x.Out
+		return x.xxx_hidden_Out
 	}
 	return nil
 }
 
 func (x *Request_PipeMap) GetProxy() bool {
 	if x != nil {
-		return x.Proxy
+		return x.xxx_hidden_Proxy
 	}
 	return false
 }
 
 func (x *Request_PipeMap) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Request_PipeMap) GetMax() uint64 {
 	if x != nil {
-		return x.Max
+		return x.xxx_hidden_Max
 	}
 	return 0
 }
 
 func (x *Request_PipeMap) SetIn(v *Request_PipeMap_PipeIndex) {
-	x.In = v
+	x.xxx_hidden_In = v
 }
 
 func (x *Request_PipeMap) SetOut(v *Request_PipeMap_PipeIndex) {
-	x.Out = v
+	x.xxx_hidden_Out = v
 }
 
 func (x *Request_PipeMap) SetProxy(v bool) {
-	x.Proxy = v
+	x.xxx_hidden_Proxy = v
 }
 
 func (x *Request_PipeMap) SetName(v string) {
-	x.Name = v
+	x.xxx_hidden_Name = v
 }
 
 func (x *Request_PipeMap) SetMax(v uint64) {
-	x.Max = v
+	x.xxx_hidden_Max = v
 }
 
 func (x *Request_PipeMap) HasIn() bool {
 	if x == nil {
 		return false
 	}
-	return x.In != nil
+	return x.xxx_hidden_In != nil
 }
 
 func (x *Request_PipeMap) HasOut() bool {
 	if x == nil {
 		return false
 	}
-	return x.Out != nil
+	return x.xxx_hidden_Out != nil
 }
 
 func (x *Request_PipeMap) ClearIn() {
-	x.In = nil
+	x.xxx_hidden_In = nil
 }
 
 func (x *Request_PipeMap) ClearOut() {
-	x.Out = nil
+	x.xxx_hidden_Out = nil
 }
 
 type Request_PipeMap_builder struct {
@@ -1241,20 +1234,20 @@ func (b0 Request_PipeMap_builder) Build() *Request_PipeMap {
 	m0 := &Request_PipeMap{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.In = b.In
-	x.Out = b.Out
-	x.Proxy = b.Proxy
-	x.Name = b.Name
-	x.Max = b.Max
+	x.xxx_hidden_In = b.In
+	x.xxx_hidden_Out = b.Out
+	x.xxx_hidden_Proxy = b.Proxy
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Max = b.Max
 	return m0
 }
 
 type Request_PipeMap_PipeIndex struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Index         int32                  `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
-	Fd            int32                  `protobuf:"varint,2,opt,name=fd" json:"fd,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Index int32                  `protobuf:"varint,1,opt,name=index"`
+	xxx_hidden_Fd    int32                  `protobuf:"varint,2,opt,name=fd"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Request_PipeMap_PipeIndex) Reset() {
@@ -1284,24 +1277,24 @@ func (x *Request_PipeMap_PipeIndex) ProtoReflect() protoreflect.Message {
 
 func (x *Request_PipeMap_PipeIndex) GetIndex() int32 {
 	if x != nil {
-		return x.Index
+		return x.xxx_hidden_Index
 	}
 	return 0
 }
 
 func (x *Request_PipeMap_PipeIndex) GetFd() int32 {
 	if x != nil {
-		return x.Fd
+		return x.xxx_hidden_Fd
 	}
 	return 0
 }
 
 func (x *Request_PipeMap_PipeIndex) SetIndex(v int32) {
-	x.Index = v
+	x.xxx_hidden_Index = v
 }
 
 func (x *Request_PipeMap_PipeIndex) SetFd(v int32) {
-	x.Fd = v
+	x.xxx_hidden_Fd = v
 }
 
 type Request_PipeMap_PipeIndex_builder struct {
@@ -1315,8 +1308,8 @@ func (b0 Request_PipeMap_PipeIndex_builder) Build() *Request_PipeMap_PipeIndex {
 	m0 := &Request_PipeMap_PipeIndex{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Index = b.Index
-	x.Fd = b.Fd
+	x.xxx_hidden_Index = b.Index
+	x.xxx_hidden_Fd = b.Fd
 	return m0
 }
 
@@ -1393,7 +1386,7 @@ const file_request_proto_rawDesc = "" +
 	"\x03max\x18\x05 \x01(\x04R\x03max\x1a1\n" +
 	"\tPipeIndex\x12\x14\n" +
 	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x0e\n" +
-	"\x02fd\x18\x02 \x01(\x05R\x02fdB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x02\b\x02b\beditionsp\xe8\a"
+	"\x02fd\x18\x02 \x01(\x05R\x02fdB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
 
 var file_request_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_request_proto_goTypes = []any{
@@ -1441,12 +1434,12 @@ func file_request_proto_init() {
 		return
 	}
 	file_request_proto_msgTypes[5].OneofWrappers = []any{
-		(*Request_File_Local)(nil),
-		(*Request_File_Memory)(nil),
-		(*Request_File_Cached)(nil),
-		(*Request_File_Pipe)(nil),
-		(*Request_File_StreamIn)(nil),
-		(*Request_File_StreamOut)(nil),
+		(*request_File_Local)(nil),
+		(*request_File_Memory)(nil),
+		(*request_File_Cached)(nil),
+		(*request_File_Pipe)(nil),
+		(*request_File_StreamIn)(nil),
+		(*request_File_StreamOut)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

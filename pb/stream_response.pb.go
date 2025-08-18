@@ -4,8 +4,6 @@
 // 	protoc        v6.31.1
 // source: stream_response.proto
 
-//go:build !protoopaque
-
 package pb
 
 import (
@@ -24,14 +22,10 @@ const (
 )
 
 type StreamResponse struct {
-	state protoimpl.MessageState `protogen:"hybrid.v1"`
-	// Types that are valid to be assigned to Response:
-	//
-	//	*StreamResponse_ExecResponse
-	//	*StreamResponse_ExecOutput
-	Response      isStreamResponse_Response `protobuf_oneof:"response"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Response isStreamResponse_Response `protobuf_oneof:"response"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *StreamResponse) Reset() {
@@ -59,16 +53,9 @@ func (x *StreamResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *StreamResponse) GetResponse() isStreamResponse_Response {
-	if x != nil {
-		return x.Response
-	}
-	return nil
-}
-
 func (x *StreamResponse) GetExecResponse() *Response {
 	if x != nil {
-		if x, ok := x.Response.(*StreamResponse_ExecResponse); ok {
+		if x, ok := x.xxx_hidden_Response.(*streamResponse_ExecResponse); ok {
 			return x.ExecResponse
 		}
 	}
@@ -77,7 +64,7 @@ func (x *StreamResponse) GetExecResponse() *Response {
 
 func (x *StreamResponse) GetExecOutput() *StreamResponse_Output {
 	if x != nil {
-		if x, ok := x.Response.(*StreamResponse_ExecOutput); ok {
+		if x, ok := x.xxx_hidden_Response.(*streamResponse_ExecOutput); ok {
 			return x.ExecOutput
 		}
 	}
@@ -86,32 +73,32 @@ func (x *StreamResponse) GetExecOutput() *StreamResponse_Output {
 
 func (x *StreamResponse) SetExecResponse(v *Response) {
 	if v == nil {
-		x.Response = nil
+		x.xxx_hidden_Response = nil
 		return
 	}
-	x.Response = &StreamResponse_ExecResponse{v}
+	x.xxx_hidden_Response = &streamResponse_ExecResponse{v}
 }
 
 func (x *StreamResponse) SetExecOutput(v *StreamResponse_Output) {
 	if v == nil {
-		x.Response = nil
+		x.xxx_hidden_Response = nil
 		return
 	}
-	x.Response = &StreamResponse_ExecOutput{v}
+	x.xxx_hidden_Response = &streamResponse_ExecOutput{v}
 }
 
 func (x *StreamResponse) HasResponse() bool {
 	if x == nil {
 		return false
 	}
-	return x.Response != nil
+	return x.xxx_hidden_Response != nil
 }
 
 func (x *StreamResponse) HasExecResponse() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.Response.(*StreamResponse_ExecResponse)
+	_, ok := x.xxx_hidden_Response.(*streamResponse_ExecResponse)
 	return ok
 }
 
@@ -119,23 +106,23 @@ func (x *StreamResponse) HasExecOutput() bool {
 	if x == nil {
 		return false
 	}
-	_, ok := x.Response.(*StreamResponse_ExecOutput)
+	_, ok := x.xxx_hidden_Response.(*streamResponse_ExecOutput)
 	return ok
 }
 
 func (x *StreamResponse) ClearResponse() {
-	x.Response = nil
+	x.xxx_hidden_Response = nil
 }
 
 func (x *StreamResponse) ClearExecResponse() {
-	if _, ok := x.Response.(*StreamResponse_ExecResponse); ok {
-		x.Response = nil
+	if _, ok := x.xxx_hidden_Response.(*streamResponse_ExecResponse); ok {
+		x.xxx_hidden_Response = nil
 	}
 }
 
 func (x *StreamResponse) ClearExecOutput() {
-	if _, ok := x.Response.(*StreamResponse_ExecOutput); ok {
-		x.Response = nil
+	if _, ok := x.xxx_hidden_Response.(*streamResponse_ExecOutput); ok {
+		x.xxx_hidden_Response = nil
 	}
 }
 
@@ -147,10 +134,10 @@ func (x *StreamResponse) WhichResponse() case_StreamResponse_Response {
 	if x == nil {
 		return StreamResponse_Response_not_set_case
 	}
-	switch x.Response.(type) {
-	case *StreamResponse_ExecResponse:
+	switch x.xxx_hidden_Response.(type) {
+	case *streamResponse_ExecResponse:
 		return StreamResponse_ExecResponse_case
-	case *StreamResponse_ExecOutput:
+	case *streamResponse_ExecOutput:
 		return StreamResponse_ExecOutput_case
 	default:
 		return StreamResponse_Response_not_set_case
@@ -160,10 +147,10 @@ func (x *StreamResponse) WhichResponse() case_StreamResponse_Response {
 type StreamResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Fields of oneof Response:
+	// Fields of oneof xxx_hidden_Response:
 	ExecResponse *Response
 	ExecOutput   *StreamResponse_Output
-	// -- end of Response
+	// -- end of xxx_hidden_Response
 }
 
 func (b0 StreamResponse_builder) Build() *StreamResponse {
@@ -171,10 +158,10 @@ func (b0 StreamResponse_builder) Build() *StreamResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ExecResponse != nil {
-		x.Response = &StreamResponse_ExecResponse{b.ExecResponse}
+		x.xxx_hidden_Response = &streamResponse_ExecResponse{b.ExecResponse}
 	}
 	if b.ExecOutput != nil {
-		x.Response = &StreamResponse_ExecOutput{b.ExecOutput}
+		x.xxx_hidden_Response = &streamResponse_ExecOutput{b.ExecOutput}
 	}
 	return m0
 }
@@ -193,25 +180,25 @@ type isStreamResponse_Response interface {
 	isStreamResponse_Response()
 }
 
-type StreamResponse_ExecResponse struct {
+type streamResponse_ExecResponse struct {
 	ExecResponse *Response `protobuf:"bytes,1,opt,name=execResponse,oneof"`
 }
 
-type StreamResponse_ExecOutput struct {
+type streamResponse_ExecOutput struct {
 	ExecOutput *StreamResponse_Output `protobuf:"bytes,2,opt,name=execOutput,oneof"`
 }
 
-func (*StreamResponse_ExecResponse) isStreamResponse_Response() {}
+func (*streamResponse_ExecResponse) isStreamResponse_Response() {}
 
-func (*StreamResponse_ExecOutput) isStreamResponse_Response() {}
+func (*streamResponse_ExecOutput) isStreamResponse_Response() {}
 
 type StreamResponse_Output struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	Index         uint32                 `protobuf:"varint,1,opt,name=index" json:"index,omitempty"`
-	Fd            uint32                 `protobuf:"varint,3,opt,name=fd" json:"fd,omitempty"`
-	Content       []byte                 `protobuf:"bytes,2,opt,name=content" json:"content,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Index   uint32                 `protobuf:"varint,1,opt,name=index"`
+	xxx_hidden_Fd      uint32                 `protobuf:"varint,3,opt,name=fd"`
+	xxx_hidden_Content []byte                 `protobuf:"bytes,2,opt,name=content"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *StreamResponse_Output) Reset() {
@@ -241,38 +228,38 @@ func (x *StreamResponse_Output) ProtoReflect() protoreflect.Message {
 
 func (x *StreamResponse_Output) GetIndex() uint32 {
 	if x != nil {
-		return x.Index
+		return x.xxx_hidden_Index
 	}
 	return 0
 }
 
 func (x *StreamResponse_Output) GetFd() uint32 {
 	if x != nil {
-		return x.Fd
+		return x.xxx_hidden_Fd
 	}
 	return 0
 }
 
 func (x *StreamResponse_Output) GetContent() []byte {
 	if x != nil {
-		return x.Content
+		return x.xxx_hidden_Content
 	}
 	return nil
 }
 
 func (x *StreamResponse_Output) SetIndex(v uint32) {
-	x.Index = v
+	x.xxx_hidden_Index = v
 }
 
 func (x *StreamResponse_Output) SetFd(v uint32) {
-	x.Fd = v
+	x.xxx_hidden_Fd = v
 }
 
 func (x *StreamResponse_Output) SetContent(v []byte) {
 	if v == nil {
 		v = []byte{}
 	}
-	x.Content = v
+	x.xxx_hidden_Content = v
 }
 
 type StreamResponse_Output_builder struct {
@@ -287,9 +274,9 @@ func (b0 StreamResponse_Output_builder) Build() *StreamResponse_Output {
 	m0 := &StreamResponse_Output{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Index = b.Index
-	x.Fd = b.Fd
-	x.Content = b.Content
+	x.xxx_hidden_Index = b.Index
+	x.xxx_hidden_Fd = b.Fd
+	x.xxx_hidden_Content = b.Content
 	return m0
 }
 
@@ -308,7 +295,7 @@ const file_stream_response_proto_rawDesc = "" +
 	"\x02fd\x18\x03 \x01(\rR\x02fd\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\fR\acontentB\n" +
 	"\n" +
-	"\bresponseB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x02\b\x02b\beditionsp\xe8\a"
+	"\bresponseB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
 
 var file_stream_response_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_stream_response_proto_goTypes = []any{
@@ -333,8 +320,8 @@ func file_stream_response_proto_init() {
 	}
 	file_response_proto_init()
 	file_stream_response_proto_msgTypes[0].OneofWrappers = []any{
-		(*StreamResponse_ExecResponse)(nil),
-		(*StreamResponse_ExecOutput)(nil),
+		(*streamResponse_ExecResponse)(nil),
+		(*streamResponse_ExecOutput)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{

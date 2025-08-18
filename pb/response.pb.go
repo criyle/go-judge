@@ -4,8 +4,6 @@
 // 	protoc        v6.31.1
 // source: response.proto
 
-//go:build !protoopaque
-
 package pb
 
 import (
@@ -166,12 +164,12 @@ func (x Response_Result_StatusType) Number() protoreflect.EnumNumber {
 }
 
 type Response struct {
-	state         protoimpl.MessageState `protogen:"hybrid.v1"`
-	RequestID     string                 `protobuf:"bytes,1,opt,name=requestID" json:"requestID,omitempty"`
-	Results       []*Response_Result     `protobuf:"bytes,2,rep,name=results" json:"results,omitempty"`
-	Error         string                 `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RequestID string                 `protobuf:"bytes,1,opt,name=requestID"`
+	xxx_hidden_Results   *[]*Response_Result    `protobuf:"bytes,2,rep,name=results"`
+	xxx_hidden_Error     string                 `protobuf:"bytes,3,opt,name=error"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Response) Reset() {
@@ -201,35 +199,37 @@ func (x *Response) ProtoReflect() protoreflect.Message {
 
 func (x *Response) GetRequestID() string {
 	if x != nil {
-		return x.RequestID
+		return x.xxx_hidden_RequestID
 	}
 	return ""
 }
 
 func (x *Response) GetResults() []*Response_Result {
 	if x != nil {
-		return x.Results
+		if x.xxx_hidden_Results != nil {
+			return *x.xxx_hidden_Results
+		}
 	}
 	return nil
 }
 
 func (x *Response) GetError() string {
 	if x != nil {
-		return x.Error
+		return x.xxx_hidden_Error
 	}
 	return ""
 }
 
 func (x *Response) SetRequestID(v string) {
-	x.RequestID = v
+	x.xxx_hidden_RequestID = v
 }
 
 func (x *Response) SetResults(v []*Response_Result) {
-	x.Results = v
+	x.xxx_hidden_Results = &v
 }
 
 func (x *Response) SetError(v string) {
-	x.Error = v
+	x.xxx_hidden_Error = v
 }
 
 type Response_builder struct {
@@ -244,19 +244,19 @@ func (b0 Response_builder) Build() *Response {
 	m0 := &Response{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.RequestID = b.RequestID
-	x.Results = b.Results
-	x.Error = b.Error
+	x.xxx_hidden_RequestID = b.RequestID
+	x.xxx_hidden_Results = &b.Results
+	x.xxx_hidden_Error = b.Error
 	return m0
 }
 
 type Response_FileError struct {
-	state         protoimpl.MessageState       `protogen:"hybrid.v1"`
-	Name          string                       `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
-	Type          Response_FileError_ErrorType `protobuf:"varint,2,opt,name=type,enum=pb.Response_FileError_ErrorType" json:"type,omitempty"`
-	Message       string                       `protobuf:"bytes,3,opt,name=message" json:"message,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_Name    string                       `protobuf:"bytes,1,opt,name=name"`
+	xxx_hidden_Type    Response_FileError_ErrorType `protobuf:"varint,2,opt,name=type,enum=pb.Response_FileError_ErrorType"`
+	xxx_hidden_Message string                       `protobuf:"bytes,3,opt,name=message"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *Response_FileError) Reset() {
@@ -286,35 +286,35 @@ func (x *Response_FileError) ProtoReflect() protoreflect.Message {
 
 func (x *Response_FileError) GetName() string {
 	if x != nil {
-		return x.Name
+		return x.xxx_hidden_Name
 	}
 	return ""
 }
 
 func (x *Response_FileError) GetType() Response_FileError_ErrorType {
 	if x != nil {
-		return x.Type
+		return x.xxx_hidden_Type
 	}
 	return Response_FileError_CopyInOpenFile
 }
 
 func (x *Response_FileError) GetMessage() string {
 	if x != nil {
-		return x.Message
+		return x.xxx_hidden_Message
 	}
 	return ""
 }
 
 func (x *Response_FileError) SetName(v string) {
-	x.Name = v
+	x.xxx_hidden_Name = v
 }
 
 func (x *Response_FileError) SetType(v Response_FileError_ErrorType) {
-	x.Type = v
+	x.xxx_hidden_Type = v
 }
 
 func (x *Response_FileError) SetMessage(v string) {
-	x.Message = v
+	x.xxx_hidden_Message = v
 }
 
 type Response_FileError_builder struct {
@@ -329,26 +329,26 @@ func (b0 Response_FileError_builder) Build() *Response_FileError {
 	m0 := &Response_FileError{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Name = b.Name
-	x.Type = b.Type
-	x.Message = b.Message
+	x.xxx_hidden_Name = b.Name
+	x.xxx_hidden_Type = b.Type
+	x.xxx_hidden_Message = b.Message
 	return m0
 }
 
 type Response_Result struct {
-	state         protoimpl.MessageState     `protogen:"hybrid.v1"`
-	Status        Response_Result_StatusType `protobuf:"varint,1,opt,name=status,enum=pb.Response_Result_StatusType" json:"status,omitempty"`
-	ExitStatus    int32                      `protobuf:"varint,2,opt,name=exitStatus" json:"exitStatus,omitempty"`
-	Error         string                     `protobuf:"bytes,3,opt,name=error" json:"error,omitempty"`
-	Time          uint64                     `protobuf:"varint,4,opt,name=time" json:"time,omitempty"`
-	RunTime       uint64                     `protobuf:"varint,8,opt,name=runTime" json:"runTime,omitempty"`
-	ProcPeak      uint64                     `protobuf:"varint,10,opt,name=procPeak" json:"procPeak,omitempty"`
-	Memory        uint64                     `protobuf:"varint,5,opt,name=memory" json:"memory,omitempty"`
-	Files         map[string][]byte          `protobuf:"bytes,6,rep,name=files" json:"files,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	FileIDs       map[string]string          `protobuf:"bytes,7,rep,name=fileIDs" json:"fileIDs,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	FileError     []*Response_FileError      `protobuf:"bytes,9,rep,name=fileError" json:"fileError,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                 protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Status     Response_Result_StatusType `protobuf:"varint,1,opt,name=status,enum=pb.Response_Result_StatusType"`
+	xxx_hidden_ExitStatus int32                      `protobuf:"varint,2,opt,name=exitStatus"`
+	xxx_hidden_Error      string                     `protobuf:"bytes,3,opt,name=error"`
+	xxx_hidden_Time       uint64                     `protobuf:"varint,4,opt,name=time"`
+	xxx_hidden_RunTime    uint64                     `protobuf:"varint,8,opt,name=runTime"`
+	xxx_hidden_ProcPeak   uint64                     `protobuf:"varint,10,opt,name=procPeak"`
+	xxx_hidden_Memory     uint64                     `protobuf:"varint,5,opt,name=memory"`
+	xxx_hidden_Files      map[string][]byte          `protobuf:"bytes,6,rep,name=files" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_FileIDs    map[string]string          `protobuf:"bytes,7,rep,name=fileIDs" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_FileError  *[]*Response_FileError     `protobuf:"bytes,9,rep,name=fileError"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
 }
 
 func (x *Response_Result) Reset() {
@@ -378,112 +378,114 @@ func (x *Response_Result) ProtoReflect() protoreflect.Message {
 
 func (x *Response_Result) GetStatus() Response_Result_StatusType {
 	if x != nil {
-		return x.Status
+		return x.xxx_hidden_Status
 	}
 	return Response_Result_Invalid
 }
 
 func (x *Response_Result) GetExitStatus() int32 {
 	if x != nil {
-		return x.ExitStatus
+		return x.xxx_hidden_ExitStatus
 	}
 	return 0
 }
 
 func (x *Response_Result) GetError() string {
 	if x != nil {
-		return x.Error
+		return x.xxx_hidden_Error
 	}
 	return ""
 }
 
 func (x *Response_Result) GetTime() uint64 {
 	if x != nil {
-		return x.Time
+		return x.xxx_hidden_Time
 	}
 	return 0
 }
 
 func (x *Response_Result) GetRunTime() uint64 {
 	if x != nil {
-		return x.RunTime
+		return x.xxx_hidden_RunTime
 	}
 	return 0
 }
 
 func (x *Response_Result) GetProcPeak() uint64 {
 	if x != nil {
-		return x.ProcPeak
+		return x.xxx_hidden_ProcPeak
 	}
 	return 0
 }
 
 func (x *Response_Result) GetMemory() uint64 {
 	if x != nil {
-		return x.Memory
+		return x.xxx_hidden_Memory
 	}
 	return 0
 }
 
 func (x *Response_Result) GetFiles() map[string][]byte {
 	if x != nil {
-		return x.Files
+		return x.xxx_hidden_Files
 	}
 	return nil
 }
 
 func (x *Response_Result) GetFileIDs() map[string]string {
 	if x != nil {
-		return x.FileIDs
+		return x.xxx_hidden_FileIDs
 	}
 	return nil
 }
 
 func (x *Response_Result) GetFileError() []*Response_FileError {
 	if x != nil {
-		return x.FileError
+		if x.xxx_hidden_FileError != nil {
+			return *x.xxx_hidden_FileError
+		}
 	}
 	return nil
 }
 
 func (x *Response_Result) SetStatus(v Response_Result_StatusType) {
-	x.Status = v
+	x.xxx_hidden_Status = v
 }
 
 func (x *Response_Result) SetExitStatus(v int32) {
-	x.ExitStatus = v
+	x.xxx_hidden_ExitStatus = v
 }
 
 func (x *Response_Result) SetError(v string) {
-	x.Error = v
+	x.xxx_hidden_Error = v
 }
 
 func (x *Response_Result) SetTime(v uint64) {
-	x.Time = v
+	x.xxx_hidden_Time = v
 }
 
 func (x *Response_Result) SetRunTime(v uint64) {
-	x.RunTime = v
+	x.xxx_hidden_RunTime = v
 }
 
 func (x *Response_Result) SetProcPeak(v uint64) {
-	x.ProcPeak = v
+	x.xxx_hidden_ProcPeak = v
 }
 
 func (x *Response_Result) SetMemory(v uint64) {
-	x.Memory = v
+	x.xxx_hidden_Memory = v
 }
 
 func (x *Response_Result) SetFiles(v map[string][]byte) {
-	x.Files = v
+	x.xxx_hidden_Files = v
 }
 
 func (x *Response_Result) SetFileIDs(v map[string]string) {
-	x.FileIDs = v
+	x.xxx_hidden_FileIDs = v
 }
 
 func (x *Response_Result) SetFileError(v []*Response_FileError) {
-	x.FileError = v
+	x.xxx_hidden_FileError = &v
 }
 
 type Response_Result_builder struct {
@@ -505,16 +507,16 @@ func (b0 Response_Result_builder) Build() *Response_Result {
 	m0 := &Response_Result{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.Status = b.Status
-	x.ExitStatus = b.ExitStatus
-	x.Error = b.Error
-	x.Time = b.Time
-	x.RunTime = b.RunTime
-	x.ProcPeak = b.ProcPeak
-	x.Memory = b.Memory
-	x.Files = b.Files
-	x.FileIDs = b.FileIDs
-	x.FileError = b.FileError
+	x.xxx_hidden_Status = b.Status
+	x.xxx_hidden_ExitStatus = b.ExitStatus
+	x.xxx_hidden_Error = b.Error
+	x.xxx_hidden_Time = b.Time
+	x.xxx_hidden_RunTime = b.RunTime
+	x.xxx_hidden_ProcPeak = b.ProcPeak
+	x.xxx_hidden_Memory = b.Memory
+	x.xxx_hidden_Files = b.Files
+	x.xxx_hidden_FileIDs = b.FileIDs
+	x.xxx_hidden_FileError = &b.FileError
 	return m0
 }
 
@@ -579,7 +581,7 @@ const file_response_proto_rawDesc = "" +
 	"\x12\x13\n" +
 	"\x0fJudgementFailed\x10\v\x12\x16\n" +
 	"\x12InvalidInteraction\x10\f\x12\x11\n" +
-	"\rInternalError\x10\rB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x02\b\x02b\beditionsp\xe8\a"
+	"\rInternalError\x10\rB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
 
 var file_response_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
 var file_response_proto_msgTypes = make([]protoimpl.MessageInfo, 5)

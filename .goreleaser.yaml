@@ -76,18 +76,18 @@ builds:
     tags:
       - nomsgpack
       - grpcnotrace
-  - main: ./cmd/go-judge-ffi
-    binary: go-judge-ffi
-    id: go-judge-ffi
-    env:
-      - CGO_ENABLED=1
-    buildmode: c-shared
-    goos:
-      - linux
-    goarch:
-      - amd64
-    goamd64:
-      - v2
+  # - main: ./cmd/go-judge-ffi
+  #   binary: go-judge-ffi
+  #   id: go-judge-ffi
+  #   env:
+  #     - CGO_ENABLED=1
+  #   buildmode: c-shared
+  #   goos:
+  #     - linux
+  #   goarch:
+  #     - amd64
+  #   goamd64:
+  #     - v2
   - main: ./cmd/go-judge-init
     binary: go-judge-init
     id: go-judge-init
@@ -148,7 +148,7 @@ dockers_v2:
       - linux/amd64
       - linux/arm64
       - linux/arm/v7
-      - linux/arm/v5
+      #- linux/arm/v5 disable for now: https://github.com/orgs/goreleaser/discussions/6005
       - linux/ppc64le
       - linux/s390x
       - linux/riscv64

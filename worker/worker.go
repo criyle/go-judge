@@ -391,6 +391,7 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool) (*envexec.Cmd,
 		CopyOut:           copyOut,
 		CopyOutDir:        copyOutDir,
 		CopyOutMax:        copyOutMax,
+		CopyOutTruncate:   rc.CopyOutTruncate,
 		Waiter:            wait.Wait,
 	}, nil
 }

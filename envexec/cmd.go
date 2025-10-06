@@ -50,8 +50,9 @@ type Cmd struct {
 	Waiter func(context.Context, Process) bool
 
 	// file names to copyout after exec
-	CopyOut    []CmdCopyOutFile
-	CopyOutMax Size // file size limit
+	CopyOut         []CmdCopyOutFile
+	CopyOutMax      Size // file size limit
+	CopyOutTruncate bool
 
 	// CopyOutDir specifies a dir to dump all /w content
 	CopyOutDir string

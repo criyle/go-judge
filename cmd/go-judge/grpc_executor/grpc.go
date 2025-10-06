@@ -211,6 +211,7 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix []string) (cm worker.Cmd, err
 		CopyOutCached:     convertCopyOut(c.GetCopyOutCached()),
 		CopyOutMax:        c.GetCopyOutMax(),
 		CopyOutDir:        c.GetCopyOutDir(),
+		CopyOutTruncate:   c.GetCopyOutTruncate(),
 		Symlinks:          c.GetSymlinks(),
 	}
 	for _, f := range c.GetFiles() {

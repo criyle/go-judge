@@ -571,6 +571,7 @@ func generateHandleVersion(_ *config.Config, _ map[string]any) func(*gin.Context
 			"addressSpaceLimit": true,
 			"stream":            true,
 			"procPeak":          true,
+			"copyOutTruncate":   true,
 		})
 	}
 }
@@ -584,6 +585,7 @@ func generateHandleConfig(conf *config.Config, builderParam map[string]any) func
 			"addressSpaceLimit": true,
 			"stream":            true,
 			"procPeak":          true,
+			"copyOutTruncate":   true,
 			"fileStorePath":     conf.Dir,
 			"runnerConfig":      builderParam,
 		})

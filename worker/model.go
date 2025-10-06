@@ -34,10 +34,11 @@ type Cmd struct {
 	CopyIn   map[string]CmdFile
 	Symlinks map[string]string
 
-	CopyOut       []CmdCopyOutFile
-	CopyOutCached []CmdCopyOutFile
-	CopyOutMax    uint64
-	CopyOutDir    string
+	CopyOut         []CmdCopyOutFile
+	CopyOutCached   []CmdCopyOutFile
+	CopyOutMax      uint64
+	CopyOutDir      string
+	CopyOutTruncate bool
 
 	TTY               bool
 	DataSegmentLimit  bool

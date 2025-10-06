@@ -98,7 +98,10 @@ func copyOutFile(
 	s := stat.Size()
 	if c.CopyOutMax > 0 && s > int64(c.CopyOutMax) {
 		t = ErrCopyOutSizeExceeded
-		return fmt.Errorf("copyout: %q size (%d) exceeds limit (%d)", n.Name, s, c.CopyOutMax)
+		if !c.CopyOutTruncate {
+			return fmt.Errorf("copyout: %q size (%d) exceeds limit (%d)", n.Name, s, c.CopyOutMax)
+		}
+		s = int64(c.CopyOutMax) + 1
 	}
 	// create store file
 	buf, err := newStoreFile()
@@ -108,13 +111,17 @@ func copyOutFile(
 	}
 
 	// Ensure not copy over file size
-	_, err = buf.ReadFrom(io.LimitReader(cf, s))
+	s, err = buf.ReadFrom(io.LimitReader(cf, s))
 	if err != nil {
 		t = ErrCopyOutCopyContent
 		buf.Close()
 		return fmt.Errorf("copyout: failed to copy content for %q: %w", n.Name, err)
 	}
 	put(buf, n.Name)
+	if s > int64(c.CopyOutMax) {
+		t = ErrCopyOutSizeExceeded
+		return fmt.Errorf("copyout: %q size (%d) exceeds limit (%d)", n.Name, s, c.CopyOutMax)
+	}
 	return nil
 }
 

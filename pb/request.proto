@@ -60,6 +60,7 @@ message Request {
     repeated CmdCopyOutFile copyOutCached = 10;
     string copyOutDir = 11;
     uint64 copyOutMax = 14;
+    bool copyOutTruncate = 20;
   }
 
   message CmdCopyOutFile {

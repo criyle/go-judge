@@ -27,6 +27,8 @@ jobs:
             go.sum
       - name: Remove unsupported tags
         run: git tag -d $(git tag -l "pb/*")
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         if: ${{ contains(github.ref, 'v') }}

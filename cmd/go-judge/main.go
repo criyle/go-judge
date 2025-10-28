@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/criyle/go-judge/cmd/go-judge/config"
@@ -106,9 +107,21 @@ func main() {
 	newForceGCWorker(conf)
 
 	// Graceful shutdown...
-	signal.Notify(sig, os.Interrupt)
-	<-sig
-	signal.Reset(os.Interrupt)
+	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
+loop:
+	for s := range sig {
+		switch s {
+		case syscall.SIGINT:
+			break loop
+		case syscall.SIGTERM:
+			if isManagedByPM2() {
+				logger.Info("running with PM2, received SIGTERM (from systemd), ignoring")
+			} else {
+				break loop
+			}
+		}
+	}
+	signal.Reset(syscall.SIGINT, syscall.SIGTERM)
 
 	logger.Info("Shutting Down...")
 
@@ -590,4 +603,19 @@ func generateHandleConfig(conf *config.Config, builderParam map[string]any) func
 			"runnerConfig":      builderParam,
 		})
 	}
+}
+
+func isManagedByPM2() bool {
+	// List of environment variables that pm2 typically sets.
+	pm2EnvVars := []string{
+		"PM2_HOME",
+		"PM2_JSON_PROCESSING",
+		"NODE_APP_INSTANCE",
+	}
+	for _, v := range pm2EnvVars {
+		if os.Getenv(v) != "" {
+			return true
+		}
+	}
+	return false
 }

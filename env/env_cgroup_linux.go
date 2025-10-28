@@ -76,6 +76,7 @@ func startTransientUnit(conn *dbus.Conn, scopeName string, logger *zap.Logger) e
 		dbus.PropWants(scopeName),
 		dbus.PropPids(uint32(os.Getpid())),
 		newSystemdProperty("Delegate", true),
+		newSystemdProperty("KillMode", "process"),
 	}
 	ch := make(chan string, 1)
 	if _, err := conn.StartTransientUnitContext(context.TODO(), scopeName, "replace", properties, ch); err != nil {

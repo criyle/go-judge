@@ -44,10 +44,10 @@ mount:
   - type: bind
     source: /dev/null
     target: /dev/null
-  # java 17 wants /etc/java-17-openjdk
+  # java 21 wants /etc/java-21-openjdk
   - type: bind
-    source: /etc/java-17-openjdk
-    target: /etc/java-17-openjdk
+    source: /etc/java-21-openjdk
+    target: /etc/java-21-openjdk
     readonly: true
   # node wants /dev/urandom
   - type: bind

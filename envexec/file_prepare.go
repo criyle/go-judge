@@ -208,6 +208,26 @@ func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.Fi
 			}
 			files[j] = w
 
+		case *fileStreamIn:
+			out, in, err := os.Pipe()
+			if err != nil {
+				return nil, nil, fmt.Errorf("pipe: stream in create: %w", err)
+			}
+			files[j] = out
+			sf := newSharedFile(in)
+			sf.Acquire()
+			t.start(sf)
+
+		case *fileStreamOut:
+			out, in, err := os.Pipe()
+			if err != nil {
+				return nil, nil, fmt.Errorf("pipe: stream out create: %w", err)
+			}
+			files[j] = in
+			sf := newSharedFile(out)
+			sf.Acquire()
+			t.start(sf)
+
 		default:
 			return nil, nil, fmt.Errorf("unknown file type: %T", t)
 		}

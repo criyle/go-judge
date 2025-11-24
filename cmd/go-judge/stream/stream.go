@@ -128,8 +128,8 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 
 	cancel()
 	closeFunc()
-	wg.Wait()
-	return err
+	err2 := wg.Wait()
+	return errors.Join(err, err2)
 }
 
 func sendLoop(ctx context.Context, s Stream, outCh chan *OutputResponse, rtCh <-chan worker.Response, logger *zap.Logger) error {

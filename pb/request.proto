@@ -79,7 +79,7 @@ message Request {
     bool proxy = 3;
     string name = 4;
     uint64 max = 5;
-    bool disableNoCopy = 6;
+    bool disableZeroCopy = 6;
   }
 
   string requestID = 1;

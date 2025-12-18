@@ -585,6 +585,7 @@ func generateHandleVersion(_ *config.Config, _ map[string]any) func(*gin.Context
 			"stream":            true,
 			"procPeak":          true,
 			"copyOutTruncate":   true,
+			"pipeProxyZeroCopy": true,
 		})
 	}
 }
@@ -599,6 +600,7 @@ func generateHandleConfig(conf *config.Config, builderParam map[string]any) func
 			"stream":            true,
 			"procPeak":          true,
 			"copyOutTruncate":   true,
+			"pipeProxyZeroCopy": true,
 			"fileStorePath":     conf.Dir,
 			"runnerConfig":      builderParam,
 		})

@@ -68,11 +68,12 @@ type PipeIndex struct {
 
 // PipeMap defines in / out pipe for multiple program
 type PipeMap struct {
-	In    PipeIndex `json:"in"`
-	Out   PipeIndex `json:"out"`
-	Name  string    `json:"name"`
-	Max   int64     `json:"max"`
-	Proxy bool      `json:"proxy"`
+	In              PipeIndex `json:"in"`
+	Out             PipeIndex `json:"out"`
+	Name            string    `json:"name"`
+	Max             int64     `json:"max"`
+	Proxy           bool      `json:"proxy"`
+	DisableZeroCopy bool      `json:"disableZeroCopy"`
 }
 
 // Request defines single worker request
@@ -289,9 +290,10 @@ func convertPipe(p PipeMap) worker.PipeMap {
 			Index: p.Out.Index,
 			Fd:    p.Out.Fd,
 		},
-		Proxy: p.Proxy,
-		Name:  p.Name,
-		Limit: worker.Size(p.Max),
+		Proxy:           p.Proxy,
+		Name:            p.Name,
+		Limit:           worker.Size(p.Max),
+		DisableZeroCopy: p.DisableZeroCopy,
 	}
 }
 

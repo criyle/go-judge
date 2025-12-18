@@ -327,8 +327,11 @@ func pipe(p Pipe, newStoreFile NewStoreFile) (out *os.File, in *os.File, pc *pip
 			buffer.Close()
 			return nil, nil, nil, fmt.Errorf("pipe: create: %w", err)
 		}
-
-		pc := pipeProxy(p, out1, in2, buffer)
+		if p.DisableZeroCopy {
+			pc = pipeProxy(p, out1, in2, buffer)
+		} else {
+			pc = pipeProxyZeroCopy(p, out1, in2, buffer)
+		}
 		return out2, in1, pc, nil
 	}
 
@@ -373,8 +376,13 @@ func pipeProxy(p Pipe, out1 *os.File, in2 *os.File, buffer *os.File) *pipeCollec
 	// out1 -> in2
 	go func() {
 		// copy with limit
-		r := io.TeeReader(io.LimitReader(out1, int64(limit)), buffer)
-		io.Copy(in2, r)
+		lr := io.LimitReader(out1, int64(limit))
+		r := io.TeeReader(lr, buffer)
+
+		n, _ := io.Copy(in2, r)
+		if n < int64(limit) {
+			io.Copy(buffer, lr)
+		}
 		close(done)
 
 		// copy without limit

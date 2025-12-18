@@ -93,11 +93,12 @@ func convertPBStreamRequest(req *pb.Request) *model.Request {
 	}
 	for _, p := range req.GetPipeMapping() {
 		ret.PipeMapping = append(ret.PipeMapping, model.PipeMap{
-			In:    convertPBStreamPipeIndex(p.GetIn()),
-			Out:   convertPBStreamPipeIndex(p.GetOut()),
-			Max:   int64(p.GetMax()),
-			Name:  p.GetName(),
-			Proxy: p.GetProxy(),
+			In:              convertPBStreamPipeIndex(p.GetIn()),
+			Out:             convertPBStreamPipeIndex(p.GetOut()),
+			Max:             int64(p.GetMax()),
+			Name:            p.GetName(),
+			Proxy:           p.GetProxy(),
+			DisableZeroCopy: p.GetDisableZeroCopy(),
 		})
 	}
 	return ret

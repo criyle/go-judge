@@ -40,6 +40,9 @@ type Pipe struct {
 
 	// Proxy creates 2 pipe and connects them by copying data
 	Proxy bool
+
+	// Disable no copy on Linux
+	DisableZeroCopy bool
 }
 
 // Run starts the cmd and returns exec results

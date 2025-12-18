@@ -18,8 +18,8 @@ github.com/coreos/go-systemd/v22 v22.6.0 h1:aGVa/v8B7hpb0TKl0MWoAavPDmHvobFe5R5z
 github.com/coreos/go-systemd/v22 v22.6.0/go.mod h1:iG+pp635Fo7ZmV/j14KUcmEyWF+0X7Lua8rrTWzYgWU=
 github.com/creack/pty v1.1.24 h1:bJrF4RRfyJnbTJqzRLHzcGaZK1NeM5kTC9jGgovnR1s=
 github.com/creack/pty v1.1.24/go.mod h1:08sCNb52WyoAwi2QDyzUCTgcvVFhUzewun7wtTfvcwE=
-github.com/criyle/go-judge/pb v1.3.0 h1:QTbamTUME3kk7h5Ec0uj0KHUnq1TXv+5oMV/hu2D1c8=
-github.com/criyle/go-judge/pb v1.3.0/go.mod h1:cC5K87NU3T1+dECrqOD2RcEFPK3YKd0J5bad5iIwLOA=
+github.com/criyle/go-judge/pb v1.3.2 h1:S0c0EqRF+xePOwcZxSb9mPV+bkXgfOX9f7SQMrcdeb4=
+github.com/criyle/go-judge/pb v1.3.2/go.mod h1:QfjmF1w4t5ODXikuUcy8Alqb901R6p0HDxJXGKZy0NE=
 github.com/criyle/go-sandbox v0.11.8 h1:u75C1dhEHrnLSrl/npYKtCnoetrSbmZ/MsoX2+WGyiA=
 github.com/criyle/go-sandbox v0.11.8/go.mod h1:XBP0h9fE3hexobrclZ3UtTmrETfsqUI1SR67qlUWBrk=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

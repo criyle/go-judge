@@ -133,7 +133,7 @@ func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, erro
 			return nil, fmt.Errorf("openatworkdir: %w", err)
 		}
 	}
-	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_CLOEXEC, uint32(perm))
+	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, uint32(perm))
 	if err != nil {
 		return nil, &os.PathError{Op: "open", Path: path, Err: err}
 	}

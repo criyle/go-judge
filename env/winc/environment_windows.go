@@ -30,7 +30,6 @@ var (
 type Environment struct {
 	root  string
 	tmp   string
-	wd    *os.File
 	token windows.Token
 	sd    *windows.SECURITY_DESCRIPTOR
 }
@@ -278,31 +277,44 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 	return procSet, nil
 }
 
-// WorkDir returns the work directory
-func (e *Environment) WorkDir() *os.File {
-	e.wd.Seek(0, 0)
-	return e.wd
+func (e *Environment) Open(params []envexec.OpenParam) ([]envexec.OpenResult, error) {
+	results := make([]envexec.OpenResult, len(params))
+	for i, param := range params {
+		fullPath := filepath.Join(e.root, param.Path)
+		if param.MkdirAll {
+			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+				results[i] = envexec.OpenResult{Err: err}
+				continue
+			}
+		}
+		f, err := os.OpenFile(fullPath, param.Flag, param.Perm)
+		if err != nil {
+			results[i] = envexec.OpenResult{Err: err}
+		} else {
+			results[i] = envexec.OpenResult{File: f}
+		}
+	}
+	return results, nil
 }
 
-// Open opens file related to root
-func (e *Environment) Open(p string, flags int, perm os.FileMode) (*os.File, error) {
-	return os.OpenFile(filepath.Join(e.root, p), flags, perm)
-}
-
-func (e *Environment) MkdirAll(p string, perm os.FileMode) error {
-	return os.MkdirAll(filepath.Join(e.root, p), perm)
-}
-
-func (e *Environment) Symlink(oldName, newName string) error {
-	return os.Symlink(oldName, filepath.Join(e.root, newName))
+func (e *Environment) Symlink(params []envexec.SymlinkParam) []error {
+	errs := make([]error, len(params))
+	for i, l := range params {
+		fullLinkPath := filepath.Join(e.root, l.LinkPath)
+		if err := os.Symlink(l.Target, fullLinkPath); err != nil {
+			errs[i] = err
+		} else {
+			errs[i] = nil
+		}
+	}
+	return errs
 }
 
 // Destroy destroys the environment
 func (e *Environment) Destroy() error {
 	// error is ignorable for destroy operation
 	os.RemoveAll(e.root)
-	os.RemoveAll(e.tmp)
-	return e.wd.Close()
+	return os.RemoveAll(e.tmp)
 }
 
 // Reset remove all files in root directory

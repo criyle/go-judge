@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/rlimit"
 	"github.com/criyle/go-sandbox/runner"
-	"golang.org/x/sys/unix"
 )
 
 var _ envexec.Environment = &environ{}
@@ -23,7 +21,6 @@ var _ envexec.Environment = &environ{}
 type environ struct {
 	container.Environment
 	cgPool  CgroupPool
-	wd      *os.File // container work dir
 	workDir string
 	cpuset  string
 	seccomp []syscall.SockFilter
@@ -118,99 +115,40 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	return proc, nil
 }
 
-// WorkDir returns opened work directory, should not close after
-func (c *environ) WorkDir() *os.File {
-	c.wd.Seek(0, 0)
-	return c.wd
-}
-
 // Open opens file relative to work directory
-func (c *environ) Open(path string, flags int, perm os.FileMode) (*os.File, error) {
-	if filepath.IsAbs(path) {
-		var err error
-		path, err = filepath.Rel(c.workDir, path)
-		if err != nil {
-			return nil, fmt.Errorf("openatworkdir: %w", err)
-		}
+func (c *environ) Open(params []envexec.OpenParam) ([]envexec.OpenResult, error) {
+	openCmd := make([]container.OpenCmd, 0, len(params))
+	for _, p := range params {
+		openCmd = append(openCmd, container.OpenCmd{
+			Path:     p.Path,
+			Flag:     p.Flag,
+			Perm:     p.Perm,
+			MkdirAll: p.MkdirAll,
+		})
 	}
-	fd, err := syscall.Openat(int(c.wd.Fd()), path, flags|syscall.O_NOFOLLOW|syscall.O_CLOEXEC, uint32(perm))
+	rt, err := c.Environment.Open(openCmd)
 	if err != nil {
-		return nil, &os.PathError{Op: "open", Path: path, Err: err}
+		return nil, err
 	}
-	f := os.NewFile(uintptr(fd), path)
-	if f == nil {
-		return nil, fmt.Errorf("openatworkdir: failed to create file")
+	ret := make([]envexec.OpenResult, 0, len(rt))
+	for _, r := range rt {
+		ret = append(ret, envexec.OpenResult{
+			File: r.File,
+			Err:  r.Err,
+		})
 	}
-	return f, nil
+	return ret, nil
 }
 
-// MkdirAll equivalent to os.MkdirAll but in container
-func (c *environ) MkdirAll(path string, perm os.FileMode) error {
-	if path == "" || path == "." {
-		return nil
+func (c *environ) Symlink(params []envexec.SymlinkParam) []error {
+	symlink := make([]container.SymbolicLink, 0, len(params))
+	for _, p := range params {
+		symlink = append(symlink, container.SymbolicLink{
+			LinkPath: p.LinkPath,
+			Target:   p.Target,
+		})
 	}
-	if filepath.IsAbs(path) {
-		r, err := filepath.Rel(c.workDir, path)
-		if err != nil {
-			return &os.PathError{Op: "mkdir", Path: path, Err: syscall.EINVAL}
-		}
-		return c.MkdirAll(r, perm)
-	}
-	// fast path
-	wd := int(c.wd.Fd())
-	var stat unix.Stat_t
-	err := unix.Fstatat(wd, path, &stat, 0)
-	if err == nil {
-		if stat.Mode&syscall.S_IFMT == syscall.S_IFDIR {
-			return nil
-		}
-		return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
-	}
-	// slow path
-	// Slow path: make sure parent exists and then call Mkdir for path.
-	i := len(path)
-	for i > 0 && os.IsPathSeparator(path[i-1]) { // Skip trailing path separator.
-		i--
-	}
-
-	j := i
-	for j > 0 && !os.IsPathSeparator(path[j-1]) { // Scan backward over element.
-		j--
-	}
-
-	if j > 1 {
-		// Create parent.
-		err = c.MkdirAll(path[:j-1], perm)
-		if err != nil {
-			return err
-		}
-	}
-	err = syscall.Mkdirat(wd, path, uint32(perm.Perm()))
-	if err != nil {
-		err1 := unix.Fstatat(wd, path, &stat, 0)
-		if err1 == nil && stat.Mode&syscall.S_IFMT == syscall.S_IFDIR {
-			return nil
-		}
-		return err
-	}
-	return nil
-}
-
-func (c *environ) Symlink(oldName, newName string) error {
-	var err error
-	if filepath.IsAbs(newName) {
-		newName, err = filepath.Rel(c.workDir, newName)
-		if err != nil {
-			return &os.PathError{Op: "symlink", Path: newName, Err: syscall.EINVAL}
-		}
-	}
-	if filepath.IsAbs(oldName) {
-		oldName, err = filepath.Rel(c.workDir, oldName)
-		if err != nil {
-			return &os.PathError{Op: "symlink", Path: oldName, Err: syscall.EINVAL}
-		}
-	}
-	return unix.Symlinkat(oldName, int(c.wd.Fd()), newName)
+	return c.Environment.Symlink(symlink)
 }
 
 func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {

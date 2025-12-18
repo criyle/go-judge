@@ -31,7 +31,7 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 	}
 	// symlink
 	if fe, err := symlink(m, c.SymLinks); err != nil {
-		resultFileError(err, []FileError{*fe})
+		resultFileError(err, fe)
 		return result, nil
 	}
 

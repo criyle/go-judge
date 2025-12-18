@@ -31,12 +31,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 	}
 
 	// copy out files
-	for _, n := range c.CopyOut {
-		n := n
-		g.Go(func() error {
-			return copyOutFile(m, c, n, newStoreFile, put, addError)
-		})
-	}
+	copyOutFiles(&g, m, c, newStoreFile, put, addError)
 
 	// collect pipes
 	for _, p := range ptc {
@@ -46,19 +41,61 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 		})
 	}
 
-	// copy out dir
-	if c.CopyOutDir != "" {
-		g.Go(func() error {
-			return copyDir(m.WorkDir(), c.CopyOutDir)
-		})
-	}
+	// copy out dir, disable for safety
+	// if c.CopyOutDir != "" {
+	// 	g.Go(func() error {
+	// 		return copyDir(m.WorkDir(), c.CopyOutDir)
+	// 	})
+	// }
 
 	err := g.Wait()
 	return rt, fileError, err
 }
 
-func copyOutFile(
-	m Environment,
+func copyOutFiles(g *errgroup.Group, m Environment, c *Cmd, newStoreFile NewStoreFile, put func(*os.File, string), addError func(FileError)) error {
+	cmds := make([]OpenParam, 0, len(c.CopyOut))
+	for _, n := range c.CopyOut {
+		cmds = append(cmds, OpenParam{
+			Path: n.Name,
+			Flag: os.O_RDONLY,
+			Perm: 0777,
+		})
+	}
+
+	results, err := m.Open(cmds)
+	if err != nil {
+		return fmt.Errorf("copyout: batch open failed: %w", err)
+	}
+
+	for i, res := range results {
+		i, res := i, res
+		n := c.CopyOut[i]
+
+		if res.Err != nil {
+			if errors.Is(res.Err, os.ErrNotExist) && n.Optional {
+				continue
+			}
+			addError(FileError{
+				Name:    n.Name,
+				Type:    ErrCopyOutOpen,
+				Message: res.Err.Error(),
+			})
+			continue
+		}
+
+		// Parallelize the I/O heavy part (stat and data streaming)
+		g.Go(func() error {
+			// Ensure the file received from the container is always closed
+			defer res.File.Close()
+			return copyOutFileStream(res.File, c, n, newStoreFile, put, addError)
+		})
+	}
+
+	return g.Wait()
+}
+
+func copyOutFileStream(
+	cf *os.File, // The file already opened via batch IPC
 	c *Cmd,
 	n CmdCopyOutFile,
 	newStoreFile NewStoreFile,
@@ -76,51 +113,49 @@ func copyOutFile(
 		}
 	}()
 
-	cf, err := m.Open(n.Name, os.O_RDONLY, 0777)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) && n.Optional {
-			return nil
-		}
-		return err
-	}
-	defer cf.Close()
-
 	stat, err := cf.Stat()
 	if err != nil {
 		return fmt.Errorf("copyout: stat %q: %w", n.Name, err)
 	}
-	// check regular file
+
+	// Check regular file
 	if stat.Mode()&os.ModeType != 0 {
 		t = ErrCopyOutNotRegularFile
 		return fmt.Errorf("copyout: %q is not a regular file: %v", n.Name, stat.Mode())
 	}
-	// check size limit
+
+	// Check size limit
 	s := stat.Size()
+	limitExceeded := false
 	if c.CopyOutMax > 0 && s > int64(c.CopyOutMax) {
-		t = ErrCopyOutSizeExceeded
 		if !c.CopyOutTruncate {
+			t = ErrCopyOutSizeExceeded
 			return fmt.Errorf("copyout: %q size (%d) exceeds limit (%d)", n.Name, s, c.CopyOutMax)
 		}
-		s = int64(c.CopyOutMax) + 1
+		s = int64(c.CopyOutMax)
+		limitExceeded = true
 	}
-	// create store file
+
+	// Create store file
 	buf, err := newStoreFile()
 	if err != nil {
 		t = ErrCopyOutCreateFile
 		return fmt.Errorf("copyout: failed to create store file for %q: %w", n.Name, err)
 	}
 
-	// Ensure not copy over file size
-	s, err = buf.ReadFrom(io.LimitReader(cf, s))
+	// Stream content
+	written, err := buf.ReadFrom(io.LimitReader(cf, s))
 	if err != nil {
 		t = ErrCopyOutCopyContent
 		buf.Close()
 		return fmt.Errorf("copyout: failed to copy content for %q: %w", n.Name, err)
 	}
 	put(buf, n.Name)
-	if s > int64(c.CopyOutMax) {
+
+	// If we truncated or if the file grew during read beyond the limit
+	if limitExceeded || (c.CopyOutMax > 0 && written > int64(c.CopyOutMax)) {
 		t = ErrCopyOutSizeExceeded
-		return fmt.Errorf("copyout: %q size (%d) exceeds limit (%d)", n.Name, s, c.CopyOutMax)
+		return fmt.Errorf("copyout: %q size exceeds limit (%d)", n.Name, c.CopyOutMax)
 	}
 	return nil
 }

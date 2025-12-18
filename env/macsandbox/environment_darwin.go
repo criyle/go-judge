@@ -132,20 +132,37 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 	return p, nil
 }
 
-func (e *environment) WorkDir() *os.File {
-	return e.wd
+func (e *environment) Open(params []envexec.OpenParam) ([]envexec.OpenResult, error) {
+	results := make([]envexec.OpenResult, len(params))
+	for i, param := range params {
+		fullPath := filepath.Join(e.wdPath, param.Path)
+		if param.MkdirAll {
+			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+				results[i] = envexec.OpenResult{Err: err}
+				continue
+			}
+		}
+		f, err := os.OpenFile(fullPath, param.Flag, param.Perm)
+		if err != nil {
+			results[i] = envexec.OpenResult{Err: err}
+		} else {
+			results[i] = envexec.OpenResult{File: f}
+		}
+	}
+	return results, nil
 }
 
-func (e *environment) Open(p string, flags int, perm os.FileMode) (*os.File, error) {
-	return os.OpenFile(filepath.Join(e.wdPath, p), flags, perm)
-}
-
-func (e *environment) MkdirAll(p string, perm os.FileMode) error {
-	return os.MkdirAll(filepath.Join(e.wdPath, p), perm)
-}
-
-func (e *environment) Symlink(oldName, newName string) error {
-	return os.Symlink(oldName, filepath.Join(e.wdPath, newName))
+func (e *environment) Symlink(params []envexec.SymlinkParam) []error {
+	errs := make([]error, len(params))
+	for i, l := range params {
+		fullLinkPath := filepath.Join(e.wdPath, l.LinkPath)
+		if err := os.Symlink(l.Target, fullLinkPath); err != nil {
+			errs[i] = err
+		} else {
+			errs[i] = nil
+		}
+	}
+	return errs
 }
 
 func (e *environment) Destroy() error {

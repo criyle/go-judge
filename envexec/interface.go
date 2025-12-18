@@ -54,16 +54,34 @@ type Process interface {
 	Usage() Usage          // Usage retrieves the process usage during the run time
 }
 
+// OpenParam represent a open call in the environment
+type OpenParam struct {
+	Path     string
+	Flag     int
+	Perm     os.FileMode
+	MkdirAll bool
+}
+
+// OpenResult represent a result from a open call, it should
+// be either a opened file or an error
+type OpenResult struct {
+	File *os.File
+	Err  error
+}
+
+// SymlinkParam represent parameters for symlink call
+type SymlinkParam struct {
+	LinkPath string
+	Target   string
+}
+
 // Environment defines the interface to access container execution environment
 type Environment interface {
 	Execve(context.Context, ExecveParam) (Process, error)
-	WorkDir() *os.File // WorkDir returns opened work directory, should not close after
 	// Open open file at work dir with given relative path and flags
-	Open(path string, flags int, perm os.FileMode) (*os.File, error)
-	// Make dir creates directory inside the container
-	MkdirAll(path string, perm os.FileMode) error
+	Open([]OpenParam) ([]OpenResult, error)
 	// Make symbolic link for a file / directory
-	Symlink(oldName, newName string) error
+	Symlink([]SymlinkParam) []error
 }
 
 // NewStoreFile creates a new file in storage

@@ -59,14 +59,9 @@ func (b *builder) Build() (pool.Environment, error) {
 		return nil, err
 	}
 
-	wd, err := os.Open(workDir)
-	if err != nil {
-		return nil, err
-	}
 	return &Environment{
 		root:  workDir,
 		tmp:   tmpDir,
-		wd:    wd,
 		token: b.token,
 		sd:    b.sd,
 	}, nil

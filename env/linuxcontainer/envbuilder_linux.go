@@ -1,11 +1,9 @@
 package linuxcontainer
 
 import (
-	"fmt"
 	"syscall"
 
 	"github.com/criyle/go-judge/env/pool"
-	"github.com/criyle/go-sandbox/container"
 )
 
 // Config specifies configuration to build environment builder
@@ -48,18 +46,9 @@ func (b *environmentBuilder) Build() (pool.Environment, error) {
 	if err != nil {
 		return nil, err
 	}
-	wd, err := m.Open([]container.OpenCmd{{
-		Path: b.workDir,
-		Flag: syscall.O_CLOEXEC | syscall.O_DIRECTORY,
-		Perm: 0777,
-	}})
-	if err != nil {
-		return nil, fmt.Errorf("container: failed to prepare work directory")
-	}
 	return &environ{
 		Environment: m,
 		cgPool:      b.cgPool,
-		wd:          wd[0],
 		workDir:     b.workDir,
 		cpuset:      b.cpuset,
 		cpuRate:     b.cpuRate,

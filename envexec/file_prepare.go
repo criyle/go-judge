@@ -134,6 +134,20 @@ func prepareCmdFdTTY(c *Cmd, count int, newStoreFile NewStoreFile) (f []*os.File
 func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.File, p []pipeCollector, err error) {
 	files := make([]*os.File, count)
 	pipeToCollect := make([]pipeCollector, 0)
+	// record the same file to avoid multiple file open
+	cf := make(map[string]*os.File)
+
+	type collectorBatchResult struct {
+		writePart *os.File
+		readPart  *os.File
+	}
+	batchMap := make(map[string]collectorBatchResult)
+
+	var batchCmds []OpenParam
+	var batchMeta []struct {
+		name   string
+		isRead bool
+	}
 	defer func() {
 		if err != nil {
 			closeFiles(files...)
@@ -141,10 +155,74 @@ func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.Fi
 				<-p.done
 				p.buffer.Close()
 			}
+			for _, res := range batchMap {
+				if res.writePart != nil {
+					res.writePart.Close()
+				}
+				if res.readPart != nil {
+					res.readPart.Close()
+				}
+			}
 		}
 	}()
-	// record the same file to avoid multiple file open
-	cf := make(map[string]*os.File)
+
+	for _, t := range c.Files {
+		if tc, ok := t.(*FileCollector); ok && !tc.Pipe {
+			if _, ok := cf[tc.Name]; ok {
+				continue
+			}
+			if _, ok := batchMap[tc.Name]; ok {
+				continue
+			}
+
+			batchCmds = append(batchCmds,
+				OpenParam{Path: tc.Name, Flag: os.O_CREATE | os.O_WRONLY, Perm: 0777},
+				OpenParam{Path: tc.Name, Flag: os.O_RDWR, Perm: 0777},
+			)
+			batchMeta = append(batchMeta,
+				struct {
+					name   string
+					isRead bool
+				}{tc.Name, false},
+				struct {
+					name   string
+					isRead bool
+				}{tc.Name, true},
+			)
+		}
+	}
+
+	if len(batchCmds) > 0 {
+		results, err := c.Environment.Open(batchCmds)
+		if err != nil {
+			return nil, nil, fmt.Errorf("batch open: %w", err)
+		}
+		err = func() error {
+			for i, res := range results {
+				if res.Err != nil {
+					return fmt.Errorf("container: %s: %w", batchMeta[i].name, res.Err)
+				}
+				meta := batchMeta[i]
+				entry := batchMap[meta.name]
+				if !meta.isRead {
+					entry.writePart = res.File
+				} else {
+					entry.readPart = res.File
+				}
+				batchMap[meta.name] = entry
+			}
+			return nil
+		}()
+		if err != nil {
+			for _, res := range results {
+				if res.File != nil {
+					res.File.Close()
+				}
+			}
+			return nil, nil, err
+		}
+	}
+
 	prepareFileCollector := func(t *FileCollector) (*os.File, error) {
 		if f, ok := cf[t.Name]; ok {
 			return f, nil
@@ -159,18 +237,11 @@ func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.Fi
 			pipeToCollect = append(pipeToCollect, pipeCollector{b.Done, b.Buffer, t.Limit, t.Name, true})
 			return b.W, nil
 		} else {
-			f, err := c.Environment.Open(t.Name, os.O_CREATE|os.O_WRONLY, 0777)
-			if err != nil {
-				return nil, fmt.Errorf("container: create file %v: %w", t.Name, err)
-			}
-			buffer, err := c.Environment.Open(t.Name, os.O_RDWR, 0777)
-			if err != nil {
-				f.Close()
-				return nil, fmt.Errorf("container: open created file %v: %w", t.Name, err)
-			}
-			cf[t.Name] = f
-			pipeToCollect = append(pipeToCollect, pipeCollector{closedChan, buffer, t.Limit, t.Name, false})
-			return f, nil
+			res := batchMap[t.Name]
+			cf[t.Name] = res.writePart
+			pipeToCollect = append(pipeToCollect, pipeCollector{closedChan, res.readPart, t.Limit, t.Name, false})
+			delete(batchMap, t.Name)
+			return res.writePart, nil
 		}
 	}
 

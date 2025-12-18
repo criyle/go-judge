@@ -72,6 +72,8 @@ require (
 )
 
 retract (
+	// Symbolic resolution may leak file content on host file system
+	[v0.3.0, v1.10.0]
 	// File descripter leak when multiple container fork at the same time
 	[v0.9.5, v1.1.4]
 	// Old version, don't use

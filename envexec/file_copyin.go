@@ -93,7 +93,10 @@ func symlink(m Environment, symlinks map[string]string) ([]FileError, error) {
 		})
 	}
 
-	errs := m.Symlink(batch)
+	errs, err := m.Symlink(batch)
+	if err != nil {
+		return nil, err
+	}
 	var fileErrors []FileError
 	for i, err := range errs {
 		if err != nil {

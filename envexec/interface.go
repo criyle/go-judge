@@ -81,7 +81,7 @@ type Environment interface {
 	// Open open file at work dir with given relative path and flags
 	Open([]OpenParam) ([]OpenResult, error)
 	// Make symbolic link for a file / directory
-	Symlink([]SymlinkParam) []error
+	Symlink([]SymlinkParam) ([]error, error)
 }
 
 // NewStoreFile creates a new file in storage

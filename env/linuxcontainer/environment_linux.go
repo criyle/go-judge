@@ -140,7 +140,7 @@ func (c *environ) Open(params []envexec.OpenParam) ([]envexec.OpenResult, error)
 	return ret, nil
 }
 
-func (c *environ) Symlink(params []envexec.SymlinkParam) []error {
+func (c *environ) Symlink(params []envexec.SymlinkParam) ([]error, error) {
 	symlink := make([]container.SymbolicLink, 0, len(params))
 	for _, p := range params {
 		symlink = append(symlink, container.SymbolicLink{

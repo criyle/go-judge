@@ -297,7 +297,7 @@ func (e *Environment) Open(params []envexec.OpenParam) ([]envexec.OpenResult, er
 	return results, nil
 }
 
-func (e *Environment) Symlink(params []envexec.SymlinkParam) []error {
+func (e *Environment) Symlink(params []envexec.SymlinkParam) ([]error, error) {
 	errs := make([]error, len(params))
 	for i, l := range params {
 		fullLinkPath := filepath.Join(e.root, l.LinkPath)
@@ -307,7 +307,7 @@ func (e *Environment) Symlink(params []envexec.SymlinkParam) []error {
 			errs[i] = nil
 		}
 	}
-	return errs
+	return errs, nil
 }
 
 // Destroy destroys the environment

@@ -31,6 +31,11 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 
 	results, err := m.Open(cmds)
 	if err != nil {
+		for n := range copyIn {
+			fileErrors = append(fileErrors, FileError{
+				Name: n, Type: ErrCopyInCreateFile, Message: err.Error(),
+			})
+		}
 		return nil, fmt.Errorf("copyin: batch open failed: %w", err)
 	}
 

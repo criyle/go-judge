@@ -31,7 +31,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 	}
 
 	// copy out files
-	copyOutFiles(&g, m, c, newStoreFile, put, addError)
+	copyOutErr := copyOutFiles(&g, m, c, newStoreFile, put, addError)
 
 	// collect pipes
 	for _, p := range ptc {
@@ -40,16 +40,11 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 			return collectPipe(p, newStoreFile, put, addError)
 		})
 	}
-
-	// copy out dir, disable for safety
-	// if c.CopyOutDir != "" {
-	// 	g.Go(func() error {
-	// 		return copyDir(m.WorkDir(), c.CopyOutDir)
-	// 	})
-	// }
-
-	err := g.Wait()
-	return rt, fileError, err
+	waitErr := g.Wait()
+	if copyOutErr != nil {
+		return rt, fileError, copyOutErr
+	}
+	return rt, fileError, waitErr
 }
 
 func copyOutFiles(g *errgroup.Group, m Environment, c *Cmd, newStoreFile NewStoreFile, put func(*os.File, string), addError func(FileError)) error {
@@ -64,6 +59,13 @@ func copyOutFiles(g *errgroup.Group, m Environment, c *Cmd, newStoreFile NewStor
 
 	results, err := m.Open(cmds)
 	if err != nil {
+		for _, n := range c.CopyOut {
+			addError(FileError{
+				Name:    n.Name,
+				Type:    ErrCopyOutOpen,
+				Message: fmt.Sprintf("batch open failed %s: %s", n.Name, err.Error()),
+			})
+		}
 		return fmt.Errorf("copyout: batch open failed: %w", err)
 	}
 
@@ -90,8 +92,7 @@ func copyOutFiles(g *errgroup.Group, m Environment, c *Cmd, newStoreFile NewStor
 			return copyOutFileStream(res.File, c, n, newStoreFile, put, addError)
 		})
 	}
-
-	return g.Wait()
+	return nil
 }
 
 func copyOutFileStream(

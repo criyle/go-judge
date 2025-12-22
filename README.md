@@ -130,7 +130,7 @@ If a bind mount is specifying a target within the previous mounted one, please e
 ### Notice
 
 > [!WARNING]  
-> Window and macOS support are experimental and should not be used in production environments
+> Windows and macOS support are experimental and should not be used in production environments
 
 #### cgroup usage
 

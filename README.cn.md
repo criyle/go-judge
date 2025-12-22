@@ -132,7 +132,7 @@ docker run -it --rm --privileged --shm-size=256m -p 5050:5050 --name=go-judge cr
 ### 注意
 
 > [!WARNING]  
-> Window 和 macOS 平台为实验性支持，请不要在生产环境使用
+> Windows 和 macOS 平台为实验性支持，请不要在生产环境使用
 
 #### 使用 cgroup
 

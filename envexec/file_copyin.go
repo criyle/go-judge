@@ -68,7 +68,7 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 					Name: fileName, Type: ErrCopyInOpenFile, Message: err.Error(),
 				})
 				mu.Unlock()
-				return nil // Don't return error to g.Wait to allow other copies to finish
+				return err
 			}
 			defer hf.Close()
 
@@ -78,6 +78,7 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 					Name: fileName, Type: ErrCopyInCopyContent, Message: err.Error(),
 				})
 				mu.Unlock()
+				return err
 			}
 			return nil
 		})

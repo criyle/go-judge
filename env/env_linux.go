@@ -21,10 +21,9 @@ import (
 )
 
 const (
-	containerName      = "executor_server"
-	defaultWorkDir     = "/w"
-	containerCredStart = 10000
-	containerCred      = 1000
+	containerName  = "executor_server"
+	defaultWorkDir = "/w"
+	containerCred  = 1000
 )
 
 // NewBuilder build a environment builder
@@ -94,7 +93,6 @@ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, 
 		Builder:    b,
 		CgroupPool: cgroupPool,
 		WorkDir:    workDir,
-		Cpuset:     c.Cpuset,
 		CPURate:    c.EnableCPURate,
 		Seccomp:    seccomp,
 	}), conf, nil
@@ -227,7 +225,6 @@ func tryClone3(
 		Builder:    envBuilder,
 		CgroupPool: cgroupPool,
 		WorkDir:    workDir,
-		Cpuset:     c.Cpuset,
 		CPURate:    c.EnableCPURate,
 		Seccomp:    seccomp,
 		CgroupFd:   true,

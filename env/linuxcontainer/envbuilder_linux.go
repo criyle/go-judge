@@ -12,7 +12,6 @@ type Config struct {
 	CgroupPool CgroupPool
 	WorkDir    string
 	Seccomp    []syscall.SockFilter
-	Cpuset     string
 	CPURate    bool
 	CgroupFd   bool // whether to enable cgroup fd with clone3, kernel >= 5.7
 }
@@ -22,7 +21,6 @@ type environmentBuilder struct {
 	cgPool  CgroupPool
 	workDir string
 	seccomp []syscall.SockFilter
-	cpuset  string
 	cpuRate bool
 	cgFd    bool
 }
@@ -34,7 +32,6 @@ func NewEnvBuilder(c Config) pool.EnvBuilder {
 		cgPool:  c.CgroupPool,
 		workDir: c.WorkDir,
 		seccomp: c.Seccomp,
-		cpuset:  c.Cpuset,
 		cpuRate: c.CPURate,
 		cgFd:    c.CgroupFd,
 	}
@@ -50,7 +47,6 @@ func (b *environmentBuilder) Build() (pool.Environment, error) {
 		Environment: m,
 		cgPool:      b.cgPool,
 		workDir:     b.workDir,
-		cpuset:      b.cpuset,
 		cpuRate:     b.cpuRate,
 		seccomp:     b.seccomp,
 		cgFd:        b.cgFd,

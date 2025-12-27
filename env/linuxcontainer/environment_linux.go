@@ -22,7 +22,6 @@ type environ struct {
 	container.Environment
 	cgPool  CgroupPool
 	workDir string
-	cpuset  string
 	seccomp []syscall.SockFilter
 	cpuRate bool
 	cgFd    bool
@@ -153,9 +152,6 @@ func (c *environ) Symlink(params []envexec.SymlinkParam) ([]error, error) {
 
 func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
 	cpuSet := limit.CPUSet
-	if cpuSet == "" {
-		cpuSet = c.cpuset
-	}
 	if cpuSet != "" {
 		if err := cg.SetCpuset(cpuSet); isCgroupSetHasError(err) {
 			return fmt.Errorf("execve: cgroup: failed to set cpuset limit: %w", err)

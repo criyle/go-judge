@@ -32,7 +32,7 @@ type initParameter struct {
 	MountConf     string        `json:"mountConf"`
 	SrcPrefix     string        `json:"srcPrefix"`
 	CgroupPrefix  string        `json:"cgroupPrefix"`
-	CPUSet        string        `json:"cpuset"`
+	CPUSet        []string      `json:"cpuset"`
 	CredStart     int           `json:"credStart"`
 	EnableCPURate bool          `json:"enableCpuRate"`
 	CPUCfsPeriod  time.Duration `json:"cpuCfsPeriod"`
@@ -101,7 +101,6 @@ func Init(i *C.char) C.int {
 		TmpFsParam:         ip.TmpFsParam,
 		NetShare:           ip.NetShare,
 		CgroupPrefix:       ip.CgroupPrefix,
-		Cpuset:             ip.CPUSet,
 		ContainerCredStart: ip.CredStart,
 		EnableCPURate:      ip.EnableCPURate,
 		CPUCfsPeriod:       ip.CPUCfsPeriod,
@@ -117,6 +116,7 @@ func Init(i *C.char) C.int {
 		Parallelism:           ip.Parallelism,
 		WorkDir:               ip.Dir,
 		TimeLimitTickInterval: 100 * time.Millisecond,
+		CPUSets:               ip.CPUSet,
 	})
 	work.Start()
 

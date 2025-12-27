@@ -510,7 +510,6 @@ func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 		TmpFsParam:         conf.TmpFsParam,
 		NetShare:           conf.NetShare,
 		CgroupPrefix:       conf.CgroupPrefix,
-		Cpuset:             conf.Cpuset,
 		ContainerCredStart: conf.ContainerCredStart,
 		EnableCPURate:      conf.EnableCPURate,
 		CPUCfsPeriod:       conf.CPUCfsPeriod,
@@ -546,6 +545,7 @@ func newWorker(conf *config.Config, envPool worker.EnvironmentPool, fs filestore
 		CopyOutLimit:          *conf.CopyOutLimit,
 		OpenFileLimit:         uint64(conf.OpenFileLimit),
 		ExecObserver:          execObserve,
+		CPUSets:               conf.Cpuset,
 	})
 	if conf.EnableMetrics {
 		w = newMetricsWorker(w)

@@ -10,7 +10,6 @@ type Config struct {
 	MountConf          string
 	SeccompConf        string
 	CgroupPrefix       string
-	Cpuset             string
 	ContainerCredStart int
 	EnableCPURate      bool
 	CPUCfsPeriod       time.Duration

@@ -34,6 +34,7 @@ type Config struct {
 	CopyOutLimit          envexec.Size
 	OpenFileLimit         uint64
 	ExecObserver          func(Response)
+	CPUSets               []string
 }
 
 // Worker defines interface for executor
@@ -63,6 +64,7 @@ type worker struct {
 	outputLimit           envexec.Size
 	copyOutLimit          envexec.Size
 	openFileLimit         uint64
+	cpuSets               []string
 
 	execObserver func(Response)
 
@@ -93,6 +95,7 @@ func New(conf Config) Worker {
 		outputLimit:           conf.OutputLimit,
 		copyOutLimit:          conf.CopyOutLimit,
 		openFileLimit:         conf.OpenFileLimit,
+		cpuSets:               conf.CPUSets,
 		execObserver:          conf.ExecObserver,
 	}
 }
@@ -102,9 +105,14 @@ func (w *worker) Start() {
 	w.startOnce.Do(func() {
 		w.workCh = make(chan workRequest, maxWaiting)
 		w.done = make(chan struct{})
-		w.wg.Add(w.parallelism)
-		for i := 0; i < w.parallelism; i++ {
-			go w.loop()
+		if len(w.cpuSets) > 0 {
+			for _, cpuset := range w.cpuSets {
+				w.wg.Go(func() { w.loop(cpuset) })
+			}
+		} else {
+			for i := 0; i < w.parallelism; i++ {
+				w.wg.Go(func() { w.loop("") })
+			}
 		}
 	})
 }
@@ -133,11 +141,9 @@ func (w *worker) Submit(ctx context.Context, req *Request) (<-chan Response, <-c
 // Execute will execute the request in new goroutine (bypass the parallelism limit)
 func (w *worker) Execute(ctx context.Context, req *Request) <-chan Response {
 	ch := make(chan Response, 1)
-	w.wg.Add(1)
-	go func() {
-		defer w.wg.Done()
-		ch <- w.workDoCmd(ctx, req)
-	}()
+	w.wg.Go(func() {
+		ch <- w.workDoCmd(ctx, req, "")
+	})
 	return ch
 }
 
@@ -157,8 +163,7 @@ func (w *worker) Shutdown() {
 	})
 }
 
-func (w *worker) loop() {
-	defer w.wg.Done()
+func (w *worker) loop(cpuset string) {
 	for {
 		select {
 		case req, ok := <-w.workCh:
@@ -174,7 +179,7 @@ func (w *worker) loop() {
 					Error:     fmt.Errorf("cancelled before execute"),
 				}
 			default:
-				req.resultCh <- w.workDoCmd(req.Context, req.Request)
+				req.resultCh <- w.workDoCmd(req.Context, req.Request, cpuset)
 			}
 
 		case <-w.done:
@@ -183,15 +188,15 @@ func (w *worker) loop() {
 	}
 }
 
-func (w *worker) workDoCmd(ctx context.Context, req *Request) Response {
+func (w *worker) workDoCmd(ctx context.Context, req *Request, cpuset string) Response {
 	w.running.Add(1)
 	defer w.running.Add(-1)
 
 	var rt Response
 	if len(req.Cmd) == 1 {
-		rt = w.workDoSingle(ctx, req.Cmd[0])
+		rt = w.workDoSingle(ctx, req.Cmd[0], cpuset)
 	} else {
-		rt = w.workDoGroup(ctx, req.Cmd, req.PipeMapping)
+		rt = w.workDoGroup(ctx, req.Cmd, req.PipeMapping, cpuset)
 	}
 	rt.RequestID = req.RequestID
 	if w.execObserver != nil {
@@ -200,8 +205,8 @@ func (w *worker) workDoCmd(ctx context.Context, req *Request) Response {
 	return rt
 }
 
-func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
-	c, err := w.prepareCmd(rc, make(map[string]bool))
+func (w *worker) workDoSingle(ctx context.Context, rc Cmd, cpuset string) (rt Response) {
+	c, err := w.prepareCmd(rc, make(map[string]bool), cpuset)
 	if err != nil {
 		rt.Error = err
 		return
@@ -231,12 +236,12 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd) (rt Response) {
 	return
 }
 
-func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap) (rt Response) {
+func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, cpuset string) (rt Response) {
 	var rts []Result
 	cs := make([]*envexec.Cmd, 0, len(rc))
 	pipeFileNames := preparePipeNames(pm, len(rc))
 	for i, cc := range rc {
-		c, err := w.prepareCmd(cc, pipeFileNames[i])
+		c, err := w.prepareCmd(cc, pipeFileNames[i], cpuset)
 		if err != nil {
 			rt.Error = err
 			return
@@ -317,7 +322,7 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	return res
 }
 
-func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool) (*envexec.Cmd, error) {
+func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool, cpuset string) (*envexec.Cmd, error) {
 	files, err := w.prepareCmdFiles(rc.Files, pipeFileName)
 	if err != nil {
 		return nil, err
@@ -370,6 +375,11 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool) (*envexec.Cmd,
 		openFileLimit = w.openFileLimit
 	}
 
+	cpusetLimit := rc.CPUSetLimit
+	if cpusetLimit == "" {
+		cpusetLimit = cpuset
+	}
+
 	return &envexec.Cmd{
 		Args:              rc.Args,
 		Env:               rc.Env,
@@ -383,7 +393,7 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool) (*envexec.Cmd,
 		ProcLimit:         rc.ProcLimit,
 		OpenFileLimit:     openFileLimit,
 		CPURateLimit:      rc.CPURateLimit,
-		CPUSetLimit:       rc.CPUSetLimit,
+		CPUSetLimit:       cpusetLimit,
 		DataSegmentLimit:  rc.DataSegmentLimit,
 		AddressSpaceLimit: rc.AddressSpaceLimit,
 		CopyIn:            copyIn,

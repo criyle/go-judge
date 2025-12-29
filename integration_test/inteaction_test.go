@@ -126,7 +126,7 @@ func TestInteraction_PipeStreaming(t *testing.T) {
 }
 
 func TestInteraction_Bidirectional_PingPong(t *testing.T) {
-	iterations := 2
+	iterations := 4
 	t.Logf("Starting Bidirectional Ping-Pong Test: %d iterations", iterations)
 
 	for i := range iterations {
@@ -144,7 +144,7 @@ import sys
 import random
 
 # Use unbuffered IO or flush explicitly
-for i in range(80000):
+for i in range(50000):
     num = str(random.randint(1, 100000))
     
     # Send to B

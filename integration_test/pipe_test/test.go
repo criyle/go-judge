@@ -183,6 +183,9 @@ func runInstance(id int, prodPath, consPath string) error {
 		return fmt.Errorf("producer crashed: %v", errA)
 	}
 
-	fmt.Printf("[ID %d] OK | WallTime: %v\n", id, duration)
+	userTime := cmdA.ProcessState.UserTime()
+	sysTime := cmdA.ProcessState.SystemTime()
+
+	fmt.Printf("[ID %d] OK | WallTime: %v | User Time: %v | Sys Time: %v\n", id, duration, userTime, sysTime)
 	return nil
 }

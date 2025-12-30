@@ -52,14 +52,19 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 		FileError:  fe,
 	}
 	// collect error (only if the process exits normally)
-	if rt.Status == runner.StatusNormal && err != nil && result.Error == "" {
-		switch err := err.(type) {
-		case runner.Status:
-			result.Status = convertStatus(err)
-		default:
+	if rt.Status == runner.StatusNormal && result.Error == "" {
+		if err != nil {
+			switch err := err.(type) {
+			case runner.Status:
+				result.Status = convertStatus(err)
+			default:
+				result.Status = StatusFileError
+			}
+			result.Error = err.Error()
+		} else if len(fe) > 0 {
 			result.Status = StatusFileError
+			result.Error = fe[0].Message
 		}
-		result.Error = err.Error()
 	}
 	if result.Time > c.TimeLimit {
 		result.Status = StatusTimeLimitExceeded

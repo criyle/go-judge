@@ -1,7 +1,6 @@
 package envexec
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -70,11 +69,11 @@ func copyOutFiles(g *errgroup.Group, m Environment, c *Cmd, newStoreFile NewStor
 	}
 
 	for i, res := range results {
-		i, res := i, res
 		n := c.CopyOut[i]
 
 		if res.Err != nil {
-			if errors.Is(res.Err, os.ErrNotExist) && n.Optional {
+			// IPC method cannot differentiate OS.NotExists, thus ignore error if optional
+			if n.Optional {
 				continue
 			}
 			addError(FileError{

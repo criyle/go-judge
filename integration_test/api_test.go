@@ -18,7 +18,8 @@ type Cmd struct {
 	MemoryLimit uint64 `json:"memoryLimit"`
 	ProcLimit   uint64 `json:"procLimit"`
 
-	CopyIn map[string]CmdFile `json:"copyIn"`
+	CopyIn        map[string]CmdFile `json:"copyIn"`
+	CopyOutCached []string           `json:"copyOutCached"`
 }
 
 type CmdFile struct {
@@ -51,7 +52,8 @@ type PipeIndex struct {
 }
 
 type Result struct {
-	Status string            `json:"status"`
-	Files  map[string]string `json:"files"`
-	Error  string            `json:"error"`
+	Status  string            `json:"status"`
+	Files   map[string]string `json:"files"`
+	FileIDs map[string]string `json:"fileIds"`
+	Error   string            `json:"error"`
 }

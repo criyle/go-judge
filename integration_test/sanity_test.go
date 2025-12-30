@@ -10,29 +10,26 @@ import (
 	"strings"
 	"testing"
 	"time"
-	// Replace with your actual path if you created the api package
-	// "github.com/your-username/go-judge/api"
 )
 
-// --- Local Definitions (Reuse your API structs if available) ---
-
-// These mirror the JSON structure you provided
 type SanityCmd struct {
-	Args  []string `json:"args"`
-	Env   []string `json:"env,omitempty"`
-	Files []struct {
-		Name string `json:"name,omitempty"`
-		Max  int64  `json:"max,omitempty"`
-		Src  string `json:"src,omitempty"`
-	} `json:"files,omitempty"`
+	Args  []string  `json:"args"`
+	Env   []string  `json:"env,omitempty"`
+	Files []CmdFile `json:"files,omitempty"`
+
+	Tty bool `json:"tty,omitempty"`
 
 	CPULimit     uint64 `json:"cpuLimit"`
 	RealCPULimit uint64 `json:"realCpuLimit"`
 	MemoryLimit  uint64 `json:"memoryLimit"`
+	StackLimit   uint64 `json:"stackLimit"`
 	ProcLimit    uint64 `json:"procLimit"`
 
 	CopyIn  map[string]SanityFile `json:"copyIn,omitempty"`
 	CopyOut []string              `json:"copyOut,omitempty"`
+
+	CopyOutMax      uint64 `json:"copyOutMax,omitempty"`
+	CopyOutTruncate bool   `json:"copyOutTruncate,omitempty"`
 }
 
 type SanityFile struct {
@@ -48,8 +45,6 @@ type SanityResult struct {
 	Error  string            `json:"error"`
 	Files  map[string]string `json:"files"`
 }
-
-// --- The Table Test ---
 
 func TestSanity_BasicFunctionality(t *testing.T) {
 	const serverURL = "http://localhost:5050/run"
@@ -71,11 +66,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 	// 3. Define the Default Configuration (Base Template)
 	baseCmd := SanityCmd{
 		Env: []string{"PATH=/usr/bin:/bin"},
-		Files: []struct {
-			Name string `json:"name,omitempty"`
-			Max  int64  `json:"max,omitempty"`
-			Src  string `json:"src,omitempty"`
-		}{
+		Files: []CmdFile{
 			{Src: "/dev/null"},           // stdin
 			{Name: "stdout", Max: 10240}, // stdout
 			{Name: "stderr", Max: 10240}, // stderr
@@ -116,8 +107,9 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		{
 			Name: "Time Limit Exceeded",
 			Input: SanityCmd{
-				Args:     []string{"/usr/bin/python3", "-c", "while True:\n    pass"},
-				CPULimit: 1 * 1000 * 1000 * 1000, // 1s Limit
+				Args:         []string{"/bin/sleep", "2"},
+				CPULimit:     1 * 1000 * 1000 * 1000,
+				RealCPULimit: 1 * 1000 * 1000 * 1000,
 			},
 			Expect: Expectation{
 				Status: "Time Limit Exceeded",
@@ -133,6 +125,142 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 				Status: "Accepted",
 				FilesContains: map[string]string{
 					"stdout": "integration_test",
+				},
+			},
+		},
+		{
+			Name: "Signal Check",
+			Input: SanityCmd{
+				Args: []string{"/bin/bash", "-c", "kill -SIGINT 1"},
+			},
+			Expect: Expectation{
+				Status: "Accepted",
+			},
+		},
+		{
+			Name: "Copy in Sub Directory",
+			Input: SanityCmd{
+				Args: []string{"/bin/ls", "test_dir"},
+				CopyIn: map[string]SanityFile{
+					"test_dir/test_file": {Content: "content"},
+				},
+			},
+			Expect: Expectation{
+				Status: "Accepted",
+				FilesContains: map[string]string{
+					"stdout": "test_file",
+				},
+			},
+		},
+		{
+			Name: "Copy in Temp Directory",
+			Input: SanityCmd{
+				Args: []string{"/bin/ls", "/tmp"},
+				CopyIn: map[string]SanityFile{
+					"/tmp/test_file": {Content: "content"},
+				},
+			},
+			Expect: Expectation{
+				Status: "Accepted",
+				FilesContains: map[string]string{
+					"stdout": "test_file",
+				},
+			},
+		},
+		{
+			Name: "Copy out File Error",
+			Input: SanityCmd{
+				Args:    []string{"/bin/ls"},
+				CopyOut: []string{"test"},
+			},
+			Expect: Expectation{
+				Status: "File Error",
+			},
+		},
+		{
+			Name: "Copy out Optional File Accepted",
+			Input: SanityCmd{
+				Args:    []string{"/bin/ls"},
+				CopyOut: []string{"test?"},
+			},
+			Expect: Expectation{
+				Status: "Accepted",
+			},
+		},
+		{
+			Name: "Stack Limit",
+			Input: SanityCmd{
+				Args:       []string{"/bin/bash", "-c", "ulimit -s"},
+				StackLimit: 102400000,
+			},
+			Expect: Expectation{
+				Status: "Accepted",
+				FilesContains: map[string]string{
+					"stdout": "100000",
+				},
+			},
+		},
+		{
+			Name: "No Symlink Escape",
+			Input: SanityCmd{
+				Args:    []string{"/bin/ln", "-s", "/etc/passwd", "out.txt"},
+				CopyOut: []string{"out.txt"},
+			},
+			Expect: Expectation{
+				Status: "File Error",
+			},
+		},
+		{
+			Name: "Copy out max",
+			Input: SanityCmd{
+				Args: []string{"/bin/cat", "input.txt"},
+				CopyIn: map[string]SanityFile{
+					"input.txt": {Content: "1234567890"},
+				},
+				CopyOut:    []string{"input.txt"},
+				CopyOutMax: 5,
+			},
+			Expect: Expectation{
+				Status: "File Error",
+			},
+		},
+		{
+			Name: "Copy out Truncate",
+			Input: SanityCmd{
+				Args: []string{"/bin/cat", "input.txt"},
+				CopyIn: map[string]SanityFile{
+					"input.txt": {Content: "1234567890"},
+				},
+				CopyOut:         []string{"input.txt"},
+				CopyOutMax:      5,
+				CopyOutTruncate: true,
+			},
+			Expect: Expectation{
+				Status: "File Error",
+				FilesContains: map[string]string{
+					"input.txt": "12345",
+				},
+			},
+		},
+		{
+			Name: "Compile with TTY",
+			Input: SanityCmd{
+				Args: []string{"/bin/g++", "a.cc"},
+				Env:  []string{"PATH=/usr/bin:/bin", "TERM=xterm"},
+				Tty:  true,
+				Files: []CmdFile{
+					{Content: "/dev/null"},       // stdin
+					{Name: "stdout", Max: 10240}, // stdout
+					{Name: "stderr", Max: 10240}, // stderr
+				},
+				CopyIn: map[string]SanityFile{
+					"a.cc": {Content: "int main(){int a}"},
+				},
+			},
+			Expect: Expectation{
+				Status: "Nonzero Exit Status",
+				FilesContains: map[string]string{
+					"stdout": "\033",
 				},
 			},
 		},
@@ -203,8 +331,9 @@ func mergeDefaults(base, override SanityCmd) SanityCmd {
 	if len(override.Env) > 0 {
 		res.Env = override.Env
 	}
-	// Note: For slices/maps, you might want deeper merging depending on needs.
-	// Here we simply replace if present.
+	if override.Tty {
+		res.Tty = override.Tty
+	}
 	if override.CopyIn != nil {
 		res.CopyIn = override.CopyIn
 	}
@@ -221,6 +350,19 @@ func mergeDefaults(base, override SanityCmd) SanityCmd {
 	}
 	if override.MemoryLimit > 0 {
 		res.MemoryLimit = override.MemoryLimit
+	}
+	if override.StackLimit > 0 {
+		res.StackLimit = override.StackLimit
+	}
+
+	if override.CopyOutMax > 0 {
+		res.CopyOutMax = override.CopyOutMax
+	}
+	if override.CopyOutTruncate {
+		res.CopyOutTruncate = override.CopyOutTruncate
+	}
+	if override.Files != nil {
+		res.Files = override.Files
 	}
 
 	return res

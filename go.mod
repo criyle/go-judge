@@ -25,7 +25,7 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.40.0
 	golang.org/x/term v0.39.0
-	google.golang.org/grpc v1.78.0
+	google.golang.org/grpc v1.79.3
 	google.golang.org/protobuf v1.36.11
 )
 

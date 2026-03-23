@@ -28,6 +28,7 @@ type CmdFile struct {
 	FileID  string `json:"fileId,omitempty"`
 	Name    string `json:"name,omitempty"`
 	Max     int64  `json:"max,omitempty"`
+	Symlink string `json:"symlink,omitempty"`
 }
 
 // Request structure supporting pipe mapping

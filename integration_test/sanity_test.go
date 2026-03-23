@@ -245,7 +245,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		{
 			Name: "Compile with TTY",
 			Input: SanityCmd{
-				Args: []string{"/bin/g++", "a.cc"},
+				Args: []string{"/usr/bin/g++", "a.cc"},
 				Env:  []string{"PATH=/usr/bin:/bin", "TERM=xterm"},
 				Tty:  true,
 				Files: []CmdFile{

@@ -36,8 +36,20 @@ func setupCgroupV2(prefix string, logger *zap.Logger) (string, *cgroup.Controlle
 	logger.Info("running with cgroup v2, connecting systemd dbus to create cgroup")
 	conn, err := getSystemdConnection()
 	if err != nil {
-		logger.Info("connecting to systemd dbus failed, assuming running in container, enable cgroup v2 nesting support and take control of the whole cgroupfs", zap.Error(err))
-		return "", getControllersWithPrefix("", logger), nil
+		logger.Info("connecting to systemd dbus failed, falling back to current cgroup prefix", zap.Error(err))
+
+		scopeName, err := cgroup.GetCurrentCgroupPrefix()
+		if err != nil {
+			logger.Warn("could not determine current cgroup, defaulting to root", zap.Error(err))
+			return "", getControllersWithPrefix("", logger), nil
+		}
+
+		logger.Info("using current cgroup prefix for nesting", zap.String("scope_name", scopeName))
+		ct, err := cgroup.GetAvailableControllerWithPrefix(scopeName)
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to get available controller with prefix %s: %w", scopeName, err)
+		}
+		return scopeName, ct, nil
 	}
 	defer conn.Close()
 
@@ -50,15 +62,13 @@ func setupCgroupV2(prefix string, logger *zap.Logger) (string, *cgroup.Controlle
 
 	scopeName, err = cgroup.GetCurrentCgroupPrefix()
 	if err != nil {
-		logger.Error("failed to get current cgroup prefix", zap.Error(err))
-		return "", nil, err
+		return "", nil, fmt.Errorf("failed to get current cgroup prefix after transient unit creation: %w", err)
 	}
 	logger.Info("current cgroup", zap.String("scope_name", scopeName))
 
 	ct, err := cgroup.GetAvailableControllerWithPrefix(scopeName)
 	if err != nil {
-		logger.Error("failed to get available controller with prefix", zap.Error(err))
-		return "", nil, err
+		return "", nil, fmt.Errorf("failed to get available controller with prefix %s: %w", scopeName, err)
 	}
 	return scopeName, ct, nil
 }

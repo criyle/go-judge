@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/criyle/go-judge/envexec"
@@ -40,6 +41,9 @@ func (s *fileLocalStore) Get(id string) (string, envexec.File) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	if !validID(id) {
+		return "", nil
+	}
 	p := filepath.Join(s.dir, id)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
 		return "", nil
@@ -55,6 +59,9 @@ func (s *fileLocalStore) Remove(id string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	if !validID(id) {
+		return false
+	}
 	delete(s.name, id)
 	p := filepath.Join(s.dir, id)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
@@ -95,4 +102,20 @@ func (s *fileLocalStore) New() (*os.File, error) {
 		}
 	}
 	return nil, errUniqueIDNotGenerated
+}
+
+func validID(id string) bool {
+	if id == "" || id == "." || id == ".." {
+		return false
+	}
+	if filepath.IsAbs(id) {
+		return false
+	}
+	if filepath.Clean(id) != id {
+		return false
+	}
+	if filepath.Base(id) != id {
+		return false
+	}
+	return !strings.ContainsRune(id, filepath.Separator)
 }

@@ -70,6 +70,54 @@ func TestCheckPathPrefixes(t *testing.T) {
 	}
 }
 
+func TestCheckPathPrefixes_Boundary(t *testing.T) {
+	base := t.TempDir()
+	prefix := filepath.Join(base, "allowed")
+	if err := os.Mkdir(prefix, 0o755); err != nil {
+		t.Fatalf("Mkdir error: %v", err)
+	}
+	target := filepath.Join(base, "allowed2", "file.txt")
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("MkdirAll error: %v", err)
+	}
+	if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+	ok, err := CheckPathPrefixes(target, []string{prefix})
+	if err != nil {
+		t.Fatalf("CheckPathPrefixes error: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected boundary mismatch to be rejected")
+	}
+}
+
+func TestCheckPathPrefixes_SymlinkEscape(t *testing.T) {
+	base := t.TempDir()
+	allowed := filepath.Join(base, "allowed")
+	outside := filepath.Join(base, "outside")
+	if err := os.Mkdir(allowed, 0o755); err != nil {
+		t.Fatalf("Mkdir allowed error: %v", err)
+	}
+	if err := os.Mkdir(outside, 0o755); err != nil {
+		t.Fatalf("Mkdir outside error: %v", err)
+	}
+	if err := os.Symlink(outside, filepath.Join(allowed, "link")); err != nil {
+		t.Skipf("symlink not supported: %v", err)
+	}
+	path := filepath.Join(allowed, "link", "file.txt")
+	if err := os.WriteFile(filepath.Join(outside, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+	ok, err := CheckPathPrefixes(path, []string{allowed})
+	if err != nil {
+		t.Fatalf("CheckPathPrefixes error: %v", err)
+	}
+	if ok {
+		t.Fatalf("expected symlink escape to be rejected")
+	}
+}
+
 func TestConvertCmdFile_Local(t *testing.T) {
 	src := "/tmp/foo"
 	f := &CmdFile{Src: &src}
@@ -155,7 +203,11 @@ func TestConvertPipe(t *testing.T) {
 }
 
 func TestConvertRequest_Basic(t *testing.T) {
-	src := "/tmp/foo"
+	tmp := t.TempDir()
+	src := filepath.Join(tmp, "foo")
+	if err := os.WriteFile(src, []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
 	content := "abc"
 	fileID := "id"
 	name := "out"
@@ -170,7 +222,7 @@ func TestConvertRequest_Basic(t *testing.T) {
 			MemoryLimit: 1024,
 		}},
 	}
-	workerReq, err := ConvertRequest(req, []string{"/tmp"})
+	workerReq, err := ConvertRequest(req, []string{tmp})
 	if err != nil {
 		t.Fatalf("ConvertRequest error: %v", err)
 	}

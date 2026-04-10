@@ -388,14 +388,35 @@ func CheckPathPrefixes(path string, prefixes []string) (bool, error) {
 }
 
 func checkPathPrefix(path, prefix string) (bool, error) {
-	if filepath.IsAbs(path) {
-		return strings.HasPrefix(filepath.Clean(path), prefix), nil
-	}
-	wd, err := os.Getwd()
+	absPath, err := filepath.Abs(path)
 	if err != nil {
 		return false, err
 	}
-	return strings.HasPrefix(filepath.Join(wd, path), prefix), nil
+	resolvedPath, err := filepath.EvalSymlinks(absPath)
+	if err != nil {
+		return false, err
+	}
+
+	absPrefix, err := filepath.Abs(prefix)
+	if err != nil {
+		return false, err
+	}
+	resolvedPrefix := absPrefix
+	if p, err := filepath.EvalSymlinks(absPrefix); err == nil {
+		resolvedPrefix = p
+	}
+
+	rel, err := filepath.Rel(resolvedPrefix, resolvedPath)
+	if err != nil {
+		return false, err
+	}
+	if rel == "." {
+		return true, nil
+	}
+	if rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || filepath.IsAbs(rel) {
+		return false, nil
+	}
+	return true, nil
 }
 
 const optionalSuffix = "?"

@@ -12,61 +12,26 @@ import (
 	"time"
 )
 
-type SanityCmd struct {
-	Args  []string  `json:"args"`
-	Env   []string  `json:"env,omitempty"`
-	Files []CmdFile `json:"files,omitempty"`
-
-	Tty bool `json:"tty,omitempty"`
-
-	CPULimit     uint64 `json:"cpuLimit"`
-	RealCPULimit uint64 `json:"realCpuLimit"`
-	MemoryLimit  uint64 `json:"memoryLimit"`
-	StackLimit   uint64 `json:"stackLimit"`
-	ProcLimit    uint64 `json:"procLimit"`
-
-	CopyIn  map[string]SanityFile `json:"copyIn,omitempty"`
-	CopyOut []string              `json:"copyOut,omitempty"`
-
-	CopyOutMax      uint64 `json:"copyOutMax,omitempty"`
-	CopyOutTruncate bool   `json:"copyOutTruncate,omitempty"`
-}
-
-type SanityFile struct {
-	Content string `json:"content,omitempty"`
-}
-
-type SanityRequest struct {
-	Cmd []SanityCmd `json:"cmd"`
-}
-
-type SanityResult struct {
-	Status string            `json:"status"`
-	Error  string            `json:"error"`
-	Files  map[string]string `json:"files"`
-}
-
 func TestSanity_BasicFunctionality(t *testing.T) {
-	const serverURL = "http://localhost:5050/run"
-
 	// 1. Define the Expected Behavior
 	type Expectation struct {
 		Status        string
 		ErrorContains string            // Substring check for the error message
 		FilesContains map[string]string // Check if stdout/stderr contains specific text
+		FileIDs       map[string]string // Check if cached file ids are present
 	}
 
 	// 2. Define the Test Case Structure
 	type TestCase struct {
 		Name   string
-		Input  SanityCmd
+		Input  Cmd
 		Expect Expectation
 	}
 
 	// 3. Define the Default Configuration (Base Template)
-	baseCmd := SanityCmd{
+	baseCmd := Cmd{
 		Env: []string{"PATH=/usr/bin:/bin"},
-		Files: []CmdFile{
+		Files: []*CmdFile{
 			{Src: "/dev/null"},           // stdin
 			{Name: "stdout", Max: 10240}, // stdout
 			{Name: "stderr", Max: 10240}, // stderr
@@ -81,7 +46,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 	tests := []TestCase{
 		{
 			Name: "Basic Hello World",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/echo", "hello world"},
 			},
 			Expect: Expectation{
@@ -94,7 +59,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		{
 			Name: "Symlink /dev/urandom CopyOut Failure",
 			// This matches your specific request
-			Input: SanityCmd{
+			Input: Cmd{
 				Args:    []string{"/bin/ln", "-s", "/dev/urandom", "out"},
 				CopyOut: []string{"out"},
 			},
@@ -106,7 +71,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Time Limit Exceeded",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args:         []string{"/bin/sleep", "2"},
 				CPULimit:     1 * 1000 * 1000 * 1000,
 				RealCPULimit: 1 * 1000 * 1000 * 1000,
@@ -117,7 +82,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Environment Variable Check",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/sh", "-c", "echo $MY_VAR"},
 				Env:  []string{"PATH=/bin", "MY_VAR=integration_test"},
 			},
@@ -130,7 +95,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Signal Check",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/bash", "-c", "kill -SIGINT 1"},
 			},
 			Expect: Expectation{
@@ -139,9 +104,9 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Copy in Sub Directory",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/ls", "test_dir"},
-				CopyIn: map[string]SanityFile{
+				CopyIn: map[string]CmdFile{
 					"test_dir/test_file": {Content: "content"},
 				},
 			},
@@ -154,9 +119,9 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Copy in Temp Directory",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/ls", "/tmp"},
-				CopyIn: map[string]SanityFile{
+				CopyIn: map[string]CmdFile{
 					"/tmp/test_file": {Content: "content"},
 				},
 			},
@@ -169,7 +134,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Copy out File Error",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args:    []string{"/bin/ls"},
 				CopyOut: []string{"test"},
 			},
@@ -179,7 +144,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Copy out Optional File Accepted",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args:    []string{"/bin/ls"},
 				CopyOut: []string{"test?"},
 			},
@@ -188,8 +153,24 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 			},
 		},
 		{
+			Name: "Copy out Cached File",
+			Input: Cmd{
+				Args:          []string{"/bin/sh", "-c", "printf hello > out && cat out"},
+				CopyOutCached: []string{"out"},
+			},
+			Expect: Expectation{
+				Status: "Accepted",
+				FilesContains: map[string]string{
+					"stdout": "hello",
+				},
+				FileIDs: map[string]string{
+					"out": "",
+				},
+			},
+		},
+		{
 			Name: "Stack Limit",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args:       []string{"/bin/bash", "-c", "ulimit -s"},
 				StackLimit: 102400000,
 			},
@@ -202,7 +183,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "No Symlink Escape",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args:    []string{"/bin/ln", "-s", "/etc/passwd", "out.txt"},
 				CopyOut: []string{"out.txt"},
 			},
@@ -212,9 +193,9 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Copy out max",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/cat", "input.txt"},
-				CopyIn: map[string]SanityFile{
+				CopyIn: map[string]CmdFile{
 					"input.txt": {Content: "1234567890"},
 				},
 				CopyOut:    []string{"input.txt"},
@@ -226,9 +207,9 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Copy out Truncate",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/bin/cat", "input.txt"},
-				CopyIn: map[string]SanityFile{
+				CopyIn: map[string]CmdFile{
 					"input.txt": {Content: "1234567890"},
 				},
 				CopyOut:         []string{"input.txt"},
@@ -244,16 +225,16 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 		},
 		{
 			Name: "Compile with TTY",
-			Input: SanityCmd{
+			Input: Cmd{
 				Args: []string{"/usr/bin/g++", "a.cc"},
 				Env:  []string{"PATH=/usr/bin:/bin", "TERM=xterm"},
 				Tty:  true,
-				Files: []CmdFile{
+				Files: []*CmdFile{
 					{Content: "/dev/null"},       // stdin
 					{Name: "stdout", Max: 10240}, // stdout
 					{Name: "stderr", Max: 10240}, // stderr
 				},
-				CopyIn: map[string]SanityFile{
+				CopyIn: map[string]CmdFile{
 					"a.cc": {Content: "int main(){int a}"},
 				},
 			},
@@ -275,7 +256,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 			cmd := mergeDefaults(baseCmd, tc.Input)
 
 			// B. Send Request
-			reqBody := SanityRequest{Cmd: []SanityCmd{cmd}}
+			reqBody := Request{Cmd: []Cmd{cmd}}
 			jsonBytes, _ := json.Marshal(reqBody)
 
 			resp, err := client.Post(serverURL, "application/json", bytes.NewBuffer(jsonBytes))
@@ -290,7 +271,7 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 			}
 
 			// C. Verify
-			var results []SanityResult
+			var results []Result
 			if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
 				t.Fatalf("Decode failed: %v", err)
 			}
@@ -316,12 +297,47 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 						file, expectedContent, actualContent)
 				}
 			}
+
+			for file, expectedID := range tc.Expect.FileIDs {
+				actualID, ok := res.FileIDs[file]
+				if !ok {
+					t.Errorf("FileID [%s] missing", file)
+					continue
+				}
+				if expectedID != "" && actualID != expectedID {
+					t.Errorf("FileID [%s] mismatch.\nExpected: %s\nActual:   %s",
+						file, expectedID, actualID)
+				}
+				if expectedID == "" && actualID == "" {
+					t.Errorf("FileID [%s] should not be empty", file)
+				}
+			}
+
+			for file, fileID := range res.FileIDs {
+				if fileID == "" {
+					continue
+				}
+				deleteReq, err := http.NewRequest(http.MethodDelete, fileURL+fileID, nil)
+				if err != nil {
+					t.Fatalf("failed to construct delete request for %s: %v", file, err)
+				}
+				deleteResp, err := client.Do(deleteReq)
+				if err != nil {
+					t.Fatalf("failed to delete cached file %s: %v", fileID, err)
+				}
+				if deleteResp.Body != nil {
+					deleteResp.Body.Close()
+				}
+				if deleteResp.StatusCode != http.StatusOK {
+					t.Fatalf("delete cached file %s returned %d", fileID, deleteResp.StatusCode)
+				}
+			}
 		})
 	}
 }
 
 // Helper to overlay the test case config on top of the base defaults
-func mergeDefaults(base, override SanityCmd) SanityCmd {
+func mergeDefaults(base, override Cmd) Cmd {
 	res := base
 
 	// Merge simple fields if they are provided in override
@@ -339,6 +355,9 @@ func mergeDefaults(base, override SanityCmd) SanityCmd {
 	}
 	if override.CopyOut != nil {
 		res.CopyOut = override.CopyOut
+	}
+	if override.CopyOutCached != nil {
+		res.CopyOutCached = override.CopyOutCached
 	}
 
 	// Merge Limits (only if non-zero)

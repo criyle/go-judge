@@ -221,7 +221,7 @@ func TestRaceCondition_CopyInAndExec_Src(t *testing.T) {
 			}
 
 			// 5. Verify Result
-			var results []SanityResult
+			var results []Result
 			if err := json.NewDecoder(resp.Body).Decode(&results); err != nil {
 				t.Fatalf("decode response failed: %v", err)
 			}

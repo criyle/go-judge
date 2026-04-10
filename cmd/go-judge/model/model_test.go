@@ -127,6 +127,50 @@ func TestConvertCmdFile_Local(t *testing.T) {
 	}
 }
 
+func TestConvertCmdFile_RejectsPrefixBoundaryEscape(t *testing.T) {
+	base := t.TempDir()
+	allowed := filepath.Join(base, "allowed")
+	if err := os.Mkdir(allowed, 0o755); err != nil {
+		t.Fatalf("Mkdir allowed error: %v", err)
+	}
+	target := filepath.Join(base, "allowed2", "file.txt")
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("MkdirAll error: %v", err)
+	}
+	if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+	src := target
+	_, err := convertCmdFile(&CmdFile{Src: &src}, []string{allowed})
+	if err == nil {
+		t.Fatal("expected prefix boundary escape to be rejected")
+	}
+}
+
+func TestConvertCmdFile_RejectsSymlinkEscape(t *testing.T) {
+	base := t.TempDir()
+	allowed := filepath.Join(base, "allowed")
+	outside := filepath.Join(base, "outside")
+	if err := os.Mkdir(allowed, 0o755); err != nil {
+		t.Fatalf("Mkdir allowed error: %v", err)
+	}
+	if err := os.Mkdir(outside, 0o755); err != nil {
+		t.Fatalf("Mkdir outside error: %v", err)
+	}
+	link := filepath.Join(allowed, "link")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skipf("symlink not supported: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(outside, "file.txt"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+	src := filepath.Join(link, "file.txt")
+	_, err := convertCmdFile(&CmdFile{Src: &src}, []string{allowed})
+	if err == nil {
+		t.Fatal("expected symlink escape to be rejected")
+	}
+}
+
 func TestConvertCmdFile_Content(t *testing.T) {
 	content := "abc"
 	f := &CmdFile{Content: &content}
@@ -169,6 +213,33 @@ func TestConvertCmdFile_Invalid(t *testing.T) {
 	_, err := convertCmdFile(f, nil)
 	if err == nil {
 		t.Error("expected error for invalid CmdFile")
+	}
+}
+
+func TestConvertRequest_RejectsEscapingCopyIn(t *testing.T) {
+	base := t.TempDir()
+	allowed := filepath.Join(base, "allowed")
+	if err := os.Mkdir(allowed, 0o755); err != nil {
+		t.Fatalf("Mkdir allowed error: %v", err)
+	}
+	target := filepath.Join(base, "allowed2", "file.txt")
+	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+		t.Fatalf("MkdirAll error: %v", err)
+	}
+	if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+	src := target
+	req := &Request{
+		Cmd: []Cmd{{
+			CopyIn: map[string]CmdFile{
+				"input.txt": {Src: &src},
+			},
+		}},
+	}
+	_, err := ConvertRequest(req, []string{allowed})
+	if err == nil {
+		t.Fatal("expected escaping copy-in to be rejected")
 	}
 }
 

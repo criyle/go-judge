@@ -12,7 +12,6 @@ import (
 )
 
 func TestCompileAndRun_CPP(t *testing.T) {
-	const serverURL = "http://localhost:5050/run"
 	client := &http.Client{Timeout: 15 * time.Second}
 
 	// --- Step 1: Compile C++ Source ---
@@ -124,7 +123,7 @@ int main() {
 	}
 
 	t.Logf("Delete File: %s", executableID)
-	deleteReq, err := http.NewRequest("DELETE", "http://localhost:5050/file/"+executableID, nil)
+	deleteReq, err := http.NewRequest("DELETE", fileURL+executableID, nil)
 	if err != nil {
 		t.Fatalf("Failed to construct delete request")
 	}
@@ -135,7 +134,6 @@ int main() {
 }
 
 func TestCompileAndRun_CPP_Symlink(t *testing.T) {
-	const serverURL = "http://localhost:5050/run"
 	client := &http.Client{Timeout: 15 * time.Second}
 
 	// --- Step 1: Compile C++ Source ---
@@ -252,7 +250,7 @@ int main() {
 	}
 
 	t.Logf("Delete File: %s", executableID)
-	deleteReq, err := http.NewRequest("DELETE", "http://localhost:5050/file/"+executableID, nil)
+	deleteReq, err := http.NewRequest("DELETE", fileURL+executableID, nil)
 	if err != nil {
 		t.Fatalf("Failed to construct delete request")
 	}

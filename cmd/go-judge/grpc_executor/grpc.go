@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/criyle/go-judge/cmd/go-judge/model"
@@ -95,6 +96,11 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 		return nil, status.Error(codes.Internal, err.Error())
 	}
 	defer f.Close()
+	defer func() {
+		if err != nil {
+			os.Remove(f.Name())
+		}
+	}()
 
 	if _, err := f.Write(fc.GetContent()); err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

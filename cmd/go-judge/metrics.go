@@ -201,6 +201,10 @@ func (m *metricsFileStore) Remove(id string) bool {
 	return success
 }
 
+func (m *metricsFileStore) Close() error {
+	return m.FileStore.Close()
+}
+
 var _ pool.EnvBuilder = &metricsEnvBuilder{}
 
 type metricsEnvBuilder struct {

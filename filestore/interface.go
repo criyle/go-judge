@@ -18,6 +18,7 @@ type FileStore interface {
 	Get(string) (string, envexec.File)     // Get file by id, nil if not exists
 	List() map[string]string               // List return all file ids to original name
 	New() (*os.File, error)                // Create a temporary file to the file store, can be added through Add to save it
+	Close() error                          // Close releases resources owned by the file store
 }
 
 func generateID() (string, error) {

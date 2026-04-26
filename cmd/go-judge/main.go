@@ -473,7 +473,7 @@ func grpcTokenAuth(token string) func(context.Context) (context.Context, error) 
 
 func newFileStore(conf *config.Config) (filestore.FileStore, func() error) {
 	const timeoutCheckInterval = 15 * time.Second
-	var cleanUp func() error
+	var removeDir func() error
 
 	var fs filestore.FileStore
 	if conf.Dir == "" {
@@ -488,7 +488,7 @@ func newFileStore(conf *config.Config) (filestore.FileStore, func() error) {
 		if err != nil && !errors.Is(err, os.ErrExist) {
 			logger.Fatal("Failed to create file store default dir", zap.Error(err))
 		}
-		cleanUp = func() error {
+		removeDir = func() error {
 			return os.RemoveAll(conf.Dir)
 		}
 	}
@@ -500,7 +500,20 @@ func newFileStore(conf *config.Config) (filestore.FileStore, func() error) {
 	if conf.FileTimeout > 0 {
 		fs = filestore.NewTimeout(fs, conf.FileTimeout, timeoutCheckInterval)
 	}
-	return fs, cleanUp
+
+	if removeDir == nil {
+		return fs, fs.Close
+	}
+
+	return fs, func() error {
+		err := fs.Close()
+		if removeDir != nil {
+			if removeErr := removeDir(); err == nil {
+				err = removeErr
+			}
+		}
+		return err
+	}
 }
 
 func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {

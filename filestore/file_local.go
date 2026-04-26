@@ -62,12 +62,17 @@ func (s *fileLocalStore) Remove(id string) bool {
 	if !validID(id) {
 		return false
 	}
-	delete(s.name, id)
 	p := filepath.Join(s.dir, id)
 	if _, err := os.Stat(p); os.IsNotExist(err) {
+		delete(s.name, id)
+		return false
+	} else if err != nil {
 		return false
 	}
-	os.Remove(p)
+	if err := os.Remove(p); err != nil {
+		return false
+	}
+	delete(s.name, id)
 	return true
 }
 
@@ -102,6 +107,10 @@ func (s *fileLocalStore) New() (*os.File, error) {
 		}
 	}
 	return nil, errUniqueIDNotGenerated
+}
+
+func (s *fileLocalStore) Close() error {
+	return nil
 }
 
 func validID(id string) bool {

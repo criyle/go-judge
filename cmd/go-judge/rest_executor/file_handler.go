@@ -5,6 +5,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/criyle/go-judge/envexec"
@@ -48,12 +49,18 @@ func (f *fileHandle) filePost(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	defer fi.Close()
 	sf, err := f.fs.New()
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
 	defer sf.Close()
+	defer func() {
+		if c.IsAborted() {
+			os.Remove(sf.Name())
+		}
+	}()
 
 	if _, err := sf.ReadFrom(fi); err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)

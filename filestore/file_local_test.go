@@ -41,3 +41,21 @@ func TestFileLocalStoreAcceptsGeneratedLikeIDs(t *testing.T) {
 		t.Fatalf("unexpected name %q", name)
 	}
 }
+
+func TestFileLocalStoreRemoveReportsDeleteFailure(t *testing.T) {
+	dir := t.TempDir()
+	fs := NewFileLocalStore(dir)
+
+	id := "ABCDEFGH"
+	path := filepath.Join(dir, id)
+	if err := os.Mkdir(path, 0o755); err != nil {
+		t.Fatalf("Mkdir error: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(path, "child"), []byte("x"), 0o644); err != nil {
+		t.Fatalf("WriteFile error: %v", err)
+	}
+
+	if ok := fs.Remove(id); ok {
+		t.Fatalf("expected remove to report failure for non-empty directory")
+	}
+}

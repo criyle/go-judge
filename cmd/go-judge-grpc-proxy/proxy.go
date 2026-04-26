@@ -89,6 +89,7 @@ func (p *execProxy) FilePost(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	defer fi.Close()
 	b, err := io.ReadAll(fi)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)

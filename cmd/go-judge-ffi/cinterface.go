@@ -187,6 +187,11 @@ func FileAdd(content *C.char, contentLen C.int, name *C.char) *C.char {
 		return nil
 	}
 	defer f.Close()
+	defer func() {
+		if err != nil {
+			os.Remove(f.Name())
+		}
+	}()
 
 	if _, err := f.Write(sContent); err != nil {
 		return nil

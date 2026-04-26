@@ -328,6 +328,22 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	for _, f := range cmd.CopyOutCached {
 		copyOutCachedSet[f.Name] = true
 	}
+	cachedAdded := make(map[string]bool, len(cmd.CopyOutCached))
+
+	defer func() {
+		if res.Status != envexec.StatusFileError {
+			return
+		}
+		for name, f := range result.Files {
+			if _, ok := res.Files[name]; ok {
+				continue
+			}
+			if cachedAdded[name] {
+				continue
+			}
+			f.Close()
+		}
+	}()
 
 	for name, b := range result.Files {
 		if !copyOutCachedSet[name] {
@@ -340,6 +356,7 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 			res.Error = err.Error()
 			return
 		}
+		cachedAdded[name] = true
 		res.FileIDs[name] = id
 		b.Close()
 	}

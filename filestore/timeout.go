@@ -21,6 +21,9 @@ type Timeout struct {
 	timeout   time.Duration
 	files     []timeoutFile
 	idToIndex map[string]int
+	done      chan struct{}
+	closeOnce sync.Once
+	wg        sync.WaitGroup
 }
 
 type timeoutFile struct {
@@ -35,16 +38,24 @@ func NewTimeout(fs FileStore, timeout time.Duration, checkInterval time.Duration
 		timeout:   timeout,
 		files:     make([]timeoutFile, 0),
 		idToIndex: make(map[string]int),
+		done:      make(chan struct{}),
 	}
+	t.wg.Add(1)
 	go t.checkTimeoutLoop(checkInterval)
 	return t
 }
 
 func (t *Timeout) checkTimeoutLoop(interval time.Duration) {
+	defer t.wg.Done()
 	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
 	for {
 		t.checkTimeoutAndRemove()
-		<-ticker.C
+		select {
+		case <-ticker.C:
+		case <-t.done:
+			return
+		}
 	}
 }
 
@@ -135,4 +146,12 @@ func (t *Timeout) Get(id string) (string, envexec.File) {
 
 func (t *Timeout) New() (*os.File, error) {
 	return t.FileStore.New()
+}
+
+func (t *Timeout) Close() error {
+	t.closeOnce.Do(func() {
+		close(t.done)
+		t.wg.Wait()
+	})
+	return t.FileStore.Close()
 }

@@ -3,6 +3,7 @@ package wsexecutor
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"time"
@@ -13,6 +14,10 @@ import (
 )
 
 var _ stream.Stream = &streamWrapper{}
+
+const maxPackedStreamField = 15
+
+var errStreamFieldTooLarge = errors.New("stream index or fd exceeds websocket wire limit")
 
 type streamWrapper struct {
 	ctx    context.Context
@@ -50,6 +55,9 @@ func (w *streamWrapper) sendLoop() {
 				conn.Close()
 				return
 			case r.Output != nil:
+				if r.Output.Index > maxPackedStreamField || r.Output.Fd > maxPackedStreamField {
+					return
+				}
 				w, err := conn.NextWriter(websocket.BinaryMessage)
 				if err != nil {
 					return
@@ -98,6 +106,9 @@ func (w *streamWrapper) Recv() (*stream.Request, error) {
 		if err := json.Unmarshal(buf[1:], req.Request); err != nil {
 			return nil, err
 		}
+		if err := validateStreamRequestLimits(req.Request); err != nil {
+			return nil, err
+		}
 	case 2:
 		req.Resize = new(stream.ResizeRequest)
 		if err := json.Unmarshal(buf[1:], req.Resize); err != nil {
@@ -117,4 +128,25 @@ func (w *streamWrapper) Recv() (*stream.Request, error) {
 		return nil, fmt.Errorf("invalid type code: %d", buf[0])
 	}
 	return &req, nil
+}
+
+func validateStreamRequestLimits(req *model.Request) error {
+	for i, c := range req.Cmd {
+		if i > maxPackedStreamField {
+			for _, f := range c.Files {
+				if f != nil && (f.StreamIn || f.StreamOut) {
+					return fmt.Errorf("%w: cmd index %d", errStreamFieldTooLarge, i)
+				}
+			}
+		}
+		for j, f := range c.Files {
+			if f == nil || (!f.StreamIn && !f.StreamOut) {
+				continue
+			}
+			if j > maxPackedStreamField {
+				return fmt.Errorf("%w: fd %d", errStreamFieldTooLarge, j)
+			}
+		}
+	}
+	return nil
 }

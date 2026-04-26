@@ -97,6 +97,7 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 	}
 
 	var wg errgroup.Group
+	var outWG errgroup.Group
 	execCtx, execCancel := context.WithCancel(baseCtx)
 	defer execCancel()
 
@@ -114,17 +115,28 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 
 	// stream out
 	outCh := make(chan *OutputResponse, len(streamOut))
+	outDone := make(chan error, 1)
 	if len(streamOut) > 0 {
 		for _, so := range streamOut {
 			so := so
-			wg.Go(func() error {
+			outWG.Go(func() error {
 				return streamOutput(ctx, outCh, so)
 			})
 		}
+		go func() {
+			err := outWG.Wait()
+			close(outCh)
+			outDone <- err
+			close(outDone)
+		}()
+	} else {
+		close(outCh)
+		outDone <- nil
+		close(outDone)
 	}
 
 	rtCh := w.Execute(execCtx, rq)
-	err = sendLoop(ctx, s, outCh, rtCh, logger)
+	err = sendLoop(ctx, s, outCh, outDone, rtCh, logger)
 
 	cancel()
 	closeFunc()
@@ -132,13 +144,34 @@ func Start(baseCtx context.Context, s Stream, w worker.Worker, srcPrefix []strin
 	return errors.Join(err, err2)
 }
 
-func sendLoop(ctx context.Context, s Stream, outCh chan *OutputResponse, rtCh <-chan worker.Response, logger *zap.Logger) error {
+func sendLoop(ctx context.Context, s Stream, outCh <-chan *OutputResponse, outDone <-chan error, rtCh <-chan worker.Response, logger *zap.Logger) error {
+	var (
+		outClosed    bool
+		resultReady  bool
+		resultSend   *model.Response
+		streamOutErr error
+	)
+
 	for {
+		if outClosed && resultReady {
+			if streamOutErr != nil {
+				return streamOutErr
+			}
+			return s.Send(Response{Response: resultSend})
+		}
+
 		select {
 		case <-ctx.Done(): // error occur
 			return ctx.Err()
 
-		case o := <-outCh:
+		case o, ok := <-outCh:
+			if !ok {
+				outClosed = true
+				outCh = nil
+				streamOutErr = <-outDone
+				outDone = nil
+				continue
+			}
 			err := s.Send(Response{Output: o})
 			if err != nil {
 				return fmt.Errorf("send output: %w", err)
@@ -152,7 +185,9 @@ func sendLoop(ctx context.Context, s Stream, outCh chan *OutputResponse, rtCh <-
 			if err != nil {
 				return fmt.Errorf("convert response: %w", err)
 			}
-			return s.Send(Response{Response: &model.Response{Results: ret.Results}})
+			resultReady = true
+			resultSend = &model.Response{Results: ret.Results}
+			rtCh = nil
 		}
 	}
 }

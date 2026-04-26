@@ -176,7 +176,7 @@ func prepareCmdFdNoTty(c *Cmd, count int, newFileStore NewStoreFile) (f []*os.Fi
 			}
 
 			batchCmds = append(batchCmds,
-				OpenParam{Path: tc.Name, Flag: os.O_CREATE | os.O_WRONLY, Perm: 0777},
+				OpenParam{Path: tc.Name, Flag: os.O_CREATE | os.O_WRONLY | os.O_TRUNC, Perm: 0777},
 				OpenParam{Path: tc.Name, Flag: os.O_RDWR, Perm: 0777},
 			)
 			batchMeta = append(batchMeta,

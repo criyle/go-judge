@@ -126,7 +126,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	return proc, nil
 }
 
-// Open opens file relative to work directory
+// Open opens a file by container-visible path.
 func (c *environ) Open(params []envexec.OpenParam) ([]envexec.OpenResult, error) {
 	openCmd := make([]container.OpenCmd, 0, len(params))
 	for _, p := range params {

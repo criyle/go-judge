@@ -78,9 +78,11 @@ type SymlinkParam struct {
 // Environment defines the interface to access container execution environment
 type Environment interface {
 	Execve(context.Context, ExecveParam) (Process, error)
-	// Open open file at work dir with given relative path and flags
+	// Open opens a file by container-visible path with the given flags.
+	// Paths are not restricted to the configured workdir.
 	Open([]OpenParam) ([]OpenResult, error)
-	// Make symbolic link for a file / directory
+	// Symlink creates symbolic links by container-visible path.
+	// Link targets and link paths are not restricted to the configured workdir.
 	Symlink([]SymlinkParam) ([]error, error)
 }
 

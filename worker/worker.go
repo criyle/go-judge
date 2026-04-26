@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -375,15 +374,6 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool, cpuset string)
 		clockTimeLimit: rc.ClockLimit,
 	}
 
-	var copyOutDir string
-	if rc.CopyOutDir != "" {
-		if filepath.IsAbs(rc.CopyOutDir) {
-			copyOutDir = rc.CopyOutDir
-		} else {
-			copyOutDir = filepath.Join(w.workDir, rc.CopyOutDir)
-		}
-	}
-
 	timeLimit := time.Duration(rc.CPULimit)
 	copyOutMax := w.copyOutLimit
 	if rc.CopyOutMax > 0 {
@@ -424,7 +414,6 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool, cpuset string)
 		CopyIn:            copyIn,
 		SymLinks:          rc.Symlinks,
 		CopyOut:           copyOut,
-		CopyOutDir:        copyOutDir,
 		CopyOutMax:        copyOutMax,
 		CopyOutTruncate:   rc.CopyOutTruncate,
 		Waiter:            wait.Wait,

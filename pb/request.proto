@@ -58,6 +58,7 @@ message Request {
 
     repeated CmdCopyOutFile copyOut = 9;
     repeated CmdCopyOutFile copyOutCached = 10;
+    // Deprecated: ignored by the executor.
     string copyOutDir = 11;
     uint64 copyOutMax = 14;
     bool copyOutTruncate = 20;

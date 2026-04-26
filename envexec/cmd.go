@@ -54,9 +54,6 @@ type Cmd struct {
 	CopyOutMax      Size // file size limit
 	CopyOutTruncate bool
 
-	// CopyOutDir specifies a dir to dump all /w content
-	CopyOutDir string
-
 	// additional memory option
 	AddressSpaceLimit bool
 	DataSegmentLimit  bool

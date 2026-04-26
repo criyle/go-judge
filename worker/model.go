@@ -37,7 +37,6 @@ type Cmd struct {
 	CopyOut         []CmdCopyOutFile
 	CopyOutCached   []CmdCopyOutFile
 	CopyOutMax      uint64
-	CopyOutDir      string
 	CopyOutTruncate bool
 
 	TTY               bool

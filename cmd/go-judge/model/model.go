@@ -48,11 +48,12 @@ type Cmd struct {
 
 	CopyIn map[string]CmdFile `json:"copyIn"`
 
-	CopyOut         []string `json:"copyOut"`
-	CopyOutCached   []string `json:"copyOutCached"`
-	CopyOutMax      uint64   `json:"copyOutMax"`
-	CopyOutDir      string   `json:"copyOutDir"`
-	CopyOutTruncate bool     `json:"copyOutTruncate"`
+	CopyOut       []string `json:"copyOut"`
+	CopyOutCached []string `json:"copyOutCached"`
+	CopyOutMax    uint64   `json:"copyOutMax"`
+	// CopyOutDir is deprecated and ignored.
+	CopyOutDir      string `json:"copyOutDir"`
+	CopyOutTruncate bool   `json:"copyOutTruncate"`
 
 	TTY               bool `json:"tty,omitempty"`
 	StrictMemoryLimit bool `json:"strictMemoryLimit"`
@@ -319,7 +320,6 @@ func convertCmd(c Cmd, srcPrefix []string) (worker.Cmd, error) {
 		CopyOut:           convertCopyOut(c.CopyOut),
 		CopyOutCached:     convertCopyOut(c.CopyOutCached),
 		CopyOutMax:        c.CopyOutMax,
-		CopyOutDir:        c.CopyOutDir,
 		CopyOutTruncate:   c.CopyOutTruncate,
 	}
 	for _, f := range c.Files {

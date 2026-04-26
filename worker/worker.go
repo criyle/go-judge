@@ -70,6 +70,7 @@ type worker struct {
 
 	startOnce sync.Once
 	stopOnce  sync.Once
+	stateMu   sync.RWMutex
 	wg        sync.WaitGroup
 	workCh    chan workRequest
 	done      chan struct{}
@@ -121,7 +122,25 @@ func (w *worker) Start() {
 func (w *worker) Submit(ctx context.Context, req *Request) (<-chan Response, <-chan struct{}) {
 	ch := make(chan Response, 1)
 	started := make(chan struct{})
+	w.stateMu.RLock()
+	defer w.stateMu.RUnlock()
+
+	if w.done == nil || w.workCh == nil {
+		close(started)
+		ch <- Response{
+			RequestID: req.RequestID,
+			Error:     fmt.Errorf("worker is not started"),
+		}
+		return ch, started
+	}
+
 	select {
+	case <-w.done:
+		close(started)
+		ch <- Response{
+			RequestID: req.RequestID,
+			Error:     fmt.Errorf("worker is shutting down"),
+		}
 	case w.workCh <- workRequest{
 		Request:  req,
 		Context:  ctx,
@@ -157,6 +176,12 @@ func (w *worker) Stat() Stat {
 // Shutdown waits all worker to finish
 func (w *worker) Shutdown() {
 	w.stopOnce.Do(func() {
+		w.stateMu.Lock()
+		defer w.stateMu.Unlock()
+
+		if w.done == nil {
+			return
+		}
 		close(w.done)
 		w.wg.Wait()
 		w.envPool.Destroy()

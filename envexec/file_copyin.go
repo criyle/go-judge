@@ -9,6 +9,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const fileCopyParallelism = 8
+
 // copyIn copied file from host to container in parallel
 func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 	var (
@@ -16,6 +18,7 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 		fileErrors []FileError
 		mu         sync.Mutex
 	)
+	g.SetLimit(fileCopyParallelism)
 
 	names := make([]string, 0, len(copyIn))
 	cmds := make([]OpenParam, 0, len(copyIn))

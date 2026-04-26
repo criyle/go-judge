@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"flag"
 	"io"
@@ -90,11 +91,15 @@ func (p *execProxy) FilePost(c *gin.Context) {
 		return
 	}
 	defer fi.Close()
-	b, err := io.ReadAll(fi)
-	if err != nil {
+	var buf bytes.Buffer
+	if fh.Size > 0 && fh.Size <= int64(^uint(0)>>1) {
+		buf.Grow(int(fh.Size))
+	}
+	if _, err := buf.ReadFrom(fi); err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	b := buf.Bytes()
 
 	req := pb.FileContent_builder{
 		Name:    fh.Filename,

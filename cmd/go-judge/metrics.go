@@ -184,6 +184,9 @@ func (m *metricsFileStore) Add(name, path string) (string, error) {
 
 func (m *metricsFileStore) Remove(id string) bool {
 	success := m.FileStore.Remove(id)
+	if !success {
+		return false
+	}
 
 	m.mu.Lock()
 	defer m.mu.Unlock()

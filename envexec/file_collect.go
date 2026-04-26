@@ -17,6 +17,7 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 		l, le     sync.Mutex
 		fileError []FileError
 	)
+	g.SetLimit(fileCopyParallelism)
 	rt := make(map[string]*os.File)
 	put := func(f *os.File, n string) {
 		l.Lock()

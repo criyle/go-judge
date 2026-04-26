@@ -22,12 +22,12 @@ func newProcess(run func() runner.Result, cg Cgroup, cgPool CgroupPool) *process
 		cg:   cg,
 	}
 	go func() {
-		defer close(p.done)
-		if cgPool != nil {
-			defer cgPool.Put(cg)
-		}
 		p.rt = run()
 		p.collectUsage()
+		close(p.done)
+		if cgPool != nil {
+			cgPool.Put(cg)
+		}
 	}()
 	return p
 }

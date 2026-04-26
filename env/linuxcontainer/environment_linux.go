@@ -43,7 +43,18 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		syncFunc func(int) error
 		err      error
 		cgFd     uintptr
+		owned    bool
 	)
+	defer func() {
+		if cg == nil || owned {
+			return
+		}
+		if c.cgPool != nil {
+			c.cgPool.Put(cg)
+			return
+		}
+		cg.Destroy()
+	}()
 
 	limit := param.Limit
 	if c.cgPool != nil {
@@ -105,6 +116,7 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 	proc := newProcess(func() runner.Result {
 		return c.Environment.Execve(ctx, p)
 	}, cg, c.cgPool)
+	owned = true
 
 	select {
 	case <-proc.done:

@@ -245,11 +245,21 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 				},
 			},
 		},
+		{
+			Name: "FIFO CopyOut Failure",
+			Input: Cmd{
+				Args:    []string{"/usr/bin/mkfifo", "out"},
+				CopyOut: []string{"out"},
+			},
+			Expect: Expectation{
+				Status:        "File Error",
+				ErrorContains: "not a regular file",
+			},
+		},
 	}
 
 	// 5. Execution Loop
 	client := &http.Client{Timeout: 10 * time.Second}
-
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
 			// A. Merge Defaults

@@ -36,7 +36,7 @@ func copyIn(m Environment, copyIn map[string]File) ([]FileError, error) {
 				Name: n, Type: ErrCopyInCreateFile, Message: err.Error(),
 			})
 		}
-		return nil, fmt.Errorf("copyin: batch open failed: %w", err)
+		return fileErrors, fmt.Errorf("copyin: batch open failed: %w", err)
 	}
 
 	for i, res := range results {

@@ -47,6 +47,10 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 }
 
 func copyOutFiles(g *errgroup.Group, m Environment, c *Cmd, newStoreFile NewStoreFile, put func(*os.File, string), addError func(FileError)) error {
+	if len(c.CopyOut) == 0 {
+		return nil
+	}
+
 	cmds := make([]OpenParam, 0, len(c.CopyOut))
 	for _, n := range c.CopyOut {
 		cmds = append(cmds, OpenParam{

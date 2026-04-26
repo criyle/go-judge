@@ -152,11 +152,38 @@ func convertPBFileError(fe []envexec.FileError) []*pb.Response_FileError {
 	for _, e := range fe {
 		rt = append(rt, pb.Response_FileError_builder{
 			Name:    e.Name,
-			Type:    pb.Response_FileError_ErrorType(e.Type),
+			Type:    convertPBFileErrorType(e.Type),
 			Message: e.Message,
 		}.Build())
 	}
 	return rt
+}
+
+func convertPBFileErrorType(t envexec.FileErrorType) pb.Response_FileError_ErrorType {
+	switch t {
+	case envexec.ErrCopyInOpenFile:
+		return pb.Response_FileError_CopyInOpenFile
+	case envexec.ErrCopyInCreateDir, envexec.ErrCopyInCreateFile:
+		return pb.Response_FileError_CopyInCreateFile
+	case envexec.ErrCopyInCopyContent:
+		return pb.Response_FileError_CopyInCopyContent
+	case envexec.ErrCopyOutOpen:
+		return pb.Response_FileError_CopyOutOpen
+	case envexec.ErrCopyOutNotRegularFile:
+		return pb.Response_FileError_CopyOutNotRegularFile
+	case envexec.ErrCopyOutSizeExceeded:
+		return pb.Response_FileError_CopyOutSizeExceeded
+	case envexec.ErrCopyOutCreateFile:
+		return pb.Response_FileError_CopyOutCreateFile
+	case envexec.ErrCopyOutCopyContent:
+		return pb.Response_FileError_CopyOutCopyContent
+	case envexec.ErrCollectSizeExceeded:
+		return pb.Response_FileError_CollectSizeExceeded
+	case envexec.ErrSymlink:
+		return pb.Response_FileError_Symlink
+	default:
+		return pb.Response_FileError_CopyInOpenFile
+	}
 }
 
 func convertPBRequest(r *pb.Request, srcPrefix []string) (req *worker.Request, err error) {
@@ -210,7 +237,6 @@ func convertPBCmd(c *pb.Request_CmdType, srcPrefix []string) (cm worker.Cmd, err
 		CopyOut:           convertCopyOut(c.GetCopyOut()),
 		CopyOutCached:     convertCopyOut(c.GetCopyOutCached()),
 		CopyOutMax:        c.GetCopyOutMax(),
-		CopyOutDir:        c.GetCopyOutDir(),
 		CopyOutTruncate:   c.GetCopyOutTruncate(),
 		Symlinks:          c.GetSymlinks(),
 	}

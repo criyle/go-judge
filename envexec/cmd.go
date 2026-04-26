@@ -121,6 +121,7 @@ var fileErrorString = []string{
 	"CopyOutCreateFile",
 	"CopyOutCopyContent",
 	"CollectSizeExceeded",
+	"Symlink",
 }
 
 var fileErrorStringReverse = make(map[string]FileErrorType)

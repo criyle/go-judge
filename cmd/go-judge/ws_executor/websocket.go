@@ -3,6 +3,9 @@ package wsexecutor
 import (
 	"context"
 	"fmt"
+	"errors"
+	"io"
+	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -151,7 +154,9 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 		for {
 			req := new(wsRequest)
 			if err := conn.ReadJSON(req); err != nil {
-				h.logger.Info("ws read error", zap.Error(err))
+				if !isExpectedWSClose(err) {
+					h.logger.Info("ws read error", zap.Error(err))
+				}
 				return
 			}
 			if err := handleRequest(baseCtx, req); err != nil {
@@ -171,7 +176,9 @@ func (h *wsHandle) handleWS(c *gin.Context) {
 			case r := <-resultCh:
 				conn.SetWriteDeadline(time.Now().Add(writeWait))
 				if err := conn.WriteJSON(r); err != nil {
-					h.logger.Info("ws write error", zap.Error(err))
+					if !isExpectedWSClose(err) {
+						h.logger.Info("ws write error", zap.Error(err))
+					}
 					return
 				}
 			case <-ticker.C:
@@ -202,9 +209,28 @@ func (h *wsHandle) handleStream(c *gin.Context) {
 	w := &streamWrapper{ctx: ctx, conn: conn, sendCh: make(chan stream.Response)}
 	go w.sendLoop()
 	if err := stream.Start(ctx, w, h.worker, h.srcPrefix, h.logger); err != nil {
-		h.logger.Debug("stream start", zap.Error(err))
-		c.Error(err)
+		if !isExpectedWSClose(err) {
+			h.logger.Debug("stream start", zap.Error(err))
+			c.Error(err)
+		}
 	}
+}
+
+func isExpectedWSClose(err error) bool {
+	if err == nil {
+		return false
+	}
+	if errors.Is(err, context.Canceled) || errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+		return true
+	}
+	if websocket.IsCloseError(err,
+		websocket.CloseNormalClosure,
+		websocket.CloseGoingAway,
+		websocket.CloseNoStatusReceived,
+	) {
+		return true
+	}
+	return false
 }
 
 type contextMap struct {

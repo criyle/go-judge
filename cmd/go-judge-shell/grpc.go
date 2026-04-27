@@ -44,24 +44,32 @@ func newGrpc(args []string, srvAddr string) Stream {
 func (w *grpcWrapper) Send(req *stream.Request) error {
 	switch {
 	case req.Request != nil:
-		w.sc.Send(convertPBRequest(req.Request))
+		if err := w.sc.Send(convertPBRequest(req.Request)); err != nil {
+			return err
+		}
 	case req.Input != nil:
-		w.sc.Send(pb.StreamRequest_builder{ExecInput: pb.StreamRequest_Input_builder{
+		if err := w.sc.Send(pb.StreamRequest_builder{ExecInput: pb.StreamRequest_Input_builder{
 			Index:   uint32(req.Input.Index),
 			Fd:      uint32(req.Input.Fd),
 			Content: req.Input.Content,
-		}.Build()}.Build())
+		}.Build()}.Build()); err != nil {
+			return err
+		}
 	case req.Resize != nil:
-		w.sc.Send(pb.StreamRequest_builder{ExecResize: pb.StreamRequest_Resize_builder{
+		if err := w.sc.Send(pb.StreamRequest_builder{ExecResize: pb.StreamRequest_Resize_builder{
 			Index: uint32(req.Resize.Index),
 			Fd:    uint32(req.Resize.Fd),
 			Rows:  uint32(req.Resize.Rows),
 			Cols:  uint32(req.Resize.Cols),
 			X:     uint32(req.Resize.X),
 			Y:     uint32(req.Resize.Y),
-		}.Build()}.Build())
+		}.Build()}.Build()); err != nil {
+			return err
+		}
 	case req.Cancel != nil:
-		w.sc.Send(pb.StreamRequest_builder{ExecCancel: &emptypb.Empty{}}.Build())
+		if err := w.sc.Send(pb.StreamRequest_builder{ExecCancel: &emptypb.Empty{}}.Build()); err != nil {
+			return err
+		}
 	default:
 		return errors.New("send: unknown operation")
 	}

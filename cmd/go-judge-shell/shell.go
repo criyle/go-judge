@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -59,7 +61,11 @@ func main() {
 		log.Fatalln("invalid transport: ", *transport)
 	}
 	r, err := run(s, args)
-	log.Printf("finished: %+v %v", r, err)
+	if err != nil && !isExpectedShellClose(err) {
+		log.Printf("finished: %+v %v", r, err)
+		return
+	}
+	log.Printf("finished: %+v", r)
 }
 
 func run(sc Stream, args []string) (*model.Response, error) {
@@ -197,4 +203,8 @@ func run(sc Stream, args []string) (*model.Response, error) {
 			return sr.Response, nil
 		}
 	}
+}
+
+func isExpectedShellClose(err error) bool {
+	return errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)
 }

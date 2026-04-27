@@ -6,7 +6,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/creack/pty v1.1.24
 	github.com/criyle/go-judge/pb v1.3.3
-	github.com/criyle/go-sandbox v0.13.3
+	github.com/criyle/go-sandbox v0.13.4
 	github.com/elastic/go-seccomp-bpf v1.6.0
 	github.com/elastic/go-ucfg v0.9.1
 	github.com/gin-contrib/zap v1.1.7

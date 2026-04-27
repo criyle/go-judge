@@ -22,6 +22,10 @@ func copyOutAndCollect(m Environment, c *Cmd, ptc []pipeCollector, newStoreFile 
 	put := func(f *os.File, n string) {
 		l.Lock()
 		defer l.Unlock()
+		if old, ok := rt[n]; ok && old != nil && old != f {
+			old.Close()
+			os.Remove(old.Name())
+		}
 		rt[n] = f
 	}
 	addError := func(e FileError) {

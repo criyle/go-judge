@@ -39,6 +39,7 @@ These benchmarks pin Go threads with `sched_setaffinity` and compare:
 File:
 
 - [test.go](/home/criyle/project/judge/go-judge/integration_test/pipe_test/test.go)
+- [pipe_matrix_test.go](/home/criyle/project/judge/go-judge/integration_test/pipe_matrix_test.go)
 
 The harness runs two Python processes in a ping-pong loop and supports:
 
@@ -79,6 +80,12 @@ env GOCACHE=/tmp/go-cache go test -run '^$' -bench '^(BenchmarkProxyAffinity|Ben
 
 ```bash
 env GOCACHE=/tmp/go-cache go run -tags=integration ./go-judge/integration_test/pipe_test -mode all -layout all -n 1 -p 1
+```
+
+Real server-path integration run:
+
+```bash
+env GOCACHE=/tmp/go-cache go test -tags=integration -run '^TestInteraction_Bidirectional_ProxyMatrix$' -v ./go-judge/integration_test
 ```
 
 ## Observations
@@ -171,6 +178,33 @@ The integration harness is more relevant because it includes:
 
 For implementation decisions, the integration results should carry more weight than the in-process microbenchmarks.
 
+### 6. The real `/run` path confirms the same direction, but with different absolute costs
+
+The API-level integration test runs through the actual `go-judge` worker, environment, and proxy setup. In this path the “same CPU” case is not expressed by REST fields. Instead, it is the worker-allocated case:
+
+- both commands leave `cpuSetLimit` empty
+- the worker is started with `-cpuset 0,1,2,3`
+- one worker loop picks the request
+- the commands and proxy relay inherit that worker cpuset
+
+Observed results from the live server path:
+
+- `none/worker-allocated-same-cpu`: `1.58s`
+- `std/worker-allocated-same-cpu`: `13.60s`
+- `splice/worker-allocated-same-cpu`: `9.43s`
+- `none/split-cpu-0-1`: `7.52s`
+- `std/split-cpu-0-1`: `16.41s`
+- `splice/split-cpu-0-1`: `15.05s`
+
+Interpretation:
+
+- direct pipes still show the same severe cross-CPU penalty
+- `splice` is better than `std` when the worker allocates a shared cpuset
+- `splice` loses much of that advantage when the commands are explicitly split across CPUs
+- the proxied path remains much slower than direct pipes even in the best same-cpuset case
+
+This confirms that the earlier standalone harness was directionally correct, but the real server path has additional overhead that raises the absolute cost of proxy mode.
+
 ## Practical Conclusion
 
 The current evidence supports the following conclusions:
@@ -178,7 +212,31 @@ The current evidence supports the following conclusions:
 1. The direct pipe baseline benefits heavily from keeping the communicating processes on the same CPU or very local CPUs.
 2. The `std` proxy is consistently poor for this workload and should not be the main optimization target unless `splice` cannot be used.
 3. The `splice` proxy is viable for this workload, but only if relay thread affinity preserves locality.
-4. An unpinned parent-side relay can destroy most of the cpuset win, especially for the `splice` path.
+4. An unpinned or non-local parent-side relay can destroy most of the cpuset win, especially for the `splice` path.
+5. Even after preserving cpuset inheritance, proxy mode still remains substantially slower than direct pipes, so locality is not the only cost.
+
+## Main Obstacles
+
+The experiments now point to two primary obstacles for proxy-pipe performance:
+
+1. Cross-process IPC locality
+
+- When the communicating processes are split across CPUs, ping-pong traffic slows down dramatically even without a proxy.
+- This is the baseline cost of cross-core synchronization and cache movement.
+- That cost cannot be solved by changing `std` vs `splice` alone.
+
+2. Proxy overhead on top of the IPC baseline
+
+- The proxy inserts a parent-side relay stage.
+- `std` relay adds heavy user-space copy/scheduling overhead and is consistently the worst option here.
+- `splice` reduces that overhead substantially compared with `std`, but does not remove it.
+- In the live server path, even the best `splice` case is still much slower than the direct-pipe baseline.
+
+So the current conclusion is:
+
+- cross-process IPC is the fundamental bottleneck when locality is bad
+- kernel zero-copy helps relative to `std` proxy
+- but kernel zero-copy does not close the gap to direct pipes, because the relay stage itself is still an extra synchronization and scheduling layer
 
 ## Implementation Direction
 
@@ -187,7 +245,8 @@ The most promising implementation direction is:
 1. Keep the proxy semantics, since it also provides the drain/anti-`SIGPIPE` guardrail.
 2. Prefer the `splice` proxy for this ping-pong workload.
 3. Pin proxy relay goroutines/threads to the same CPU or same `cpuset` as the communicating tasks.
-4. Re-run the integration matrix after implementing relay affinity to verify that `splice/all-same`-like behavior is preserved in the actual `go-judge` execution path.
+4. Use direct pipes whenever the proxy guardrail is not required.
+5. Re-run the integration matrix after implementing relay affinity to verify that worker-allocated same-cpuset behavior is preserved in the actual `go-judge` execution path.
 
 ## Caveats
 

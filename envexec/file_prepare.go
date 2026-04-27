@@ -437,7 +437,7 @@ func pipeProxy(p Pipe, out1 *os.File, in2 *os.File, buffer *os.File) *pipeCollec
 
 	// if no name, simply copy data
 	if p.Name == "" {
-		go copyAndClose()
+		go runWithCPUAffinity(p.CPUSet, copyAndClose)
 		return nil
 	}
 
@@ -446,18 +446,20 @@ func pipeProxy(p Pipe, out1 *os.File, in2 *os.File, buffer *os.File) *pipeCollec
 
 	// out1 -> in2
 	go func() {
-		// copy with limit
-		lr := io.LimitReader(out1, int64(limit))
-		r := io.TeeReader(lr, buffer)
+		runWithCPUAffinity(p.CPUSet, func() {
+			// copy with limit
+			lr := io.LimitReader(out1, int64(limit))
+			r := io.TeeReader(lr, buffer)
 
-		n, _ := io.Copy(in2, r)
-		if n < int64(limit) {
-			io.Copy(buffer, lr)
-		}
-		close(done)
+			n, _ := io.Copy(in2, r)
+			if n < int64(limit) {
+				io.Copy(buffer, lr)
+			}
+			close(done)
 
-		// copy without limit
-		copyAndClose()
+			// copy without limit
+			copyAndClose()
+		})
 	}()
 
 	return &pipeCollector{

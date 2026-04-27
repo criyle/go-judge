@@ -31,6 +31,9 @@ type Pipe struct {
 	// In, Out defines the pipe input source and output destination
 	In, Out PipeIndex
 
+	// CPUSet pins the proxy relay thread to the same cpuset as the commands.
+	CPUSet string
+
 	// Name defines copy out entry name if it is not empty and proxy is enabled
 	Name string
 

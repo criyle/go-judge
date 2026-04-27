@@ -263,6 +263,11 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd, cpuset string) (rt Re
 func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, cpuset string) (rt Response) {
 	var rts []Result
 	cs := make([]*envexec.Cmd, 0, len(rc))
+	pipes := make([]PipeMap, 0, len(pm))
+	for _, p := range pm {
+		p.CPUSet = cpuset
+		pipes = append(pipes, p)
+	}
 	pipeFileNames := preparePipeNames(pm, len(rc))
 	for i, cc := range rc {
 		c, err := w.prepareCmd(cc, pipeFileNames[i], cpuset)
@@ -289,7 +294,7 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, cpuset
 	}
 	g := envexec.Group{
 		Cmd:          cs,
-		Pipes:        pm,
+		Pipes:        pipes,
 		NewStoreFile: w.fs.New,
 	}
 	results, err := g.Run(ctx)

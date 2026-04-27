@@ -27,6 +27,7 @@ type Cmd struct {
 	MemoryLimit     uint64 `json:"memoryLimit"`
 	StackLimit      uint64 `json:"stackLimit"`
 	ProcLimit       uint64 `json:"procLimit"`
+	CPUSetLimit     string `json:"cpuSetLimit,omitempty"`
 	CopyOutMax      uint64 `json:"copyOutMax,omitempty"`
 	CopyOutTruncate bool   `json:"copyOutTruncate,omitempty"`
 
@@ -41,9 +42,10 @@ type Request struct {
 }
 
 type PipeMap struct {
-	In    PipeIndex `json:"in"`
-	Out   PipeIndex `json:"out"`
-	Proxy bool      `json:"proxy,omitempty"`
+	In              PipeIndex `json:"in"`
+	Out             PipeIndex `json:"out"`
+	Proxy           bool      `json:"proxy,omitempty"`
+	DisableZeroCopy bool      `json:"disableZeroCopy,omitempty"`
 }
 
 type PipeIndex struct {
@@ -53,6 +55,8 @@ type PipeIndex struct {
 
 type Result struct {
 	Status  string            `json:"status"`
+	Time    uint64            `json:"time"`
+	RunTime uint64            `json:"runTime"`
 	Files   map[string]string `json:"files"`
 	FileIDs map[string]string `json:"fileIds"`
 	Error   string            `json:"error"`

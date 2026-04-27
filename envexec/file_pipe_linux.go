@@ -27,6 +27,37 @@ func getDevNull() *os.File {
 }
 
 func pipeProxyZeroCopy(p Pipe, out1 *os.File, in2 *os.File, buffer *os.File) *pipeCollector {
+	if p.Name == "" {
+		go runWithCPUAffinity(p.CPUSet, func() {
+			defer in2.Close()
+			defer out1.Close()
+
+			srcFd := int(out1.Fd())
+			dstFd := int(in2.Fd())
+			discardFd := int(getDevNull().Fd())
+			dstBroken := false
+
+			for {
+				targetFd := dstFd
+				if dstBroken {
+					targetFd = discardFd
+				}
+				n, err := unix.Splice(srcFd, nil, targetFd, nil, 64*1024, unix.SPLICE_F_MOVE)
+				if err != nil {
+					if !dstBroken {
+						dstBroken = true
+						continue
+					}
+					break
+				}
+				if n == 0 {
+					break
+				}
+			}
+		})
+		return nil
+	}
+
 	done := make(chan struct{})
 
 	go func() {

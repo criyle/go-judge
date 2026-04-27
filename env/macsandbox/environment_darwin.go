@@ -204,7 +204,11 @@ func killAll(pid int) {
 func collectZombie(pgid int) {
 	var wstatus syscall.WaitStatus
 	for {
-		if _, err := syscall.Wait4(-pgid, &wstatus, syscall.WNOHANG, nil); err != syscall.EINTR && err != nil {
+		_, err := syscall.Wait4(-pgid, &wstatus, 0, nil)
+		if err == syscall.EINTR {
+			continue
+		}
+		if err != nil {
 			break
 		}
 	}

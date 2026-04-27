@@ -389,14 +389,17 @@ func countFd(r *Group) ([]int, error) {
 
 func pipe(p Pipe, newStoreFile NewStoreFile) (out *os.File, in *os.File, pc *pipeCollector, err error) {
 	if p.Proxy {
-		buffer, err := newStoreFile()
-		if err != nil {
-			return nil, nil, nil, fmt.Errorf("pipe: create store file: %w", err)
-		}
 		out1, in1, out2, in2, err := pipe2()
 		if err != nil {
-			buffer.Close()
 			return nil, nil, nil, fmt.Errorf("pipe: create: %w", err)
+		}
+		var buffer *os.File
+		if p.Name != "" {
+			buffer, err = newStoreFile()
+			if err != nil {
+				closeFiles(out1, in1, out2, in2)
+				return nil, nil, nil, fmt.Errorf("pipe: create store file: %w", err)
+			}
 		}
 		if p.DisableZeroCopy {
 			pc = pipeProxy(p, out1, in2, buffer)

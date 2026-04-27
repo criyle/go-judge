@@ -170,3 +170,91 @@ func BenchmarkEmpiricalProxy(b *testing.B) {
 		}
 	}
 }
+
+func BenchmarkInteractiveProxy(b *testing.B) {
+	messageSizes := []int{8, 64, 256, 1024}
+	modes := []struct {
+		name     string
+		zeroCopy bool
+	}{
+		{"StdProxy", false},
+		{"ZeroCopy", true},
+	}
+
+	for _, mode := range modes {
+		for _, size := range messageSizes {
+			b.Run(fmt.Sprintf("%s/Msg-%dB", mode.name, size), func(b *testing.B) {
+				newStore := func() (*os.File, error) {
+					return os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+				}
+
+				pipeCfg := Pipe{
+					Proxy:           true,
+					DisableZeroCopy: !mode.zeroCopy,
+				}
+
+				abOut, abIn, abCollector, err := pipe(pipeCfg, newStore)
+				if err != nil {
+					b.Fatal(err)
+				}
+				baOut, baIn, baCollector, err := pipe(pipeCfg, newStore)
+				if err != nil {
+					b.Fatal(err)
+				}
+				defer func() {
+					abIn.Close()
+					abOut.Close()
+					baIn.Close()
+					baOut.Close()
+					if abCollector != nil && abCollector.done != nil {
+						<-abCollector.done
+					}
+					if baCollector != nil && baCollector.done != nil {
+						<-baCollector.done
+					}
+				}()
+
+				payload := make([]byte, size)
+				reply := make([]byte, size)
+
+				echoDone := make(chan error, 1)
+				go func() {
+					buf := make([]byte, size)
+					for {
+						if _, err := io.ReadFull(abOut, buf); err != nil {
+							if err == io.EOF || err == io.ErrUnexpectedEOF {
+								echoDone <- nil
+							} else {
+								echoDone <- err
+							}
+							return
+						}
+						if _, err := baIn.Write(buf); err != nil {
+							echoDone <- err
+							return
+						}
+					}
+				}()
+
+				b.SetBytes(int64(size))
+				b.ResetTimer()
+				for b.Loop() {
+					if _, err := abIn.Write(payload); err != nil {
+						b.Fatal(err)
+					}
+					if _, err := io.ReadFull(baOut, reply); err != nil {
+						b.Fatal(err)
+					}
+				}
+				b.StopTimer()
+
+				abIn.Close()
+				baIn.Close()
+				if err := <-echoDone; err != nil {
+					b.Fatal(err)
+				}
+				abOut.Close()
+			})
+		}
+	}
+}

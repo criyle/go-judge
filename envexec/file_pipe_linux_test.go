@@ -4,10 +4,14 @@ import (
 	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"testing"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 // Verification Test: Ensures data integrity across all branches
@@ -186,5 +190,272 @@ func TestProxyDrainOnConsumerExit(t *testing.T) {
 				t.Log("✅ Side buffer integrity verified despite consumer exit.")
 			}
 		})
+	}
+}
+
+func BenchmarkProxyAffinity(b *testing.B) {
+	if runtime.NumCPU() < 3 {
+		b.Skip("requires at least 3 CPUs")
+	}
+
+	modes := []struct {
+		name     string
+		zeroCopy bool
+	}{
+		{"StdProxy", false},
+		{"ZeroCopy", true},
+	}
+	messageSizes := []int{8, 64, 256, 1024}
+	placements := []struct {
+		name       string
+		writerCPU  int
+		splicerCPU int
+		readerCPU  int
+	}{
+		{"AllSameCore", 0, 0, 0},
+		{"WriterReaderSame_SplicerOther", 0, 1, 0},
+		{"AllDifferentCore", 0, 1, 2},
+	}
+
+	for _, mode := range modes {
+		for _, messageSize := range messageSizes {
+			payload := make([]byte, messageSize)
+			for _, placement := range placements {
+				b.Run(fmt.Sprintf("%s/Msg-%dB/%s", mode.name, messageSize, placement.name), func(b *testing.B) {
+					out1, in1, out2, in2, err := pipe2()
+					if err != nil {
+						b.Fatal(err)
+					}
+					defer out2.Close()
+
+					splicerDone := make(chan error, 1)
+					readerDone := make(chan error, 1)
+					writerDone := make(chan error, 1)
+
+					go func() {
+						splicerDone <- runOnPinnedCPU(placement.splicerCPU, func() error {
+							return relayUntilEOF(out1, in2, mode.zeroCopy)
+						})
+					}()
+
+					go func() {
+						readerDone <- runOnPinnedCPU(placement.readerCPU, func() error {
+							buf := make([]byte, messageSize)
+							for i := 0; i < b.N; i++ {
+								if _, err := io.ReadFull(out2, buf); err != nil {
+									return err
+								}
+							}
+							return nil
+						})
+					}()
+
+					b.SetBytes(int64(messageSize))
+					b.ResetTimer()
+
+					go func() {
+						writerDone <- runOnPinnedCPU(placement.writerCPU, func() error {
+							defer in1.Close()
+							for i := 0; i < b.N; i++ {
+								if _, err := in1.Write(payload); err != nil {
+									return err
+								}
+							}
+							return nil
+						})
+					}()
+
+					if err := <-writerDone; err != nil {
+						b.Fatal(err)
+					}
+					if err := <-readerDone; err != nil {
+						b.Fatal(err)
+					}
+					if err := <-splicerDone; err != nil {
+						b.Fatal(err)
+					}
+					b.StopTimer()
+				})
+			}
+		}
+	}
+}
+
+func BenchmarkProxyBidirectionalAffinity(b *testing.B) {
+	if runtime.NumCPU() < 4 {
+		b.Skip("requires at least 4 CPUs")
+	}
+
+	modes := []struct {
+		name     string
+		zeroCopy bool
+	}{
+		{"StdProxy", false},
+		{"ZeroCopy", true},
+	}
+	messageSizes := []int{8, 64, 256, 1024}
+	placements := []struct {
+		name  string
+		aCPU  int
+		bCPU  int
+		abCPU int
+		baCPU int
+	}{
+		{"AllSameCore", 0, 0, 0, 0},
+		{"WriterReaderSame_SplicersOther", 0, 0, 1, 1},
+		{"EachRoleSplit", 0, 1, 2, 3},
+	}
+
+	for _, mode := range modes {
+		for _, messageSize := range messageSizes {
+			payload := make([]byte, messageSize)
+			reply := make([]byte, messageSize)
+			for _, placement := range placements {
+				b.Run(fmt.Sprintf("%s/Msg-%dB/%s", mode.name, messageSize, placement.name), func(b *testing.B) {
+					abOut1, abIn1, abOut2, abIn2, err := pipe2()
+					if err != nil {
+						b.Fatal(err)
+					}
+					baOut1, baIn1, baOut2, baIn2, err := pipe2()
+					if err != nil {
+						b.Fatal(err)
+					}
+					defer abOut2.Close()
+					defer baOut2.Close()
+
+					abSplicerDone := make(chan error, 1)
+					baSplicerDone := make(chan error, 1)
+					aDone := make(chan error, 1)
+					bDone := make(chan error, 1)
+
+					go func() {
+						abSplicerDone <- runOnPinnedCPU(placement.abCPU, func() error {
+							return relayUntilEOF(abOut1, abIn2, mode.zeroCopy)
+						})
+					}()
+					go func() {
+						baSplicerDone <- runOnPinnedCPU(placement.baCPU, func() error {
+							return relayUntilEOF(baOut1, baIn2, mode.zeroCopy)
+						})
+					}()
+
+					go func() {
+						bDone <- runOnPinnedCPU(placement.bCPU, func() error {
+							buf := make([]byte, messageSize)
+							for {
+								if _, err := io.ReadFull(abOut2, buf); err != nil {
+									if err == io.EOF || err == io.ErrUnexpectedEOF {
+										return nil
+									}
+									return err
+								}
+								if _, err := baIn1.Write(buf); err != nil {
+									return err
+								}
+							}
+						})
+					}()
+
+					b.SetBytes(int64(messageSize))
+					b.ResetTimer()
+					go func() {
+						aDone <- runOnPinnedCPU(placement.aCPU, func() error {
+							defer abIn1.Close()
+							for i := 0; i < b.N; i++ {
+								if _, err := abIn1.Write(payload); err != nil {
+									return err
+								}
+								if _, err := io.ReadFull(baOut2, reply); err != nil {
+									return err
+								}
+							}
+							return nil
+						})
+					}()
+
+					if err := <-aDone; err != nil {
+						b.Fatal(err)
+					}
+					b.StopTimer()
+
+					baIn1.Close()
+					if err := <-bDone; err != nil {
+						b.Fatal(err)
+					}
+					if err := <-abSplicerDone; err != nil {
+						b.Fatal(err)
+					}
+					if err := <-baSplicerDone; err != nil {
+						b.Fatal(err)
+					}
+				})
+			}
+		}
+	}
+}
+
+func runOnPinnedCPU(cpu int, fn func() error) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var old unix.CPUSet
+	if err := unix.SchedGetaffinity(0, &old); err != nil {
+		return err
+	}
+	var next unix.CPUSet
+	next.Set(cpu)
+	if err := unix.SchedSetaffinity(0, &next); err != nil {
+		return err
+	}
+	defer unix.SchedSetaffinity(0, &old)
+
+	return fn()
+}
+
+func relayUntilEOF(src *os.File, dst *os.File, zeroCopy bool) error {
+	if zeroCopy {
+		return spliceUntilEOF(src, dst)
+	}
+	return copyUntilEOF(src, dst)
+}
+
+func copyUntilEOF(src *os.File, dst *os.File) error {
+	defer dst.Close()
+	defer src.Close()
+
+	_, err := io.Copy(dst, src)
+	if err != nil {
+		_, _ = io.Copy(io.Discard, src)
+		return err
+	}
+	_, _ = io.Copy(io.Discard, src)
+	return nil
+}
+
+func spliceUntilEOF(src *os.File, dst *os.File) error {
+	defer dst.Close()
+	defer src.Close()
+
+	srcFd := int(src.Fd())
+	dstFd := int(dst.Fd())
+	discardFd := int(getDevNull().Fd())
+	dstBroken := false
+
+	for {
+		targetFd := dstFd
+		if dstBroken {
+			targetFd = discardFd
+		}
+		n, err := unix.Splice(srcFd, nil, targetFd, nil, 64*1024, unix.SPLICE_F_MOVE)
+		if err != nil {
+			if !dstBroken {
+				dstBroken = true
+				continue
+			}
+			return err
+		}
+		if n == 0 {
+			return nil
+		}
 	}
 }

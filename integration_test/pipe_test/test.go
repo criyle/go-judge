@@ -1,4 +1,4 @@
-//go:build integration
+//go:build integration && linux
 
 package main
 
@@ -60,11 +60,11 @@ type relayMode struct {
 }
 
 type placement struct {
-	name   string
-	aCPU   int
-	bCPU   int
-	abCPU  int
-	baCPU  int
+	name  string
+	aCPU  int
+	bCPU  int
+	abCPU int
+	baCPU int
 }
 
 var (

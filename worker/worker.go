@@ -216,11 +216,24 @@ func (w *worker) workDoCmd(ctx context.Context, req *Request, cpuset string) Res
 	w.running.Add(1)
 	defer w.running.Add(-1)
 
+	execCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	for _, control := range req.RuntimeControls {
+		if control != nil {
+			control.fatal = cancel
+		}
+	}
+
 	var rt Response
 	if len(req.Cmd) == 1 {
-		rt = w.workDoSingle(ctx, req.Cmd[0], cpuset)
+		rt = w.workDoSingle(execCtx, req.Cmd[0], controlAt(req.RuntimeControls, 0), cpuset)
 	} else {
-		rt = w.workDoGroup(ctx, req.Cmd, req.PipeMapping, cpuset)
+		rt = w.workDoGroup(execCtx, req.Cmd, req.PipeMapping, req.RuntimeControls, cpuset)
+	}
+	for _, control := range req.RuntimeControls {
+		if control != nil {
+			rt.ControlEvents = append(rt.ControlEvents, control.EventsSnapshot()...)
+		}
 	}
 	rt.RequestID = req.RequestID
 	if w.execObserver != nil {
@@ -229,8 +242,15 @@ func (w *worker) workDoCmd(ctx context.Context, req *Request, cpuset string) Res
 	return rt
 }
 
-func (w *worker) workDoSingle(ctx context.Context, rc Cmd, cpuset string) (rt Response) {
-	c, err := w.prepareCmd(rc, make(map[string]bool), cpuset)
+func controlAt(controls []*RuntimeControl, index int) *RuntimeControl {
+	if index < 0 || index >= len(controls) {
+		return nil
+	}
+	return controls[index]
+}
+
+func (w *worker) workDoSingle(ctx context.Context, rc Cmd, control *RuntimeControl, cpuset string) (rt Response) {
+	c, err := w.prepareCmd(rc, make(map[string]bool), control, cpuset)
 	if err != nil {
 		rt.Error = err
 		return
@@ -260,7 +280,7 @@ func (w *worker) workDoSingle(ctx context.Context, rc Cmd, cpuset string) (rt Re
 	return
 }
 
-func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, cpuset string) (rt Response) {
+func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, controls []*RuntimeControl, cpuset string) (rt Response) {
 	var rts []Result
 	cs := make([]*envexec.Cmd, 0, len(rc))
 	pipes := make([]PipeMap, 0, len(pm))
@@ -270,7 +290,7 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, cpuset
 	}
 	pipeFileNames := preparePipeNames(pm, len(rc))
 	for i, cc := range rc {
-		c, err := w.prepareCmd(cc, pipeFileNames[i], cpuset)
+		c, err := w.prepareCmd(cc, pipeFileNames[i], controlAt(controls, i), cpuset)
 		if err != nil {
 			rt.Error = err
 			return
@@ -368,7 +388,7 @@ func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	return res
 }
 
-func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool, cpuset string) (*envexec.Cmd, error) {
+func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool, control *RuntimeControl, cpuset string) (*envexec.Cmd, error) {
 	files, err := w.prepareCmdFiles(rc.Files, pipeFileName)
 	if err != nil {
 		return nil, err
@@ -394,6 +414,7 @@ func (w *worker) prepareCmd(rc Cmd, pipeFileName map[string]bool, cpuset string)
 		tickInterval:   w.timeLimitTickInterval,
 		timeLimit:      rc.CPULimit,
 		clockTimeLimit: rc.ClockLimit,
+		control:        control,
 	}
 
 	timeLimit := time.Duration(rc.CPULimit)

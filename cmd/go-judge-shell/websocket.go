@@ -57,6 +57,11 @@ func (s *websocketStream) Recv() (*stream.Response, error) {
 		resp.Output.Index = int(r[1]>>4) & 0xf
 		resp.Output.Fd = int(r[1]) & 0xf
 		resp.Output.Content = r[2:]
+	case 5:
+		resp.Control = new(stream.ControlResponse)
+		if err := json.Unmarshal(r[1:], resp.Control); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("invalid type code: %d", r[0])
 	}
@@ -95,6 +100,13 @@ func (s *websocketStream) Send(req *stream.Request) error {
 		}
 	case req.Cancel != nil:
 		if _, err := w.Write([]byte{4}); err != nil {
+			return err
+		}
+	case req.Control != nil:
+		if _, err := w.Write([]byte{5}); err != nil {
+			return err
+		}
+		if err := json.NewEncoder(w).Encode(req.Control); err != nil {
 			return err
 		}
 	default:

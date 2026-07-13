@@ -29,6 +29,8 @@ require (
 	google.golang.org/protobuf v1.36.11
 )
 
+replace github.com/criyle/go-judge/pb => ./pb
+
 require (
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

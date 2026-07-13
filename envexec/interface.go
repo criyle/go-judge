@@ -54,6 +54,14 @@ type Process interface {
 	Usage() Usage          // Usage retrieves the process usage during the run time
 }
 
+// FreezableProcess is an optional process capability implemented by runtimes
+// that can suspend and resume the entire process group.
+type FreezableProcess interface {
+	Process
+	Freeze() error
+	Resume() error
+}
+
 // OpenParam represent a open call in the environment
 type OpenParam struct {
 	Path     string

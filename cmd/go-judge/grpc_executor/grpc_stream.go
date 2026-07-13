@@ -32,6 +32,18 @@ func (sw *streamWrapper) Send(r stream.Response) error {
 			Fd:      uint32(r.Output.Fd),
 			Content: r.Output.Content,
 		}.Build())
+	case r.Control != nil:
+		res.SetExecControl(pb.StreamResponse_Control_builder{
+			RequestId: r.Control.RequestID,
+			Index:     uint32(r.Control.Index),
+			TurnId:    r.Control.TurnID,
+			Type:      string(r.Control.Type),
+			MoveCpu:   r.Control.MoveCPU,
+			TotalCpu:  r.Control.TotalCPU,
+			WallTime:  r.Control.WallTime,
+			Output:    []byte(r.Control.Output),
+			Error:     r.Control.Error,
+		}.Build())
 	}
 	return sw.es.Send(res)
 }
@@ -61,6 +73,21 @@ func (sw *streamWrapper) Recv() (*stream.Request, error) {
 		}}, nil
 	case pb.StreamRequest_ExecCancel_case:
 		return &stream.Request{Cancel: &struct{}{}}, nil
+	case pb.StreamRequest_ExecControl_case:
+		control := req.GetExecControl()
+		ret := &stream.ControlRequest{Index: int(control.GetIndex())}
+		if begin := control.GetBeginTurn(); begin != nil {
+			ret.BeginTurn = &stream.BeginTurnRequest{
+				TurnID:        begin.GetTurnId(),
+				MoveCPULimit:  begin.GetMoveCpuLimit(),
+				TotalCPULimit: begin.GetTotalCpuLimit(),
+				WallLimit:     begin.GetWallLimit(),
+				OutputFD:      int(begin.GetOutputFd()),
+				Delimiter:     string(begin.GetDelimiter()),
+				MaxOutput:     int(begin.GetMaxOutput()),
+			}
+		}
+		return &stream.Request{Control: ret}, nil
 	}
 	return nil, errors.ErrUnsupported
 }

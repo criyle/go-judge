@@ -10,6 +10,7 @@ import (
 	"github.com/criyle/go-judge/cmd/go-judge/model"
 	"github.com/criyle/go-judge/cmd/go-judge/stream"
 	"github.com/criyle/go-judge/pb"
+	"github.com/criyle/go-judge/worker"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
@@ -70,6 +71,19 @@ func (w *grpcWrapper) Send(req *stream.Request) error {
 		if err := w.sc.Send(pb.StreamRequest_builder{ExecCancel: &emptypb.Empty{}}.Build()); err != nil {
 			return err
 		}
+	case req.Control != nil:
+		control := pb.StreamRequest_Control_builder{Index: uint32(req.Control.Index)}
+		if begin := req.Control.BeginTurn; begin != nil {
+			control.BeginTurn = pb.StreamRequest_Control_BeginTurn_builder{
+				TurnId: begin.TurnID, MoveCpuLimit: begin.MoveCPULimit,
+				TotalCpuLimit: begin.TotalCPULimit, WallLimit: begin.WallLimit,
+				OutputFd: uint32(begin.OutputFD), Delimiter: []byte(begin.Delimiter),
+				MaxOutput: uint32(begin.MaxOutput),
+			}.Build()
+		}
+		if err := w.sc.Send(pb.StreamRequest_builder{ExecControl: control.Build()}.Build()); err != nil {
+			return err
+		}
 	default:
 		return errors.New("send: unknown operation")
 	}
@@ -93,6 +107,15 @@ func (w *grpcWrapper) Recv() (*stream.Response, error) {
 			RequestID: resp.GetExecResponse().GetRequestID(),
 			Results:   convertPBResult(resp.GetExecResponse().GetResults()),
 			ErrorMsg:  resp.GetExecResponse().GetError(),
+		}}, nil
+	case pb.StreamResponse_ExecControl_case:
+		control := resp.GetExecControl()
+		return &stream.Response{Control: &stream.ControlResponse{
+			RequestID: control.GetRequestId(), Index: int(control.GetIndex()),
+			TurnID: control.GetTurnId(), Type: worker.TurnEventType(control.GetType()),
+			MoveCPU: control.GetMoveCpu(), TotalCPU: control.GetTotalCpu(),
+			WallTime: control.GetWallTime(), Output: string(control.GetOutput()),
+			Error: control.GetError(),
 		}}, nil
 	}
 	return nil, errors.New("recv: invalid response")

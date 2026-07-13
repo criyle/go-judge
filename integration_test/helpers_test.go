@@ -7,12 +7,14 @@ const fileURL = "http://localhost:5050/file/"
 const dataSize = 1024 * 1024 // 1MB payload
 
 type CmdFile struct {
-	Src     string `json:"src,omitempty"`
-	Content string `json:"content,omitempty"`
-	FileID  string `json:"fileId,omitempty"`
-	Name    string `json:"name,omitempty"`
-	Max     int64  `json:"max,omitempty"`
-	Symlink string `json:"symlink,omitempty"`
+	Src       string `json:"src,omitempty"`
+	Content   string `json:"content,omitempty"`
+	FileID    string `json:"fileId,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Max       int64  `json:"max,omitempty"`
+	Symlink   string `json:"symlink,omitempty"`
+	StreamIn  bool   `json:"streamIn,omitempty"`
+	StreamOut bool   `json:"streamOut,omitempty"`
 }
 
 type Cmd struct {

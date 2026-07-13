@@ -19,6 +19,8 @@ type Cgroup interface {
 	CurrentMemory() (envexec.Size, error)
 	MaxMemory() (envexec.Size, error)
 	ProcPeak() (uint64, error)
+	Freeze() error
+	Resume() error
 
 	AddProc(int) error
 	Reset() error
@@ -70,7 +72,10 @@ func (w *CgroupListPool) Put(c Cgroup) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	c.Reset()
+	if err := c.Reset(); err != nil {
+		c.Destroy()
+		return
+	}
 	w.cgs = append(w.cgs, c)
 }
 

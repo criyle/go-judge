@@ -71,6 +71,20 @@ func (w *streamWrapper) sendLoop() {
 				if err := w.Close(); err != nil {
 					return
 				}
+			case r.Control != nil:
+				w, err := conn.NextWriter(websocket.BinaryMessage)
+				if err != nil {
+					return
+				}
+				if _, err := w.Write([]byte{5}); err != nil {
+					return
+				}
+				if err := json.NewEncoder(w).Encode(r.Control); err != nil {
+					return
+				}
+				if err := w.Close(); err != nil {
+					return
+				}
 			}
 		case <-ticker.C:
 			conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -124,6 +138,11 @@ func (w *streamWrapper) Recv() (*stream.Request, error) {
 		req.Input.Content = buf[2:]
 	case 4:
 		req.Cancel = new(struct{})
+	case 5:
+		req.Control = new(stream.ControlRequest)
+		if err := json.Unmarshal(buf[1:], req.Control); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("invalid type code: %d", buf[0])
 	}

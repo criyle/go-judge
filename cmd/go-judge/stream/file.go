@@ -59,6 +59,7 @@ type fileStreamOut struct {
 	stream envexec.FileStreamOut
 	index  int
 	fd     int
+	turn   *turnOutput
 }
 
 func newFileStreamOut(index, fd int) *fileStreamOut {

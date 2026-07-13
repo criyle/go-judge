@@ -49,6 +49,8 @@ type Request struct {
 	RequestID   string
 	Cmd         []Cmd
 	PipeMapping []PipeMap
+	// RuntimeControls is populated by interactive transports only.
+	RuntimeControls []*RuntimeControl
 }
 
 // Result defines single command response
@@ -67,9 +69,10 @@ type Result struct {
 
 // Response defines worker response for single request
 type Response struct {
-	RequestID string
-	Results   []Result
-	Error     error
+	RequestID     string
+	Results       []Result
+	Error         error
+	ControlEvents []TurnEvent
 }
 
 func (r Result) String() string {

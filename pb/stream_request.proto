@@ -26,10 +26,26 @@ message StreamRequest {
     uint32 y = 5;
   }
 
+  message Control {
+    message BeginTurn {
+      uint64 turnId = 1;
+      uint64 moveCpuLimit = 2;
+      uint64 totalCpuLimit = 3;
+      uint64 wallLimit = 4;
+      uint32 outputFd = 5;
+      bytes delimiter = 6;
+      uint32 maxOutput = 7;
+    }
+
+    uint32 index = 1;
+    BeginTurn beginTurn = 2;
+  }
+
   oneof request {
     Request execRequest = 1;
     Input execInput = 2;
     Resize execResize = 3;
     google.protobuf.Empty execCancel = 4;
+    Control execControl = 5;
   }
 }

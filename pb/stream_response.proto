@@ -16,8 +16,21 @@ message StreamResponse {
     bytes content = 2;
   }
 
+  message Control {
+    string requestId = 1;
+    uint32 index = 2;
+    uint64 turnId = 3;
+    string type = 4;
+    uint64 moveCpu = 5;
+    uint64 totalCpu = 6;
+    uint64 wallTime = 7;
+    bytes output = 8;
+    string error = 9;
+  }
+
   oneof response {
     Response execResponse = 1;
     Output execOutput = 2;
+    Control execControl = 3;
   }
 }

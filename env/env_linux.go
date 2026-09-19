@@ -215,10 +215,10 @@ func tryClone3(
 	logger *zap.Logger,
 ) pool.EnvBuilder {
 	major, minor := kernelVersion()
-	if cgb == nil || cgroupType != cgroup.TypeV2 || (major < 5 || (major == 5 && minor < 7)) {
+	if cgb == nil || cgroupType != cgroup.TypeV2 || !kernelVersionAtLeast(major, minor, 6, 9) {
 		return nil
 	}
-	logger.Info("running kernel >= 5.7 with cgroup V2, trying faster clone3(CLONE_INTO_CGROUP)",
+	logger.Info("running kernel >= 6.9 with cgroup V2, trying faster clone3(CLONE_INTO_CGROUP)",
 		zap.Int("major", major), zap.Int("minor", minor))
 
 	b := linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
@@ -254,6 +254,10 @@ func tryClone3(
 		return nil
 	}
 	return b
+}
+
+func kernelVersionAtLeast(major, minor, requiredMajor, requiredMinor int) bool {
+	return major > requiredMajor || (major == requiredMajor && minor >= requiredMinor)
 }
 
 type credGen struct {

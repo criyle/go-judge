@@ -35,7 +35,7 @@ builds:
     goarm64:
       - "v8.0"
     goamd64:
-      - v2
+      - v1
       - v3
     ignore:
       - goos: windows
@@ -68,7 +68,7 @@ builds:
     goarm64:
       - "v8.0"
     goamd64:
-      - v2
+      - v1
       - v3
     ignore:
       - goos: windows

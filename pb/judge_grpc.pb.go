@@ -24,8 +24,9 @@ const (
 	Executor_ExecStream_FullMethodName = "/pb.Executor/ExecStream"
 	Executor_FileList_FullMethodName   = "/pb.Executor/FileList"
 	Executor_FileGet_FullMethodName    = "/pb.Executor/FileGet"
-	Executor_FileAdd_FullMethodName    = "/pb.Executor/FileAdd"
-	Executor_FileDelete_FullMethodName = "/pb.Executor/FileDelete"
+	Executor_FileAdd_FullMethodName       = "/pb.Executor/FileAdd"
+	Executor_FileAddStream_FullMethodName = "/pb.Executor/FileAddStream"
+	Executor_FileDelete_FullMethodName    = "/pb.Executor/FileDelete"
 )
 
 // ExecutorClient is the client API for Executor service.
@@ -46,6 +47,9 @@ type ExecutorClient interface {
 	FileGet(ctx context.Context, in *FileID, opts ...grpc.CallOption) (*FileContent, error)
 	// FileAdd create a file into the file store
 	FileAdd(ctx context.Context, in *FileContent, opts ...grpc.CallOption) (*FileID, error)
+	// FileAddStream streams a file into the file store and returns its file ID.
+	// The first message carries the file name; following messages may omit it.
+	FileAddStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileContent, FileID], error)
 	// FileDelete deletes a file from the file store
 	FileDelete(ctx context.Context, in *FileID, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -111,6 +115,19 @@ func (c *executorClient) FileAdd(ctx context.Context, in *FileContent, opts ...g
 	return out, nil
 }
 
+func (c *executorClient) FileAddStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[FileContent, FileID], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &Executor_ServiceDesc.Streams[1], Executor_FileAddStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[FileContent, FileID]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Executor_FileAddStreamClient = grpc.ClientStreamingClient[FileContent, FileID]
+
 func (c *executorClient) FileDelete(ctx context.Context, in *FileID, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(emptypb.Empty)
@@ -139,6 +156,9 @@ type ExecutorServer interface {
 	FileGet(context.Context, *FileID) (*FileContent, error)
 	// FileAdd create a file into the file store
 	FileAdd(context.Context, *FileContent) (*FileID, error)
+	// FileAddStream streams a file into the file store and returns its file ID.
+	// The first message carries the file name; following messages may omit it.
+	FileAddStream(grpc.ClientStreamingServer[FileContent, FileID]) error
 	// FileDelete deletes a file from the file store
 	FileDelete(context.Context, *FileID) (*emptypb.Empty, error)
 	mustEmbedUnimplementedExecutorServer()
@@ -165,6 +185,9 @@ func (UnimplementedExecutorServer) FileGet(context.Context, *FileID) (*FileConte
 }
 func (UnimplementedExecutorServer) FileAdd(context.Context, *FileContent) (*FileID, error) {
 	return nil, status.Error(codes.Unimplemented, "method FileAdd not implemented")
+}
+func (UnimplementedExecutorServer) FileAddStream(grpc.ClientStreamingServer[FileContent, FileID]) error {
+	return status.Error(codes.Unimplemented, "method FileAddStream not implemented")
 }
 func (UnimplementedExecutorServer) FileDelete(context.Context, *FileID) (*emptypb.Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method FileDelete not implemented")
@@ -269,6 +292,13 @@ func _Executor_FileAdd_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Executor_FileAddStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ExecutorServer).FileAddStream(&grpc.GenericServerStream[FileContent, FileID]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type Executor_FileAddStreamServer = grpc.ClientStreamingServer[FileContent, FileID]
+
 func _Executor_FileDelete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(FileID)
 	if err := dec(in); err != nil {
@@ -320,6 +350,11 @@ var Executor_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "ExecStream",
 			Handler:       _Executor_ExecStream_Handler,
 			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "FileAddStream",
+			Handler:       _Executor_FileAddStream_Handler,
 			ClientStreams: true,
 		},
 	},

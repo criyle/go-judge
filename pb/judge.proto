@@ -34,6 +34,10 @@ service Executor {
   // FileAdd create a file into the file store
   rpc FileAdd(FileContent) returns (FileID);
 
+  // FileAddStream streams a file into the file store and returns its file ID.
+  // The first message carries the file name; following messages may omit it.
+  rpc FileAddStream(stream FileContent) returns (FileID);
+
   // FileDelete deletes a file from the file store
   rpc FileDelete(FileID) returns (google.protobuf.Empty);
 };

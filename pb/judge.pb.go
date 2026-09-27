@@ -27,16 +27,20 @@ var File_judge_proto protoreflect.FileDescriptor
 const file_judge_proto_rawDesc = "" +
 	"\n" +
 	"\vjudge.proto\x12\x02pb\x1a\x1bgoogle/protobuf/empty.proto\x1a\rrequest.proto\x1a\x0eresponse.proto\x1a\x14stream_request.proto\x1a\x15stream_response.proto\x1a\n" +
-	"file.proto\x1a!google/protobuf/go_features.proto2\x9e\x02\n" +
+	"file.proto\x1a!google/protobuf/go_features.proto2\xfe\x02\n" +
 	"\bExecutor\x12!\n" +
 	"\x04Exec\x12\v.pb.Request\x1a\f.pb.Response\x127\n" +
 	"\n" +
 	"ExecStream\x12\x11.pb.StreamRequest\x1a\x12.pb.StreamResponse(\x010\x01\x124\n" +
 	"\bFileList\x12\x16.google.protobuf.Empty\x1a\x10.pb.FileListType\x12&\n" +
 	"\aFileGet\x12\n" +
-	".pb.FileID\x1a\x0f.pb.FileContent\x12&\n" +
+	".pb.FileID\x1a\x0f.pb.FileContent\x12.\n" +
+	"\rFileGetStream\x12\n" +
+	".pb.FileID\x1a\x0f.pb.FileContent0\x01\x12&\n" +
 	"\aFileAdd\x12\x0f.pb.FileContent\x1a\n" +
-	".pb.FileID\x120\n" +
+	".pb.FileID\x12.\n" +
+	"\rFileAddStream\x12\x0f.pb.FileContent\x1a\n" +
+	".pb.FileID(\x01\x120\n" +
 	"\n" +
 	"FileDelete\x12\n" +
 	".pb.FileID\x1a\x16.google.protobuf.EmptyB)Z\x1dgithub.com/criyle/go-judge/pb\x92\x03\a\xd2>\x02\x10\x03\b\x02b\beditionsp\xe8\a"
@@ -56,16 +60,20 @@ var file_judge_proto_depIdxs = []int32{
 	1, // 1: pb.Executor.ExecStream:input_type -> pb.StreamRequest
 	2, // 2: pb.Executor.FileList:input_type -> google.protobuf.Empty
 	3, // 3: pb.Executor.FileGet:input_type -> pb.FileID
-	4, // 4: pb.Executor.FileAdd:input_type -> pb.FileContent
-	3, // 5: pb.Executor.FileDelete:input_type -> pb.FileID
-	5, // 6: pb.Executor.Exec:output_type -> pb.Response
-	6, // 7: pb.Executor.ExecStream:output_type -> pb.StreamResponse
-	7, // 8: pb.Executor.FileList:output_type -> pb.FileListType
-	4, // 9: pb.Executor.FileGet:output_type -> pb.FileContent
-	3, // 10: pb.Executor.FileAdd:output_type -> pb.FileID
-	2, // 11: pb.Executor.FileDelete:output_type -> google.protobuf.Empty
-	6, // [6:12] is the sub-list for method output_type
-	0, // [0:6] is the sub-list for method input_type
+	3, // 4: pb.Executor.FileGetStream:input_type -> pb.FileID
+	4, // 5: pb.Executor.FileAdd:input_type -> pb.FileContent
+	4, // 6: pb.Executor.FileAddStream:input_type -> pb.FileContent
+	3, // 7: pb.Executor.FileDelete:input_type -> pb.FileID
+	5, // 8: pb.Executor.Exec:output_type -> pb.Response
+	6, // 9: pb.Executor.ExecStream:output_type -> pb.StreamResponse
+	7, // 10: pb.Executor.FileList:output_type -> pb.FileListType
+	4, // 11: pb.Executor.FileGet:output_type -> pb.FileContent
+	4, // 12: pb.Executor.FileGetStream:output_type -> pb.FileContent
+	3, // 13: pb.Executor.FileAdd:output_type -> pb.FileID
+	3, // 14: pb.Executor.FileAddStream:output_type -> pb.FileID
+	2, // 15: pb.Executor.FileDelete:output_type -> google.protobuf.Empty
+	8, // [8:16] is the sub-list for method output_type
+	0, // [0:8] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -102,7 +102,9 @@ func (c *environ) Execve(ctx context.Context, param envexec.ExecveParam) (envexe
 		CTTY:     param.TTY,
 		ExecFile: param.ExecFile,
 		RLimits:  rLimits.PrepareRLimit(),
-		Seccomp:  c.seccomp,
+		// Seccomp is installed once by the container init. The workload
+		// inherits it and must not install another filter here.
+		Seccomp: nil,
 		SyncFunc: func(pid int) error {
 			defer close(syncDone)
 			if syncFunc != nil {

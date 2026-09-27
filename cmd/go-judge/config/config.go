@@ -17,7 +17,8 @@ type Config struct {
 	TmpFsParam         string `flagUsage:"tmpfs mount data (only for default mount with no mount.yaml)" default:"size=128m,nr_inodes=4k"`
 	NetShare           bool   `flagUsage:"share net namespace with host"`
 	MountConf          string `flagUsage:"specifies mount configuration file" default:"mount.yaml"`
-	SeccompConf        string `flagUsage:"specifies seccomp filter" default:"seccomp.yaml"`
+	Seccomp            string `flagUsage:"specifies seccomp filter override (default: embedded Moby profile)"`
+	NoSeccomp          bool   `flagUsage:"force-disable seccomp for troubleshooting and benchmarking"`
 	Parallelism        int    `flagUsage:"control the # of concurrency execution (default equal to number of cpu)"`
 	CgroupPrefix       string `flagUsage:"control cgroup prefix" default:"gojudge"`
 	ContainerCredStart int    `flagUsage:"control the start uid&gid for container (0 uses unprivileged root)" default:"0"`

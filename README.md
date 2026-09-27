@@ -105,7 +105,7 @@ Download `go-judge-shell` from [Release](https://github.com/criyle/go-judge/rele
   - Or, CopyOut file is not existed after program exited
 - Non Zero Exit Status: Program exited with non 0 status code within time & memory limits
 - Signalled: Program exited with signal (e.g. `SIGSEGV`)
-- Dangerous Syscall: Program killed by seccomp filter (not enabled by default)
+- Dangerous Syscall: Program denied by the default seccomp filter
 - Internal Error:
   - Program is not exist
   - Or, container create not successful (e.g. not privileged docker)

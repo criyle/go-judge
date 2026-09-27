@@ -1,28 +1,58 @@
-//go:build seccomp
-
 package env
 
 import (
+	"fmt"
 	"os"
 	"syscall"
 
+	seccompprofile "github.com/criyle/go-judge/seccomp"
 	"github.com/elastic/go-seccomp-bpf"
+	"github.com/elastic/go-seccomp-bpf/arch"
 	"github.com/elastic/go-ucfg/yaml"
 	"golang.org/x/net/bpf"
 )
 
+type architectureSeccompConfig struct {
+	DefaultAction seccomp.Action                       `config:"default_action" yaml:"default_action"`
+	Base          architectureSeccompPolicy            `config:"base" yaml:"base"`
+	Architectures map[string]architectureSeccompPolicy `config:"architectures" yaml:"architectures"`
+}
+
+type architectureSeccompPolicy struct {
+	Syscalls []seccomp.SyscallGroup `config:"syscalls" yaml:"syscalls"`
+}
+
 func readSeccompConf(name string) ([]syscall.SockFilter, error) {
-	conf, err := yaml.NewConfigWithFile(name)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
+	var input []byte
+	if name == "" {
+		input = seccompprofile.DefaultProfile
+	} else {
+		var err error
+		input, err = os.ReadFile(name)
+		if err != nil {
+			return nil, err
 		}
+	}
+	conf, err := yaml.NewConfig(input)
+	if err != nil {
 		return nil, err
 	}
 
-	var policy seccomp.Policy
-	if err := conf.Unpack(&policy); err != nil {
+	var config architectureSeccompConfig
+	if err := conf.Unpack(&config); err != nil {
 		return nil, err
+	}
+	info, err := arch.GetInfo("")
+	if err != nil {
+		return nil, fmt.Errorf("seccomp architecture: %w", err)
+	}
+	selected, ok := config.Architectures[info.Name]
+	if !ok {
+		return nil, fmt.Errorf("seccomp profile has no configuration for architecture %q", info.Name)
+	}
+	policy := seccomp.Policy{
+		DefaultAction: config.DefaultAction,
+		Syscalls:      append(append([]seccomp.SyscallGroup{}, config.Base.Syscalls...), selected.Syscalls...),
 	}
 	inst, err := policy.Assemble()
 	if err != nil {

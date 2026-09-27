@@ -14,6 +14,7 @@ import (
 	"github.com/criyle/go-sandbox/pkg/cgroup"
 	"github.com/criyle/go-sandbox/pkg/forkexec"
 	"github.com/criyle/go-sandbox/pkg/mount"
+	sandboxseccomp "github.com/criyle/go-sandbox/pkg/seccomp"
 	"github.com/criyle/go-sandbox/runner"
 	"github.com/google/shlex"
 	"go.uber.org/zap"
@@ -61,6 +62,7 @@ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, 
 		ContainerUID:            cUID,
 		ContainerGID:            cGID,
 		UnshareCgroupBeforeExec: unshareCgroup,
+		Seccomp:                 sandboxseccomp.Filter(seccomp),
 	}
 
 	cgb, ct, err := setupCgroup(c, logger)
@@ -94,7 +96,7 @@ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, 
 		CgroupPool: cgroupPool,
 		WorkDir:    workDir,
 		CPURate:    c.EnableCPURate,
-		Seccomp:    seccomp,
+		Seccomp:    nil,
 	}), conf, nil
 }
 
@@ -131,13 +133,21 @@ func prepareMountAndPaths(c Config, logger *zap.Logger) (*Mounts, *mount.Builder
 }
 
 func prepareSeccomp(c Config, logger *zap.Logger) ([]syscall.SockFilter, error) {
+	if c.NoSeccomp {
+		logger.Warn("seccomp is force-disabled")
+		return nil, nil
+	}
 	seccomp, err := readSeccompConf(c.SeccompConf)
 	if err != nil {
 		logger.Error("failed to load seccomp config", zap.String("path", c.SeccompConf), zap.Error(err))
 		return nil, fmt.Errorf("failed to load seccomp config: %w", err)
 	}
 	if seccomp != nil {
-		logger.Info("loaded seccomp filter", zap.String("path", c.SeccompConf))
+		if c.SeccompConf == "" {
+			logger.Info("loaded embedded seccomp filter")
+		} else {
+			logger.Info("loaded seccomp filter", zap.String("path", c.SeccompConf))
+		}
 	}
 	return seccomp, nil
 }
@@ -226,7 +236,7 @@ func tryClone3(
 		CgroupPool: cgroupPool,
 		WorkDir:    workDir,
 		CPURate:    c.EnableCPURate,
-		Seccomp:    seccomp,
+		Seccomp:    nil,
 		CgroupFd:   true,
 	})
 	e, err := b.Build()

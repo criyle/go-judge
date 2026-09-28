@@ -44,15 +44,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ./go-judge > go-judge.log 2>&1 &
+          ./go-judge -silent > go-judge.log 2>&1 &
           server_pid=$!
           cleanup() {
             status=$?
             kill "$server_pid" 2>/dev/null || true
             wait "$server_pid" 2>/dev/null || true
             if [ "$status" -ne 0 ]; then
-              echo "--- go-judge startup/runtime log ---"
-              cat go-judge.log
+              echo "--- last 200 lines of go-judge startup/runtime log ---"
+              tail -n 200 go-judge.log
             fi
             exit "$status"
           }
@@ -74,7 +74,15 @@ jobs:
             exit 1
           fi
           go test ./...
-          go test -tags integration -v -count=1 ./integration_test
+          go test -tags integration -count=1 ./integration_test
+
+      - name: Upload go-judge log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-judge-log
+          path: go-judge.log
+          if-no-files-found: ignore
 
   goreleaser-release:
     name: Goreleaser release

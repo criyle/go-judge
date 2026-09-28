@@ -1,5 +1,18 @@
 # Seccomp profiles
 
+## Moby source and license
+
+`moby-default.json` is a vendored snapshot derived from Moby's default
+seccomp profile:
+
+- Source: <https://github.com/moby/profiles/blob/main/seccomp/default.json>
+- License: Apache License 2.0, as specified by the Moby Profiles repository:
+  <https://github.com/moby/profiles/blob/main/LICENSE>
+
+The generated `moby.yaml` contains go-judge-specific architecture processing
+and deliberately removes selected unused, high-risk syscall groups; see
+`cmd/seccomp-convert/main.go` for those changes.
+
 `moby.yaml` is generated from `moby-default.json`:
 
 ```sh
@@ -28,7 +41,7 @@ additions. Runtime loading merges `base` with the selected additions and sends
 the result directly to Elastic's assembler; it does not modify or filter
 syscall groups.
 
-The default profile is embedded into the go-judge binary. Pass `-seccomp
+The default profile is embedded into the go-judge binary. Pass `-seccomp-conf
 <path>` to use an external profile instead.
 
 The generated policy is intentionally stricter than the Moby baseline. In

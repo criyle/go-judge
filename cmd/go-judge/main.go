@@ -525,7 +525,7 @@ func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 		ContainerCredStart: conf.ContainerCredStart,
 		EnableCPURate:      conf.EnableCPURate,
 		CPUCfsPeriod:       conf.CPUCfsPeriod,
-		SeccompConf:        conf.Seccomp,
+		SeccompConf:        conf.SeccompConf,
 		NoSeccomp:          conf.NoSeccomp,
 		NoFallback:         conf.NoFallback,
 	}, logger)

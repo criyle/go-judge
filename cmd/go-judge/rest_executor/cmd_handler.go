@@ -2,6 +2,7 @@ package restexecutor
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -46,7 +47,11 @@ func (c *cmdHandle) handleRun(ctx *gin.Context) {
 	r, err := model.ConvertRequest(&req, c.srcPrefix)
 	if err != nil {
 		ctx.Error(err)
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, err.Error())
+		statusCode := http.StatusBadRequest
+		if errors.Is(err, worker.ErrFileNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		ctx.AbortWithStatusJSON(statusCode, err.Error())
 		return
 	}
 	if ce := c.logger.Check(zap.DebugLevel, "request"); ce != nil {
@@ -59,7 +64,11 @@ func (c *cmdHandle) handleRun(ctx *gin.Context) {
 	}
 	if rt.Error != nil {
 		ctx.Error(rt.Error)
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, rt.Error.Error())
+		statusCode := http.StatusInternalServerError
+		if errors.Is(rt.Error, worker.ErrFileNotFound) {
+			statusCode = http.StatusNotFound
+		}
+		ctx.AbortWithStatusJSON(statusCode, rt.Error.Error())
 		return
 	}
 

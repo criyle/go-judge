@@ -2,6 +2,7 @@ package grpcexecutor
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -39,7 +40,11 @@ type execServer struct {
 func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, error) {
 	r, err := convertPBRequest(req, e.srcPrefix)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, err.Error())
+		code := codes.InvalidArgument
+		if errors.Is(err, worker.ErrFileNotFound) {
+			code = codes.NotFound
+		}
+		return nil, status.Error(code, err.Error())
 	}
 	if ce := e.logger.Check(zap.DebugLevel, "request"); ce != nil {
 		ce.Write(zap.String("body", fmt.Sprintf("%+v", r)))
@@ -50,7 +55,11 @@ func (e *execServer) Exec(ctx context.Context, req *pb.Request) (*pb.Response, e
 		ce.Write(zap.String("body", fmt.Sprintf("%+v", rt)))
 	}
 	if rt.Error != nil {
-		return nil, status.Error(codes.Internal, rt.Error.Error())
+		code := codes.Internal
+		if errors.Is(rt.Error, worker.ErrFileNotFound) {
+			code = codes.NotFound
+		}
+		return nil, status.Error(code, rt.Error.Error())
 	}
 	ret, err := model.ConvertResponse(rt, false)
 	if err != nil {
@@ -120,7 +129,7 @@ func (e *execServer) FileAdd(c context.Context, fc *pb.FileContent) (*pb.FileID,
 func (e *execServer) FileDelete(c context.Context, f *pb.FileID) (*emptypb.Empty, error) {
 	ok := e.fs.Remove(f.GetFileID())
 	if !ok {
-		return nil, status.Errorf(codes.NotFound, "file id does not exists: %q", f.GetFileID())
+		return nil, status.Errorf(codes.NotFound, "file id does not exist: %q", f.GetFileID())
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -274,14 +283,8 @@ func convertPBFile(c *pb.Request_File, srcPrefix []string) (worker.CmdFile, erro
 	case 0:
 		return nil, nil
 	case pb.Request_File_Local_case:
-		if len(srcPrefix) > 0 {
-			ok, err := model.CheckPathPrefixes(c.GetLocal().GetSrc(), srcPrefix)
-			if err != nil {
-				return nil, fmt.Errorf("check path prefixes: %w", err)
-			}
-			if !ok {
-				return nil, fmt.Errorf("file outside of prefix: %q, %q", c.GetLocal().GetSrc(), srcPrefix)
-			}
+		if err := model.ValidateSourcePath(c.GetLocal().GetSrc(), srcPrefix); err != nil {
+			return nil, err
 		}
 		return &worker.LocalFile{Src: c.GetLocal().GetSrc()}, nil
 	case pb.Request_File_Memory_case:

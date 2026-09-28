@@ -13,8 +13,10 @@ import (
 	"github.com/criyle/go-judge/pb"
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -26,6 +28,29 @@ var (
 
 type execProxy struct {
 	client pb.ExecutorClient
+}
+
+func grpcHTTPStatus(err error) int {
+	switch status.Code(err) {
+	case codes.InvalidArgument:
+		return http.StatusBadRequest
+	case codes.NotFound:
+		return http.StatusNotFound
+	case codes.Unauthenticated:
+		return http.StatusUnauthorized
+	case codes.PermissionDenied:
+		return http.StatusForbidden
+	case codes.ResourceExhausted:
+		return http.StatusTooManyRequests
+	case codes.Canceled:
+		return 499
+	case codes.DeadlineExceeded:
+		return http.StatusGatewayTimeout
+	case codes.Unavailable:
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
+	}
 }
 
 func (p *execProxy) Exec(c *gin.Context) {
@@ -42,7 +67,7 @@ func (p *execProxy) Exec(c *gin.Context) {
 	log.Println(req)
 	rep, err := p.client.Exec(c, req)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(grpcHTTPStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusOK, rep)
@@ -72,7 +97,7 @@ func (p *execProxy) FileGet(c *gin.Context) {
 	}.Build()
 	rep, err := p.client.FileGet(c, fid)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(grpcHTTPStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusOK, rep)
@@ -128,7 +153,7 @@ func (p *execProxy) FileDelete(c *gin.Context) {
 	}.Build()
 	rep, err := p.client.FileDelete(c, fid)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(grpcHTTPStatus(err), err)
 		return
 	}
 	c.JSON(http.StatusOK, rep)

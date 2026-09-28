@@ -2,11 +2,17 @@ package worker
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-judge/filestore"
 )
+
+// ErrFileNotFound indicates that a referenced file-store file does not exist.
+// Callers can use errors.Is to distinguish an invalid file reference from
+// other preparation and execution failures.
+var ErrFileNotFound = errors.New("file not found")
 
 // CmdFile defines file used in the cmd
 type CmdFile interface {
@@ -60,7 +66,7 @@ type CachedFile struct {
 func (f *CachedFile) EnvFile(fs filestore.FileStore) (envexec.File, error) {
 	_, fd := fs.Get(f.FileID)
 	if fd == nil {
-		return nil, fmt.Errorf("file does not exists with id: %q", f.FileID)
+		return nil, fmt.Errorf("file does not exist with id %q: %w", f.FileID, ErrFileNotFound)
 	}
 	return fd, nil
 }

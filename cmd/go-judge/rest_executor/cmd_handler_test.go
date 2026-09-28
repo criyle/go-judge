@@ -9,6 +9,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"slices"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ import (
 type mockWorker struct {
 	// The result to send back when Submit is called
 	Result worker.Result
+	Error  error
 	worker.Worker
 }
 
@@ -33,8 +35,47 @@ func (m *mockWorker) Submit(_ context.Context, req *worker.Request) (<-chan work
 	rtCh <- worker.Response{
 		RequestID: req.RequestID,
 		Results:   []worker.Result{m.Result},
+		Error:     m.Error,
 	}
 	return rtCh, nil
+}
+
+func TestHandleRunMissingFileReturnsNotFound(t *testing.T) {
+	router := gin.New()
+	cmdHandle := NewCmdHandle(&mockWorker{}, nil, zaptest.NewLogger(t))
+	cmdHandle.Register(router)
+
+	src := filepath.Join(t.TempDir(), "missing.txt")
+	body, err := json.Marshal(model.Request{Cmd: []model.Cmd{{
+		Args:   []string{"/bin/true"},
+		CopyIn: map[string]model.CmdFile{"input.txt": {Src: &src}},
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	req := httptest.NewRequest(http.MethodPost, "/run", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, recorder.Code)
+	}
+}
+
+func TestHandleRunOtherWorkerErrorReturnsInternalServerError(t *testing.T) {
+	router := gin.New()
+	cmdHandle := NewCmdHandle(&mockWorker{Error: fmt.Errorf("container unavailable")}, nil, zaptest.NewLogger(t))
+	cmdHandle.Register(router)
+
+	req := httptest.NewRequest(http.MethodPost, "/run", bytes.NewReader([]byte(`{"cmd":[{"args":["/bin/true"]}]}`)))
+	req.Header.Set("Content-Type", "application/json")
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, recorder.Code)
+	}
 }
 
 // requestToReader converts a model.Request to an io.Reader

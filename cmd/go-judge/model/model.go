@@ -352,14 +352,8 @@ func convertCmdFile(f *CmdFile, srcPrefix []string) (worker.CmdFile, error) {
 	case f == nil:
 		return nil, nil
 	case f.Src != nil:
-		if len(srcPrefix) != 0 {
-			ok, err := CheckPathPrefixes(*f.Src, srcPrefix)
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				return nil, fmt.Errorf("file (%s) does not under (%s)", *f.Src, srcPrefix)
-			}
+		if err := ValidateSourcePath(*f.Src, srcPrefix); err != nil {
+			return nil, err
 		}
 		return &worker.LocalFile{Src: *f.Src}, nil
 	case f.Content != nil:
@@ -371,6 +365,30 @@ func convertCmdFile(f *CmdFile, srcPrefix []string) (worker.CmdFile, error) {
 	default:
 		return nil, fmt.Errorf("file type is not valid for cmd: %v", f)
 	}
+}
+
+// ValidateSourcePath validates a host-side source file before a request is
+// submitted to the worker. Missing files are reported as ErrFileNotFound so
+// transports can distinguish them from malformed or unauthorized requests.
+func ValidateSourcePath(path string, prefixes []string) error {
+	if path == "" {
+		return fmt.Errorf("source path is empty")
+	}
+	if len(prefixes) != 0 {
+		ok, err := CheckPathPrefixes(path, prefixes)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return fmt.Errorf("file (%s) does not under (%s)", path, prefixes)
+		}
+	}
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return fmt.Errorf("source file does not exist %q: %w", path, worker.ErrFileNotFound)
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CheckPathPrefixes ensure path is allowed by prefixes
@@ -394,7 +412,28 @@ func checkPathPrefix(path, prefix string) (bool, error) {
 	}
 	resolvedPath, err := filepath.EvalSymlinks(absPath)
 	if err != nil {
-		return false, err
+		if !os.IsNotExist(err) {
+			return false, err
+		}
+
+		// The final path component may not exist yet. Resolve the nearest
+		// existing parent so a missing path inside the allowed prefix remains
+		// distinguishable from a missing path outside it.
+		missing := absPath
+		var suffix []string
+		for {
+			parent := filepath.Dir(missing)
+			suffix = append([]string{filepath.Base(missing)}, suffix...)
+			resolvedParent, parentErr := filepath.EvalSymlinks(parent)
+			if parentErr == nil {
+				resolvedPath = filepath.Join(append([]string{resolvedParent}, suffix...)...)
+				break
+			}
+			if !os.IsNotExist(parentErr) || parent == missing {
+				return false, err
+			}
+			missing = parent
+		}
 	}
 
 	absPrefix, err := filepath.Abs(prefix)

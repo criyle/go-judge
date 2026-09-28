@@ -2,6 +2,7 @@ package model
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -119,11 +120,43 @@ func TestCheckPathPrefixes_SymlinkEscape(t *testing.T) {
 }
 
 func TestConvertCmdFile_Local(t *testing.T) {
-	src := "/tmp/foo"
+	src := filepath.Join(t.TempDir(), "input")
+	if err := os.WriteFile(src, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	f := &CmdFile{Src: &src}
 	_, err := convertCmdFile(f, nil)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestConvertCmdFile_MissingLocalFile(t *testing.T) {
+	base := t.TempDir()
+	allowed := filepath.Join(base, "allowed")
+	if err := os.Mkdir(allowed, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(allowed, "missing.txt")
+	_, err := convertCmdFile(&CmdFile{Src: &src}, []string{allowed})
+	if !errors.Is(err, worker.ErrFileNotFound) {
+		t.Fatalf("expected ErrFileNotFound, got %v", err)
+	}
+}
+
+func TestConvertCmdFile_MissingUnauthorizedFile(t *testing.T) {
+	base := t.TempDir()
+	allowed := filepath.Join(base, "allowed")
+	if err := os.Mkdir(allowed, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	src := filepath.Join(base, "outside", "missing.txt")
+	_, err := convertCmdFile(&CmdFile{Src: &src}, []string{allowed})
+	if errors.Is(err, worker.ErrFileNotFound) {
+		t.Fatal("unauthorized path must not be classified as missing file")
+	}
+	if err == nil {
+		t.Fatal("expected unauthorized path to be rejected")
 	}
 }
 

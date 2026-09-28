@@ -9,6 +9,7 @@ type Config struct {
 	NetShare           bool
 	MountConf          string
 	SeccompConf        string
+	NoSeccomp          bool
 	CgroupPrefix       string
 	ContainerCredStart int
 	EnableCPURate      bool

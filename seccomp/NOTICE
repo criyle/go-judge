@@ -1,0 +1,12 @@
+This directory contains a vendored snapshot of Moby's default seccomp profile.
+
+Source:
+https://github.com/moby/profiles/blob/main/seccomp/default.json
+
+License:
+Apache License 2.0
+https://github.com/moby/profiles/blob/main/LICENSE
+
+The generated go-judge profile is derived from this snapshot by
+cmd/seccomp-convert and includes go-judge-specific architecture handling and
+additional syscall restrictions.

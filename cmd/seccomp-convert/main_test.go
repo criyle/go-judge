@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/elastic/go-seccomp-bpf/arch"
+	"golang.org/x/sys/unix"
 )
 
 func TestStrictSyscallsAreExcluded(t *testing.T) {
@@ -21,4 +22,26 @@ func TestStrictSyscallsAreExcluded(t *testing.T) {
 	if len(names) != 1 || names[0] != "read" {
 		t.Fatalf("unexpected allowed names: %v", names)
 	}
+}
+
+func TestIoctlPolicyExcludesTerminalInjectionRequests(t *testing.T) {
+	info, err := arch.GetInfo("x86_64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := generatePolicy([]group{{Names: []string{"ioctl"}, Action: "SCMP_ACT_ALLOW"}}, targetArchitectures[0], info)
+	for _, generated := range policy {
+		for _, name := range generated.names {
+			if name == "ioctl" {
+				t.Fatal("unrestricted ioctl allow rule was generated")
+			}
+		}
+		if generated.key == "restricted-ioctl" {
+			if len(generated.args) != 2 || generated.args[0].Index != 1 || generated.args[0].Value != unix.TIOCSTI || generated.args[0].Op != "SCMP_CMP_NE" || generated.args[1].Index != 1 || generated.args[1].Value != unix.TIOCLINUX || generated.args[1].Op != "SCMP_CMP_NE" {
+				t.Fatalf("unexpected restricted ioctl conditions: %+v", generated.args)
+			}
+			return
+		}
+	}
+	t.Fatal("restricted ioctl rule was not generated")
 }

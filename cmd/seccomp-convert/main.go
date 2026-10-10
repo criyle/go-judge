@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/elastic/go-seccomp-bpf/arch"
+	"golang.org/x/sys/unix"
 )
 
 type profile struct {
@@ -50,7 +51,7 @@ type generatedGroup struct {
 	key   string
 	names []string
 	name  string
-	arg   *arg
+	args  []arg
 }
 
 var targetArchitectures = []targetArchitecture{
@@ -206,6 +207,10 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 		if len(g.Args) == 0 {
 			names := validNames(g.Names, info)
 			names = withoutName(names, "socketcall")
+			// Keep ordinary ioctl operations, while denying terminal input
+			// injection and Linux virtual-console requests proactively. Submitted
+			// workloads do not need either request.
+			names = withoutName(names, "ioctl")
 			if len(names) > 0 {
 				generated = append(generated, generatedGroup{
 					key:   fmt.Sprintf("group-%d", groupIndex),
@@ -226,18 +231,27 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 				generated = append(generated, generatedGroup{
 					key:  fmt.Sprintf("group-%d-%s-%d-%d-%s", groupIndex, name, a.Index, a.Value, a.Op),
 					name: name,
-					arg:  &argCopy,
+					args: []arg{argCopy},
 				})
 			}
 		}
+	}
+	if _, ok := info.SyscallNames["ioctl"]; ok {
+		generated = append(generated, generatedGroup{
+			key:  "restricted-ioctl",
+			name: "ioctl",
+			args: []arg{
+				{Index: 1, Value: unix.TIOCSTI, Op: "SCMP_CMP_NE"},   // TIOCSTI
+				{Index: 1, Value: unix.TIOCLINUX, Op: "SCMP_CMP_NE"}, // TIOCLINUX
+			},
+		})
 	}
 
 	// Moby's profile allows socketcall as a name, but that would allow a
 	// 32-bit process to reach socket(AF_ALG, ...). Permit all socketcall
 	// operations except SYS_SOCKET (1), which is the Copy Fail entry point.
 	if _, ok := info.SyscallNames["socketcall"]; ok {
-		a := arg{Index: 0, Value: 1, Op: "SCMP_CMP_GT"}
-		generated = append(generated, generatedGroup{key: "socketcall", name: "socketcall", arg: &a})
+		generated = append(generated, generatedGroup{key: "socketcall", name: "socketcall", args: []arg{{Index: 0, Value: 1, Op: "SCMP_CMP_GT"}}})
 	}
 	for _, name := range []string{"clone", "clone3", "kill", "unshare"} {
 		if _, ok := info.SyscallNames[name]; ok {
@@ -260,7 +274,7 @@ func commonGroup(key string, policies map[string][]generatedGroup) (generatedGro
 			first = false
 			continue
 		}
-		if common.arg != nil || group.arg != nil {
+		if len(common.args) > 0 || len(group.args) > 0 {
 			if !sameArgGroup(common, group) {
 				return generatedGroup{}, false
 			}
@@ -268,7 +282,7 @@ func commonGroup(key string, policies map[string][]generatedGroup) (generatedGro
 		}
 		common.names = intersect(common.names, group.names)
 	}
-	if common.arg == nil && len(common.names) == 0 {
+	if len(common.args) == 0 && len(common.names) == 0 {
 		return generatedGroup{}, false
 	}
 	return common, true
@@ -296,7 +310,7 @@ func additionalGroups(order []string, groups []generatedGroup, base map[string]g
 			continue
 		}
 		common, isCommon := base[key]
-		if !isCommon || group.arg != nil {
+		if !isCommon || len(group.args) > 0 {
 			if !isCommon || !sameArgGroup(group, common) {
 				additional = append(additional, group)
 			}
@@ -312,10 +326,14 @@ func additionalGroups(order []string, groups []generatedGroup, base map[string]g
 
 func writePolicyGroups(w io.Writer, groups []generatedGroup, indent string) {
 	for _, group := range groups {
-		if group.arg == nil {
+		if group.key == "restricted-ioctl" {
+			fmt.Fprintf(w, "%s# TIOCSTI and TIOCLINUX are not used by go-judge or its workload corpus;\n", indent)
+			fmt.Fprintf(w, "%s# deny them proactively as defense in depth.\n", indent)
+		}
+		if len(group.args) == 0 {
 			writeNames(w, group.names, indent)
 		} else {
-			writeArg(w, group.name, *group.arg, indent)
+			writeArgs(w, group.name, group.args, indent)
 		}
 	}
 }
@@ -330,7 +348,15 @@ func findGroup(groups []generatedGroup, key string) (generatedGroup, bool) {
 }
 
 func sameArgGroup(a, b generatedGroup) bool {
-	return a.arg != nil && b.arg != nil && a.name == b.name && *a.arg == *b.arg
+	if len(a.args) == 0 || len(a.args) != len(b.args) || a.name != b.name {
+		return false
+	}
+	for i := range a.args {
+		if a.args[i] != b.args[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func intersect(a, b []string) []string {
@@ -427,19 +453,25 @@ func writeNames(w io.Writer, names []string, indent string) {
 	fmt.Fprintf(w, "%s  action: allow\n", indent)
 }
 
-func writeArg(w io.Writer, name string, a arg, indent string) {
+func writeArgs(w io.Writer, name string, args []arg, indent string) {
 	op := map[string]string{
 		"SCMP_CMP_EQ":        "Equal",
+		"SCMP_CMP_NE":        "NotEqual",
 		"SCMP_CMP_LT":        "LessThan",
 		"SCMP_CMP_LE":        "LessOrEqual",
 		"SCMP_CMP_GT":        "GreaterThan",
 		"SCMP_CMP_GE":        "GreaterOrEqual",
 		"SCMP_CMP_MASKED_EQ": "BitsSet",
-	}[a.Op]
-	if op == "" {
-		fatal(fmt.Errorf("unsupported Moby comparison: %s", a.Op))
 	}
-	fmt.Fprintf(w, "%s- names_with_args:\n%s    - name: %s\n%s      arguments:\n%s        - position: %d\n%s          operation: %s\n%s          value: %d\n%s  action: allow\n", indent, indent, name, indent, indent, a.Index, indent, op, indent, a.Value, indent)
+	fmt.Fprintf(w, "%s- names_with_args:\n%s    - name: %s\n%s      arguments:\n", indent, indent, name, indent)
+	for _, a := range args {
+		operation, ok := op[a.Op]
+		if !ok {
+			fatal(fmt.Errorf("unsupported Moby comparison: %s", a.Op))
+		}
+		fmt.Fprintf(w, "%s        - position: %d\n%s          operation: %s\n%s          value: %d\n", indent, a.Index, indent, operation, indent, a.Value)
+	}
+	fmt.Fprintf(w, "%s  action: allow\n", indent)
 }
 
 func fatal(err error) {

@@ -78,7 +78,6 @@ base:
         - inotify_add_watch
         - inotify_init1
         - inotify_rm_watch
-        - ioctl
         - ioprio_get
         - ioprio_set
         - kill
@@ -274,6 +273,18 @@ base:
             - position: 0
               operation: Equal
               value: 45
+      action: allow
+    # TIOCSTI and TIOCLINUX are not used by go-judge or its workload corpus;
+    # deny them proactively as defense in depth.
+    - names_with_args:
+        - name: ioctl
+          arguments:
+            - position: 1
+              operation: NotEqual
+              value: 21522
+            - position: 1
+              operation: NotEqual
+              value: 21532
       action: allow
     - names:
         - clone

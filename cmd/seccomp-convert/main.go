@@ -207,6 +207,8 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 		if len(g.Args) == 0 {
 			names := validNames(g.Names, info)
 			names = withoutName(names, "socketcall")
+			names = withoutName(names, "socket")
+			names = withoutName(names, "socketpair")
 			// Keep ordinary ioctl operations, while denying terminal input
 			// injection and Linux virtual-console requests proactively. Submitted
 			// workloads do not need either request.
@@ -220,6 +222,11 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 			continue
 		}
 		for _, name := range validNames(g.Names, info) {
+			// Socket family checks are emitted below from the observed-family
+			// allowlist rather than inheriting Moby's broader family ranges.
+			if name == "socket" || name == "socketpair" {
+				continue
+			}
 			// The container init and the CLONE_INTO_CGROUP path both require
 			// unrestricted clone. The init filter is installed only after
 			// container setup, so retain namespace-capable clone calls.
@@ -236,6 +243,29 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 			}
 		}
 	}
+	for _, family := range []struct {
+		name  string
+		value uint64
+	}{
+		{name: "AF_UNIX", value: unix.AF_UNIX},
+		{name: "AF_INET", value: unix.AF_INET},
+		{name: "AF_INET6", value: unix.AF_INET6},
+	} {
+		if _, ok := info.SyscallNames["socket"]; ok {
+			generated = append(generated, generatedGroup{
+				key:  "socket-" + family.name,
+				name: "socket",
+				args: []arg{{Index: 0, Value: family.value, Op: "SCMP_CMP_EQ"}},
+			})
+		}
+	}
+	if _, ok := info.SyscallNames["socketpair"]; ok {
+		generated = append(generated, generatedGroup{
+			key:  "socketpair-AF_UNIX",
+			name: "socketpair",
+			args: []arg{{Index: 0, Value: unix.AF_UNIX, Op: "SCMP_CMP_EQ"}},
+		})
+	}
 	if _, ok := info.SyscallNames["ioctl"]; ok {
 		generated = append(generated, generatedGroup{
 			key:  "restricted-ioctl",
@@ -247,11 +277,14 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 		})
 	}
 
-	// Moby's profile allows socketcall as a name, but that would allow a
-	// 32-bit process to reach socket(AF_ALG, ...). Permit all socketcall
-	// operations except SYS_SOCKET (1), which is the Copy Fail entry point.
+	// Seccomp cannot inspect the pointed-to argument array passed through
+	// socketcall, so it cannot safely validate socket/socketpair families.
+	// Deny those two legacy operations (SYS_SOCKET=1, SYS_SOCKETPAIR=8).
 	if _, ok := info.SyscallNames["socketcall"]; ok {
-		generated = append(generated, generatedGroup{key: "socketcall", name: "socketcall", args: []arg{{Index: 0, Value: 1, Op: "SCMP_CMP_GT"}}})
+		generated = append(generated, generatedGroup{key: "socketcall", name: "socketcall", args: []arg{
+			{Index: 0, Value: 1, Op: "SCMP_CMP_GT"},
+			{Index: 0, Value: 8, Op: "SCMP_CMP_NE"},
+		}})
 	}
 	for _, name := range []string{"clone", "clone3", "kill", "unshare"} {
 		if _, ok := info.SyscallNames[name]; ok {

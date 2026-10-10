@@ -17,6 +17,36 @@ This observation records a cold-cache syscall trace of the compiler and runtime 
 - `arch_prctl` is allowed by Moby for amd64 and was observed throughout the corpus.
 - `socket` was observed by Java. Name-only tracing cannot determine the socket domain; the policy's argument rules remain necessary to block AF_ALG/copyfail.
 
+## Socket-family follow-up (2026-10-09)
+
+The compiler/runtime commands were repeated on `debian-dev.local` (Debian 13,
+x86_64). The same 16 language configurations and compile/run command lines were
+used. Minimal scratch programs were created on the host instead of copying
+repository files there. All 32 compile/run phases completed with status 0.
+Tracing used `strace -f -qq -v -e trace=%network`, so socket arguments and
+network-family syscalls from child processes were included. This remains a
+sample workload observation, not proof that every compiler feature behaves the
+same way.
+
+| Family / operation | Language and phase | Observed use |
+|---|---|---|
+| `AF_UNIX` (`socket`) | Java compile and run | Opened a Unix stream socket and attempted to connect to `/var/run/nscd/socket`; the path was absent. |
+| `AF_INET` (`socket`) | Java compile | Opened a stream socket. |
+| `AF_INET6` (`socket`) | Java compile | Opened stream sockets; one had `SO_REUSEPORT` set. |
+| `AF_UNIX` (`socketpair`) | Rust compile | Created a `SOCK_SEQPACKET` pair; a `recvfrom` followed. |
+
+No other socket families or socket operations were observed. No sample used
+`splice` or `vmsplice`. The Java trace shows why removing `socket()` entirely
+could break a configured runtime; it does not show a need for the other socket
+families currently admitted by the profile. A narrower allowlist limited to
+observed families (`AF_UNIX`, `AF_INET`, and `AF_INET6`) is a reasonable
+candidate, subject to validating the full supported workload and any networking
+requirements. `socketpair()` is a separate syscall and was observed in Rust
+compilation. The default profile now limits `socket()` to these three observed
+families and limits direct `socketpair()` to `AF_UNIX`; the i386 multiplexed
+`socketcall` path denies both socket-creation operations because seccomp cannot
+inspect its pointed-to argument array.
+
 ## Syscalls observed
 
 | Language | Phase | Status | Syscalls |

@@ -51,6 +51,10 @@ device-node creation, filesystem event attachment, cross-process
 signaling/scheduling, legacy asynchronous I/O, alternate filesystem/mount
 interfaces, and kernel-mediated data transfer. The source list in
 `cmd/seccomp-convert/main.go` documents the rationale for each group.
+Socket creation is limited to the observed `AF_UNIX`, `AF_INET`, and `AF_INET6`
+families; `socketpair` is limited to `AF_UNIX`. On i386, `socketcall` cannot be
+filtered by socket family because it passes its arguments through a pointer, so
+the `socket` and `socketpair` multiplexed operations are denied.
 The container init installs the generated policy after namespace and
 filesystem initialization. Workload processes inherit that filter; they do not
 install a second filter for each command. `clone`, `clone3`, and `unshare` are

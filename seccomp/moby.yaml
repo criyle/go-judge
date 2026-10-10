@@ -198,7 +198,6 @@ base:
         - shutdown
         - sigaltstack
         - signalfd4
-        - socketpair
         - statfs
         - statx
         - symlinkat
@@ -229,50 +228,29 @@ base:
         - name: socket
           arguments:
             - position: 0
-              operation: LessThan
-              value: 38
+              operation: Equal
+              value: 1
       action: allow
     - names_with_args:
         - name: socket
           arguments:
             - position: 0
               operation: Equal
-              value: 39
+              value: 2
       action: allow
     - names_with_args:
         - name: socket
           arguments:
             - position: 0
               operation: Equal
-              value: 41
+              value: 10
       action: allow
     - names_with_args:
-        - name: socket
+        - name: socketpair
           arguments:
             - position: 0
               operation: Equal
-              value: 42
-      action: allow
-    - names_with_args:
-        - name: socket
-          arguments:
-            - position: 0
-              operation: Equal
-              value: 43
-      action: allow
-    - names_with_args:
-        - name: socket
-          arguments:
-            - position: 0
-              operation: Equal
-              value: 44
-      action: allow
-    - names_with_args:
-        - name: socket
-          arguments:
-            - position: 0
-              operation: Equal
-              value: 45
+              value: 1
       action: allow
     # TIOCSTI and TIOCLINUX are not used by go-judge or its workload corpus;
     # deny them proactively as defense in depth.
@@ -456,6 +434,9 @@ architectures:
               - position: 0
                 operation: GreaterThan
                 value: 1
+              - position: 0
+                operation: NotEqual
+                value: 8
         action: allow
   aarch64:
     syscalls:

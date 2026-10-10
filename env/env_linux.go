@@ -75,6 +75,7 @@ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, 
 
 	conf := map[string]any{
 		"cgroupType":        cgroupType,
+		"seccomp":           len(seccomp) > 0,
 		"mount":             m,
 		"symbolicLink":      symbolicLinks,
 		"maskedPaths":       maskPaths,

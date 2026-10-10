@@ -5,10 +5,12 @@ package integration_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os/exec"
+	"os"
 	"strconv"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -18,8 +20,10 @@ func TestSeccomp_DeniesRestrictedSyscalls(t *testing.T) {
 
 	source := `#include <cerrno>
 #include <cstdlib>
+#include <fstream>
 #include <iostream>
 #include <linux/sched.h>
+#include <string>
 #include <sys/personality.h>
 #include <sys/ptrace.h>
 #include <sys/socket.h>
@@ -32,6 +36,16 @@ static void check(const char* name, long result) {
 }
 
 int main() {
+    std::ifstream status("/proc/self/status");
+    std::string statusLine;
+    while (std::getline(status, statusLine)) {
+        const std::string key = "Seccomp_filters:";
+        if (statusLine.compare(0, key.size(), key) == 0) {
+            std::cout << "seccomp_filters=" << std::stoi(statusLine.substr(key.size())) << "\n";
+            break;
+        }
+    }
+
     errno = 0;
     check("ptrace", syscall(SYS_ptrace, PTRACE_TRACEME, 0, 0, 0));
 
@@ -119,12 +133,25 @@ int main() {
 	if result.Status != "Accepted" {
 		t.Fatalf("probe failed: %s; stderr: %s", result.Status, result.Files["stderr"])
 	}
+	baselineFilters, err := hostSeccompFilterCount()
+	if err != nil {
+		t.Fatalf("read host seccomp filter count: %v", err)
+	}
 
 	want := map[string]int{
 		"ptrace": 1, "process_vm_readv": 1, "process_vm_writev": 1, "personality": 1,
-		"socket_AF_RXRPC": 1,
 	}
-	allowed := []string{"socket_AF_UNIX", "socket_AF_INET", "socket_AF_INET6", "socketpair_AF_UNIX"}
+	allowed := []string{"socket_AF_UNIX", "socket_AF_INET", "socketpair_AF_UNIX"}
+	if hostCanCreateSocket(syscall.AF_INET6) {
+		allowed = append(allowed, "socket_AF_INET6")
+	} else {
+		t.Log("host denies or lacks AF_INET6; skipping the AF_INET6 success assertion")
+	}
+	if hostCanCreateSocket(33) {
+		want["socket_AF_RXRPC"] = 1
+	} else {
+		t.Log("host denies or lacks AF_RXRPC; generator allowlist is covered by a unit test")
+	}
 	got := make(map[string]int)
 	for _, line := range strings.Split(strings.TrimSpace(result.Files["stdout"]), "\n") {
 		parts := strings.SplitN(line, "=", 2)
@@ -147,6 +174,9 @@ int main() {
 			t.Errorf("%s: got errno %d, want success; output=%q", name, got[name], result.Files["stdout"])
 		}
 	}
+	if got["seccomp_filters"] <= baselineFilters {
+		t.Errorf("sandbox has %d seccomp filters, want more than host baseline %d; output=%q", got["seccomp_filters"], baselineFilters, result.Files["stdout"])
+	}
 	for _, name := range []string{"clone3", "unshare"} {
 		if got[name] == 1 {
 			t.Errorf("%s was denied by seccomp; output=%q", name, result.Files["stdout"])
@@ -157,18 +187,19 @@ int main() {
 func TestSeccomp_ObservedSocketCompilers(t *testing.T) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	workloads := []struct {
-		name, compiler, sourceName, source, command string
+		name, sourceName, source, command string
+		binaries                          []string
 	}{
 		{
 			name:       "java",
-			compiler:   "javac",
+			binaries:   []string{"/usr/bin/javac", "/usr/bin/java"},
 			sourceName: "Main.java",
 			source:     "public class Main { public static void main(String[] args) { System.out.println(3); } }\n",
 			command:    "/usr/bin/javac Main.java && /usr/bin/java Main",
 		},
 		{
 			name:       "rust",
-			compiler:   "rustc",
+			binaries:   []string{"/usr/bin/rustc"},
 			sourceName: "main.rs",
 			source:     "fn main() { println!(\"3\"); }\n",
 			command:    "/usr/bin/rustc main.rs -o main && ./main",
@@ -176,8 +207,10 @@ func TestSeccomp_ObservedSocketCompilers(t *testing.T) {
 	}
 	for _, workload := range workloads {
 		t.Run(workload.name, func(t *testing.T) {
-			if _, err := exec.LookPath(workload.compiler); err != nil {
-				t.Skipf("%s is not installed on the integration host", workload.compiler)
+			for _, path := range workload.binaries {
+				if _, err := os.Stat(path); err != nil {
+					t.Skipf("%s is not present in the judge filesystem", path)
+				}
 			}
 			request := Request{Cmd: []Cmd{{
 				Args:     []string{"/bin/sh", "-c", workload.command},
@@ -195,6 +228,28 @@ func TestSeccomp_ObservedSocketCompilers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func hostCanCreateSocket(family int) bool {
+	fd, err := syscall.Socket(family, syscall.SOCK_DGRAM, 0)
+	if err != nil {
+		return false
+	}
+	_ = syscall.Close(fd)
+	return true
+}
+
+func hostSeccompFilterCount() (int, error) {
+	status, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return 0, err
+	}
+	for _, line := range strings.Split(string(status), "\n") {
+		if strings.HasPrefix(line, "Seccomp_filters:") {
+			return strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "Seccomp_filters:")))
+		}
+	}
+	return 0, fmt.Errorf("Seccomp_filters is missing from /proc/self/status")
 }
 
 func postSeccompRequest(t *testing.T, client *http.Client, request Request) []Result {

@@ -25,6 +25,13 @@ func setupCgroup(c Config, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controlle
 	if t == cgroup.TypeV2 {
 		prefix, ct, err = setupCgroupV2(prefix, logger)
 		if err != nil {
+			if os.Getuid() != 0 {
+				if c.NoFallback {
+					return nil, nil, fmt.Errorf("failed to set up cgroup with no fallback: %w", err)
+				}
+				logger.Warn("cgroup setup failed, falling back to rlimit / rusage mode", zap.Error(err))
+				return nil, nil, nil
+			}
 			return nil, nil, err
 		}
 	}
@@ -41,13 +48,21 @@ func setupCgroupV2(prefix string, logger *zap.Logger) (string, *cgroup.Controlle
 		scopeName, err := cgroup.GetCurrentCgroupPrefix()
 		if err != nil {
 			logger.Warn("could not determine current cgroup, defaulting to root", zap.Error(err))
-			return "", getControllersWithPrefix("", logger), nil
+			scopeName = ""
 		}
-
 		logger.Info("using current cgroup prefix for nesting", zap.String("scope_name", scopeName))
+		// A cgroup v2 parent cannot enable controllers while it contains
+		// processes. Move them into its init child before creating our child
+		// cgroups. This applies at the hierarchy root and at a delegated scope.
+		if err := cgroup.EnableV2NestingAt(scopeName); err != nil {
+			return "", nil, fmt.Errorf("failed to enable cgroup v2 nesting at %q: %w", scopeName, err)
+		}
 		ct, err := cgroup.GetAvailableControllerWithPrefix(scopeName)
 		if err != nil {
-			return "", nil, fmt.Errorf("failed to get available controller with prefix %s: %w", scopeName, err)
+			return "", nil, fmt.Errorf("failed to get available controllers at %q: %w", scopeName, err)
+		}
+		if scopeName == "" {
+			scopeName = "go-judge"
 		}
 		return scopeName, ct, nil
 	}
@@ -101,16 +116,14 @@ func startTransientUnit(conn *dbus.Conn, scopeName string, logger *zap.Logger) e
 	return nil
 }
 
-func getControllersWithPrefix(prefix string, logger *zap.Logger) *cgroup.Controllers {
-	ct, err := cgroup.GetAvailableControllerWithPrefix(prefix)
-	if err != nil {
-		logger.Error("failed to get available controller with prefix", zap.Error(err))
-		return nil
-	}
-	return ct
-}
-
 func createAndNestCgroup(prefix string, ct *cgroup.Controllers, noFallback bool, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controllers, error) {
+	// An empty prefix means the process is already at the cgroup hierarchy
+	// root. Create a dedicated child before nesting; cgroup.New intentionally
+	// rejects an empty path because it must never operate on the hierarchy root.
+	if prefix == "" {
+		prefix = "go-judge"
+	}
+
 	cgb, err := cgroup.New(prefix, ct)
 	if err != nil {
 		if os.Getuid() == 0 {

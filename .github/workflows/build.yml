@@ -40,6 +40,44 @@ jobs:
           fi
       - name: Build go-judge for integration tests
         run: go build -o go-judge ./cmd/go-judge
+      - name: Smoke test non-systemd cgroup startup as root
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(stat -fc %T /sys/fs/cgroup)" != "cgroup2fs" ]; then
+            echo "CI runner does not provide cgroup v2"
+            exit 1
+          fi
+          sudo env DBUS_SYSTEM_BUS_ADDRESS=unix:path=/dev/null ./go-judge \
+            -http-addr=localhost:5053 -no-fallback > cgroup-fallback.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            status=$?
+            sudo kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+            if [ "$status" -ne 0 ]; then
+              echo "--- non-systemd cgroup startup log ---"
+              tail -n 200 cgroup-fallback.log
+            fi
+            exit "$status"
+          }
+          trap cleanup EXIT
+          ready=0
+          for _ in $(seq 1 30); do
+            if curl --fail --silent --show-error http://localhost:5053/version; then
+              ready=1
+              break
+            fi
+            if ! sudo kill -0 "$server_pid" 2>/dev/null; then
+              echo "root go-judge exited during non-systemd startup"
+              exit 1
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "root go-judge did not become ready within 30 seconds"
+            exit 1
+          fi
       - name: Run unit and integration tests
         shell: bash
         run: |

@@ -59,13 +59,15 @@ func TestSocketFamilyAllowlist(t *testing.T) {
 	}
 	got := make(map[uint64]bool)
 	for _, generated := range policy {
-		if generated.name != "socket" {
+		if generated.key != "socket-families" {
 			continue
 		}
-		if len(generated.args) != 1 || generated.args[0].Index != 0 || generated.args[0].Op != "SCMP_CMP_EQ" {
-			t.Fatalf("unexpected socket allow rule: %+v", generated)
+		for _, condition := range generated.conditions {
+			if condition.name != "socket" || len(condition.args) != 1 || condition.args[0].Index != 0 || condition.args[0].Op != "SCMP_CMP_EQ" {
+				t.Fatalf("unexpected socket allow rule: %+v", generated)
+			}
+			got[condition.args[0].Value] = true
 		}
-		got[generated.args[0].Value] = true
 	}
 	if len(got) != len(want) {
 		t.Fatalf("socket family allowlist = %v, want %v", got, want)
@@ -78,4 +80,26 @@ func TestSocketFamilyAllowlist(t *testing.T) {
 	if got[33] {
 		t.Error("AF_RXRPC unexpectedly present in socket allowlist")
 	}
+}
+
+func TestGetpgidOnlyAllowsCurrentProcess(t *testing.T) {
+	info, err := arch.GetInfo("aarch64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := generatePolicy(nil, targetArchitectures[2], info)
+	for _, generated := range policy {
+		if generated.key != "getpgid-self" {
+			continue
+		}
+		if len(generated.conditions) != 1 {
+			t.Fatalf("getpgid conditions = %+v, want one self-only condition", generated.conditions)
+		}
+		condition := generated.conditions[0]
+		if condition.name != "getpgid" || len(condition.args) != 1 || condition.args[0].Index != 0 || condition.args[0].Value != 0 || condition.args[0].Op != "SCMP_CMP_EQ" {
+			t.Fatalf("getpgid self condition = %+v", condition)
+		}
+		return
+	}
+	t.Fatal("self-only getpgid rule was not generated")
 }

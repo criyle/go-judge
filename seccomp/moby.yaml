@@ -230,15 +230,11 @@ base:
             - position: 0
               operation: Equal
               value: 1
-      action: allow
-    - names_with_args:
         - name: socket
           arguments:
             - position: 0
               operation: Equal
               value: 2
-      action: allow
-    - names_with_args:
         - name: socket
           arguments:
             - position: 0
@@ -263,6 +259,13 @@ base:
             - position: 1
               operation: NotEqual
               value: 21532
+      action: allow
+    - names_with_args:
+        - name: getpgid
+          arguments:
+            - position: 0
+              operation: Equal
+              value: 0
       action: allow
     - names:
         - clone

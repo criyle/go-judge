@@ -136,10 +136,16 @@ int main() {
 	want := map[string]int{
 		"ptrace": 1, "process_vm_readv": 1, "process_vm_writev": 1, "personality": 1,
 	}
-	// The generated profile allows AF_INET6, but an inherited seccomp filter can
-	// still deny it in the job. The converter unit test checks the configured
-	// family allowlist; this integration test checks families stable here.
-	allowed := []string{"socket_AF_UNIX", "socket_AF_INET", "socketpair_AF_UNIX"}
+	// An inherited seccomp filter can deny socket families even when the
+	// generated profile allows them. The converter unit test checks the
+	// configured family allowlist; this integration test checks families the
+	// current host permits.
+	allowed := []string{"socket_AF_UNIX", "socketpair_AF_UNIX"}
+	if hostCanCreateSocket(syscall.AF_INET) {
+		allowed = append(allowed, "socket_AF_INET")
+	} else {
+		t.Log("host denies AF_INET; generator allowlist is covered by a unit test")
+	}
 	if hostCanCreateSocket(33) {
 		want["socket_AF_RXRPC"] = 1
 	} else {

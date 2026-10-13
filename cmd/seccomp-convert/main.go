@@ -48,10 +48,16 @@ type targetArchitecture struct {
 }
 
 type generatedGroup struct {
-	key   string
-	names []string
-	name  string
-	args  []arg
+	key        string
+	names      []string
+	name       string
+	args       []arg
+	conditions []generatedCondition
+}
+
+type generatedCondition struct {
+	name string
+	args []arg
 }
 
 var targetArchitectures = []targetArchitecture{
@@ -101,8 +107,8 @@ var deniedSyscallGroups = []struct {
 	},
 	{
 		// These can signal, identify, reprioritize, or otherwise affect other
-		// processes when the kernel's credential checks permit it. The init's
-		// cleanup path requires kill, so it is retained in the base policy.
+		// processes when the kernel's credential checks permit it. getpgid(0) is
+		// allowed separately below because Bash uses it during job-control setup.
 		reason: "cross-process signaling and scheduling",
 		names:  []string{"getpgid", "getsid", "rt_sigqueueinfo", "rt_tgsigqueueinfo", "sched_setattr", "sched_setparam", "tkill"},
 	},
@@ -243,6 +249,7 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 			}
 		}
 	}
+	var socketFamilyConditions []generatedCondition
 	for _, family := range []struct {
 		name  string
 		value uint64
@@ -252,12 +259,17 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 		{name: "AF_INET6", value: unix.AF_INET6},
 	} {
 		if _, ok := info.SyscallNames["socket"]; ok {
-			generated = append(generated, generatedGroup{
-				key:  "socket-" + family.name,
+			socketFamilyConditions = append(socketFamilyConditions, generatedCondition{
 				name: "socket",
 				args: []arg{{Index: 0, Value: family.value, Op: "SCMP_CMP_EQ"}},
 			})
 		}
+	}
+	if len(socketFamilyConditions) > 0 {
+		generated = append(generated, generatedGroup{
+			key:        "socket-families",
+			conditions: socketFamilyConditions,
+		})
 	}
 	if _, ok := info.SyscallNames["socketpair"]; ok {
 		generated = append(generated, generatedGroup{
@@ -286,6 +298,15 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 			{Index: 0, Value: 8, Op: "SCMP_CMP_NE"},
 		}})
 	}
+	if _, ok := info.SyscallNames["getpgid"]; ok {
+		generated = append(generated, generatedGroup{
+			key: "getpgid-self",
+			conditions: []generatedCondition{{
+				name: "getpgid",
+				args: []arg{{Index: 0, Value: 0, Op: "SCMP_CMP_EQ"}},
+			}},
+		})
+	}
 	for _, name := range []string{"clone", "clone3", "kill", "unshare"} {
 		if _, ok := info.SyscallNames[name]; ok {
 			generated = append(generated, generatedGroup{key: "init-" + name, names: []string{name}})
@@ -307,7 +328,7 @@ func commonGroup(key string, policies map[string][]generatedGroup) (generatedGro
 			first = false
 			continue
 		}
-		if len(common.args) > 0 || len(group.args) > 0 {
+		if len(common.args) > 0 || len(group.args) > 0 || len(common.conditions) > 0 || len(group.conditions) > 0 {
 			if !sameArgGroup(common, group) {
 				return generatedGroup{}, false
 			}
@@ -315,7 +336,7 @@ func commonGroup(key string, policies map[string][]generatedGroup) (generatedGro
 		}
 		common.names = intersect(common.names, group.names)
 	}
-	if len(common.args) == 0 && len(common.names) == 0 {
+	if len(common.args) == 0 && len(common.names) == 0 && len(common.conditions) == 0 {
 		return generatedGroup{}, false
 	}
 	return common, true
@@ -343,7 +364,7 @@ func additionalGroups(order []string, groups []generatedGroup, base map[string]g
 			continue
 		}
 		common, isCommon := base[key]
-		if !isCommon || len(group.args) > 0 {
+		if !isCommon || len(group.args) > 0 || len(group.conditions) > 0 {
 			if !isCommon || !sameArgGroup(group, common) {
 				additional = append(additional, group)
 			}
@@ -363,7 +384,9 @@ func writePolicyGroups(w io.Writer, groups []generatedGroup, indent string) {
 			fmt.Fprintf(w, "%s# TIOCSTI and TIOCLINUX are not used by go-judge or its workload corpus;\n", indent)
 			fmt.Fprintf(w, "%s# deny them proactively as defense in depth.\n", indent)
 		}
-		if len(group.args) == 0 {
+		if len(group.conditions) > 0 {
+			writeConditions(w, group.conditions, indent)
+		} else if len(group.args) == 0 {
 			writeNames(w, group.names, indent)
 		} else {
 			writeArgs(w, group.name, group.args, indent)
@@ -381,6 +404,22 @@ func findGroup(groups []generatedGroup, key string) (generatedGroup, bool) {
 }
 
 func sameArgGroup(a, b generatedGroup) bool {
+	if len(a.conditions) > 0 || len(b.conditions) > 0 {
+		if len(a.conditions) == 0 || len(a.conditions) != len(b.conditions) {
+			return false
+		}
+		for i := range a.conditions {
+			if a.conditions[i].name != b.conditions[i].name || len(a.conditions[i].args) != len(b.conditions[i].args) {
+				return false
+			}
+			for j := range a.conditions[i].args {
+				if a.conditions[i].args[j] != b.conditions[i].args[j] {
+					return false
+				}
+			}
+		}
+		return true
+	}
 	if len(a.args) == 0 || len(a.args) != len(b.args) || a.name != b.name {
 		return false
 	}
@@ -504,6 +543,10 @@ func writeNames(w io.Writer, names []string, indent string) {
 }
 
 func writeArgs(w io.Writer, name string, args []arg, indent string) {
+	writeConditions(w, []generatedCondition{{name: name, args: args}}, indent)
+}
+
+func writeConditions(w io.Writer, conditions []generatedCondition, indent string) {
 	op := map[string]string{
 		"SCMP_CMP_EQ":        "Equal",
 		"SCMP_CMP_NE":        "NotEqual",
@@ -513,13 +556,16 @@ func writeArgs(w io.Writer, name string, args []arg, indent string) {
 		"SCMP_CMP_GE":        "GreaterOrEqual",
 		"SCMP_CMP_MASKED_EQ": "BitsSet",
 	}
-	fmt.Fprintf(w, "%s- names_with_args:\n%s    - name: %s\n%s      arguments:\n", indent, indent, name, indent)
-	for _, a := range args {
-		operation, ok := op[a.Op]
-		if !ok {
-			fatal(fmt.Errorf("unsupported Moby comparison: %s", a.Op))
+	fmt.Fprintf(w, "%s- names_with_args:\n", indent)
+	for _, condition := range conditions {
+		fmt.Fprintf(w, "%s    - name: %s\n%s      arguments:\n", indent, condition.name, indent)
+		for _, a := range condition.args {
+			operation, ok := op[a.Op]
+			if !ok {
+				fatal(fmt.Errorf("unsupported Moby comparison: %s", a.Op))
+			}
+			fmt.Fprintf(w, "%s        - position: %d\n%s          operation: %s\n%s          value: %d\n", indent, a.Index, indent, operation, indent, a.Value)
 		}
-		fmt.Fprintf(w, "%s        - position: %d\n%s          operation: %s\n%s          value: %d\n", indent, a.Index, indent, operation, indent, a.Value)
 	}
 	fmt.Fprintf(w, "%s  action: allow\n", indent)
 }

@@ -296,8 +296,8 @@ func TestSanity_BasicFunctionality(t *testing.T) {
 
 			// Check Status
 			if tc.Expect.Status != "" && res.Status != tc.Expect.Status {
-				t.Errorf("Status mismatch.\nExpected: %s\nActual:   %s\nError:    %s",
-					tc.Expect.Status, res.Status, res.Error)
+				t.Errorf("Status mismatch.\nExpected: %s\nActual:   %s\nError:    %s\nstdout:   %q\nstderr:   %q",
+					tc.Expect.Status, res.Status, res.Error, res.Files["stdout"], res.Files["stderr"])
 			}
 
 			// Check Error Message

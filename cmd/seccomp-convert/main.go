@@ -205,7 +205,7 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 			continue
 		}
 		if len(g.Args) == 0 {
-			names := validNames(g.Names, info)
+			names := validNamesForTarget(g.Names, target, info)
 			names = withoutName(names, "socketcall")
 			names = withoutName(names, "socket")
 			names = withoutName(names, "socketpair")
@@ -221,7 +221,7 @@ func generatePolicy(groups []group, target targetArchitecture, info *arch.Info) 
 			}
 			continue
 		}
-		for _, name := range validNames(g.Names, info) {
+		for _, name := range validNamesForTarget(g.Names, target, info) {
 			// Socket family checks are emitted below from the observed-family
 			// allowlist rather than inheriting Moby's broader family ranges.
 			if name == "socket" || name == "socketpair" {
@@ -476,6 +476,23 @@ func validNames(names []string, info *arch.Info) []string {
 		}
 	}
 	return valid
+}
+
+// Issue #202: Moby and libseccomp use the generic syscall name newfstatat for aarch64's
+// syscall 79. The architecture table used by go-seccomp-bpf calls that syscall
+// fstatat, so emit the name understood by the runtime for that architecture.
+func validNamesForTarget(names []string, target targetArchitecture, info *arch.Info) []string {
+	if target.name != "aarch64" {
+		return validNames(names, info)
+	}
+	translated := make([]string, 0, len(names))
+	for _, name := range names {
+		if name == "newfstatat" {
+			name = "fstatat"
+		}
+		translated = append(translated, name)
+	}
+	return validNames(translated, info)
 }
 
 func writeNames(w io.Writer, names []string, indent string) {

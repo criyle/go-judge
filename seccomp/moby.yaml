@@ -453,6 +453,7 @@ architectures:
           - mmap
           - mq_timedreceive_time64
           - mq_timedsend_time64
+          - fstatat
           - ppoll_time64
           - pselect6_time64
           - recvmmsg_time64

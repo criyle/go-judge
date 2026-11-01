@@ -57,6 +57,8 @@ message Response {
     map<string, bytes> files = 6;
     map<string, string> fileIDs = 7;
     repeated FileError fileError = 9;
+    // 1-based completion order within a grouped run; zero means unknown.
+    int32 exitOrder = 11;
   }
   string requestID = 1;
   repeated Result results = 2;

@@ -2,6 +2,7 @@ package envexec
 
 import (
 	"context"
+	"sort"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -59,9 +60,17 @@ func (r *Group) Run(ctx context.Context) ([]Result, error) {
 	// wait all cmd to finish
 	var g errgroup.Group
 	result := make([]Result, len(r.Cmd))
+	type exitEvent struct {
+		index int
+		at    int64
+		seq   int
+	}
+	exitEvents := make(chan exitEvent, len(r.Cmd))
 	for i, c := range r.Cmd {
 		g.Go(func() error {
-			r, err := runSingle(ctx, c, fds[i], pipeToCollect[i], r.NewStoreFile)
+			r, err := runSingle(ctx, c, fds[i], pipeToCollect[i], r.NewStoreFile, func(at int64) {
+				exitEvents <- exitEvent{index: i, at: at}
+			})
 			result[i] = r
 			if err != nil {
 				result[i].Status = StatusInternalError
@@ -72,5 +81,20 @@ func (r *Group) Run(ctx context.Context) ([]Result, error) {
 		})
 	}
 	err = g.Wait()
+	close(exitEvents)
+	events := make([]exitEvent, 0, len(r.Cmd))
+	for event := range exitEvents {
+		event.seq = len(events)
+		events = append(events, event)
+	}
+	sort.Slice(events, func(i, j int) bool {
+		if events[i].at != events[j].at {
+			return events[i].at < events[j].at
+		}
+		return events[i].seq < events[j].seq
+	})
+	for order, event := range events {
+		result[event.index].ExitOrder = order + 1
+	}
 	return result, err
 }

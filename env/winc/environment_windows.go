@@ -19,6 +19,8 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+var monotonicStart = time.Now()
+
 var _ pool.Environment = &Environment{}
 
 var (
@@ -205,7 +207,12 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 		defer syscall.CloseHandle(processInfo.Process)
 		defer windows.CloseHandle(hJob)
 		defer windows.CloseHandle(ioPort)
-		defer close(done)
+		defer func() {
+			if procSet.finishedAt == 0 {
+				procSet.finishedAt = time.Since(monotonicStart).Nanoseconds()
+			}
+			close(done)
+		}()
 
 		var (
 			qty        uint32
@@ -246,6 +253,7 @@ func (e *Environment) Execve(ctx context.Context, param envexec.ExecveParam) (pr
 			}
 		}
 		// collect exit status
+		procSet.finishedAt = time.Since(monotonicStart).Nanoseconds()
 		if _, err := windows.WaitForSingleObject(windows.Handle(processInfo.Process), windows.INFINITE); err != nil {
 			procSet.result = runner.Result{Status: runner.StatusRunnerError, Error: err.Error()}
 			return

@@ -69,6 +69,10 @@ type CmdCopyOutFile struct {
 type Result struct {
 	Status Status
 
+	// ExitOrder is the order this command's completion was observed within a group.
+	// Zero means the order is unknown or the command did not start.
+	ExitOrder int
+
 	ExitStatus int
 
 	Error string // error

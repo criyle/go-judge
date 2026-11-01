@@ -54,7 +54,12 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 	}
 
 	go func() {
-		defer close(p.done)
+		defer func() {
+			if p.finishedAt == 0 {
+				p.finishedAt = monotonicTimeNS()
+			}
+			close(p.done)
+		}()
 
 		mTime := time.Now()
 
@@ -83,11 +88,13 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 				continue
 			}
 			if err != nil {
+				p.finishedAt = monotonicTimeNS()
 				p.result.Error = err.Error()
 				p.result.Status = runner.StatusRunnerError
 				return
 			}
 			fTime := time.Now()
+			p.finishedAt = monotonicTimeNS()
 			p.result = runner.Result{
 				Status:      runner.StatusNormal,
 				Time:        time.Duration(rusage.Utime.Nano()),
@@ -130,6 +137,14 @@ func (e *environment) Execve(c context.Context, param envexec.ExecveParam) (enve
 	}()
 
 	return p, nil
+}
+
+func monotonicTimeNS() int64 {
+	var ts unix.Timespec
+	if err := unix.ClockGettime(unix.CLOCK_MONOTONIC, &ts); err != nil {
+		return 0
+	}
+	return ts.Sec*1e9 + ts.Nsec
 }
 
 func (e *environment) Open(params []envexec.OpenParam) ([]envexec.OpenResult, error) {

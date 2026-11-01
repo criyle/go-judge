@@ -52,6 +52,7 @@ type Process interface {
 	Done() <-chan struct{} // Done returns a channel for wait process to exit
 	Result() RunnerResult  // Result wait until done and returns RunnerResult
 	Usage() Usage          // Usage retrieves the process usage during the run time
+	FinishedAt() int64     // FinishedAt is a CLOCK_MONOTONIC timestamp in nanoseconds
 }
 
 // OpenParam represent a open call in the environment

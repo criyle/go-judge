@@ -315,6 +315,7 @@ func (w *worker) workDoGroup(ctx context.Context, rc []Cmd, pm []PipeMap, cpuset
 
 func (w *worker) convertResult(result envexec.Result, cmd Cmd) (res Result) {
 	res.Status = result.Status
+	res.ExitOrder = result.ExitOrder
 	res.ExitStatus = result.ExitStatus
 	res.Error = result.Error
 	res.Time = result.Time

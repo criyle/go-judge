@@ -22,7 +22,7 @@ func (s *Single) Run(ctx context.Context) (result Result, err error) {
 		return result, err
 	}
 
-	result, err = runSingle(ctx, s.Cmd, fd, pipeToCollect, s.NewStoreFile)
+	result, err = runSingle(ctx, s.Cmd, fd, pipeToCollect, s.NewStoreFile, nil)
 	if err != nil {
 		result.Status = StatusInternalError
 		result.Error = err.Error()

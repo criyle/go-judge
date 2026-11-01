@@ -153,6 +153,7 @@ func convertPBResponse(r model.Response) (*pb.Response, error) {
 func convertPBResult(r model.Result) (*pb.Response_Result, error) {
 	return pb.Response_Result_builder{
 		Status:     pb.Response_Result_StatusType(r.Status),
+		ExitOrder:  int32(r.ExitOrder),
 		ExitStatus: int32(r.ExitStatus),
 		Error:      r.Error,
 		Time:       r.Time,

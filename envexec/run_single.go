@@ -15,7 +15,7 @@ func closePipes(ptc []pipeCollector) {
 }
 
 // runSingle runs Cmd inside the given environment and cgroup
-func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, newStoreFile NewStoreFile) (result Result, err error) {
+func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, newStoreFile NewStoreFile, onExit func(int64)) (result Result, err error) {
 	m := c.Environment
 	resultFileError := func(err error, fe []FileError) {
 		result.Status = StatusFileError
@@ -36,7 +36,7 @@ func runSingle(pc context.Context, c *Cmd, fds []*os.File, ptc []pipeCollector, 
 	}
 
 	// run cmd and wait for result
-	rt := runSingleWait(pc, m, c, fds)
+	rt := runSingleWait(pc, m, c, fds, onExit)
 
 	// collect result
 	files, fe, err := copyOutAndCollect(m, c, ptc, newStoreFile)
@@ -82,7 +82,7 @@ func runSingleCopyIn(m Environment, copyInFiles map[string]File) ([]FileError, e
 	return copyIn(m, copyInFiles)
 }
 
-func runSingleWait(pc context.Context, m Environment, c *Cmd, fds []*os.File) RunnerResult {
+func runSingleWait(pc context.Context, m Environment, c *Cmd, fds []*os.File, onExit func(int64)) RunnerResult {
 	// start the cmd (they will be canceled in other goroutines)
 	ctx, cancel := context.WithCancel(pc)
 	defer cancel()
@@ -100,7 +100,11 @@ func runSingleWait(pc context.Context, m Environment, c *Cmd, fds []*os.File) Ru
 	// cancel the process as waiter exits
 	cancel()
 
-	return process.Result()
+	result := process.Result()
+	if onExit != nil {
+		onExit(process.FinishedAt())
+	}
+	return result
 }
 
 func runSingleExecve(ctx context.Context, m Environment, c *Cmd, fds []*os.File) (Process, error) {

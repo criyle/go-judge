@@ -5,15 +5,17 @@ import (
 
 	"github.com/criyle/go-judge/envexec"
 	"github.com/criyle/go-sandbox/runner"
+	"golang.org/x/sys/unix"
 )
 
 var _ envexec.Process = &process{}
 
 // process defines the running process
 type process struct {
-	rt   runner.Result
-	done chan struct{}
-	cg   Cgroup
+	rt         runner.Result
+	done       chan struct{}
+	cg         Cgroup
+	finishedAt int64
 }
 
 func newProcess(run func() runner.Result, cg Cgroup, cgPool CgroupPool) *process {
@@ -23,6 +25,13 @@ func newProcess(run func() runner.Result, cg Cgroup, cgPool CgroupPool) *process
 	}
 	go func() {
 		p.rt = run()
+		p.finishedAt = p.rt.ExitTimeNS
+		if p.finishedAt == 0 {
+			var ts unix.Timespec
+			if err := unix.ClockGettime(unix.CLOCK_MONOTONIC, &ts); err == nil {
+				p.finishedAt = ts.Sec*1e9 + ts.Nsec
+			}
+		}
 		p.collectUsage()
 		close(p.done)
 		if cgPool != nil {
@@ -54,6 +63,11 @@ func (p *process) Done() <-chan struct{} {
 func (p *process) Result() envexec.RunnerResult {
 	<-p.done
 	return p.rt
+}
+
+func (p *process) FinishedAt() int64 {
+	<-p.done
+	return p.finishedAt
 }
 
 func (p *process) Usage() envexec.Usage {

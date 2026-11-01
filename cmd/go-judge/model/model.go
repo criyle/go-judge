@@ -115,6 +115,7 @@ func (s *Status) UnmarshalJSON(b []byte) error {
 // Result defines single command result
 type Result struct {
 	Status     Status            `json:"status"`
+	ExitOrder  int               `json:"exitOrder,omitempty"`
 	ExitStatus int               `json:"exitStatus"`
 	Error      string            `json:"error,omitempty"`
 	Time       uint64            `json:"time"`
@@ -132,6 +133,7 @@ type Result struct {
 func (r Result) String() string {
 	type Result struct {
 		Status     Status
+		ExitOrder  int
 		ExitStatus int
 		Error      string
 		Time       time.Duration
@@ -144,6 +146,7 @@ func (r Result) String() string {
 	}
 	d := Result{
 		Status:     r.Status,
+		ExitOrder:  r.ExitOrder,
 		ExitStatus: r.ExitStatus,
 		Error:      r.Error,
 		Time:       time.Duration(r.Time),
@@ -255,6 +258,7 @@ func ConvertRequest(r *Request, srcPrefix []string) (*worker.Request, error) {
 func convertResult(r worker.Result, mmap bool) (Result, error) {
 	res := Result{
 		Status:     Status(r.Status),
+		ExitOrder:  r.ExitOrder,
 		ExitStatus: r.ExitStatus,
 		Error:      r.Error,
 		Time:       uint64(r.Time),

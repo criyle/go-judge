@@ -8,9 +8,10 @@ import (
 var _ envexec.Process = &process{}
 
 type process struct {
-	pid    int
-	done   chan struct{}
-	result runner.Result
+	pid        int
+	done       chan struct{}
+	result     runner.Result
+	finishedAt int64
 }
 
 func (p *process) Done() <-chan struct{} {
@@ -20,6 +21,11 @@ func (p *process) Done() <-chan struct{} {
 func (p *process) Result() runner.Result {
 	<-p.done
 	return p.result
+}
+
+func (p *process) FinishedAt() int64 {
+	<-p.done
+	return p.finishedAt
 }
 
 func (p *process) Usage() envexec.Usage {

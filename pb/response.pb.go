@@ -347,6 +347,7 @@ type Response_Result struct {
 	xxx_hidden_Files      map[string][]byte          `protobuf:"bytes,6,rep,name=files" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_FileIDs    map[string]string          `protobuf:"bytes,7,rep,name=fileIDs" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_FileError  *[]*Response_FileError     `protobuf:"bytes,9,rep,name=fileError"`
+	xxx_hidden_ExitOrder  int32                      `protobuf:"varint,11,opt,name=exitOrder"`
 	unknownFields         protoimpl.UnknownFields
 	sizeCache             protoimpl.SizeCache
 }
@@ -448,6 +449,13 @@ func (x *Response_Result) GetFileError() []*Response_FileError {
 	return nil
 }
 
+func (x *Response_Result) GetExitOrder() int32 {
+	if x != nil {
+		return x.xxx_hidden_ExitOrder
+	}
+	return 0
+}
+
 func (x *Response_Result) SetStatus(v Response_Result_StatusType) {
 	x.xxx_hidden_Status = v
 }
@@ -488,6 +496,10 @@ func (x *Response_Result) SetFileError(v []*Response_FileError) {
 	x.xxx_hidden_FileError = &v
 }
 
+func (x *Response_Result) SetExitOrder(v int32) {
+	x.xxx_hidden_ExitOrder = v
+}
+
 type Response_Result_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -501,6 +513,8 @@ type Response_Result_builder struct {
 	Files      map[string][]byte
 	FileIDs    map[string]string
 	FileError  []*Response_FileError
+	// 1-based completion order within a grouped run; zero means unknown.
+	ExitOrder int32
 }
 
 func (b0 Response_Result_builder) Build() *Response_Result {
@@ -517,6 +531,7 @@ func (b0 Response_Result_builder) Build() *Response_Result {
 	x.xxx_hidden_Files = b.Files
 	x.xxx_hidden_FileIDs = b.FileIDs
 	x.xxx_hidden_FileError = &b.FileError
+	x.xxx_hidden_ExitOrder = b.ExitOrder
 	return m0
 }
 
@@ -524,7 +539,8 @@ var File_response_proto protoreflect.FileDescriptor
 
 const file_response_proto_rawDesc = "" +
 	"\n" +
-	"\x0eresponse.proto\x12\x02pb\x1a!google/protobuf/go_features.proto\"\xe6\t\n" +
+	"\x0eresponse.proto\x12\x02pb\x1a!google/protobuf/go_features.proto\"\x84\n" +
+	"\n" +
 	"\bResponse\x12\x1c\n" +
 	"\trequestID\x18\x01 \x01(\tR\trequestID\x12-\n" +
 	"\aresults\x18\x02 \x03(\v2\x13.pb.Response.ResultR\aresults\x12\x14\n" +
@@ -543,7 +559,7 @@ const file_response_proto_rawDesc = "" +
 	"\x11CopyOutCreateFile\x10\x06\x12\x16\n" +
 	"\x12CopyOutCopyContent\x10\a\x12\x17\n" +
 	"\x13CollectSizeExceeded\x10\b\x12\v\n" +
-	"\aSymlink\x10\t\x1a\x9b\x06\n" +
+	"\aSymlink\x10\t\x1a\xb9\x06\n" +
 	"\x06Result\x126\n" +
 	"\x06status\x18\x01 \x01(\x0e2\x1e.pb.Response.Result.StatusTypeR\x06status\x12\x1e\n" +
 	"\n" +
@@ -557,7 +573,8 @@ const file_response_proto_rawDesc = "" +
 	"\x06memory\x18\x05 \x01(\x04R\x06memory\x124\n" +
 	"\x05files\x18\x06 \x03(\v2\x1e.pb.Response.Result.FilesEntryR\x05files\x12:\n" +
 	"\afileIDs\x18\a \x03(\v2 .pb.Response.Result.FileIDsEntryR\afileIDs\x124\n" +
-	"\tfileError\x18\t \x03(\v2\x16.pb.Response.FileErrorR\tfileError\x1a8\n" +
+	"\tfileError\x18\t \x03(\v2\x16.pb.Response.FileErrorR\tfileError\x12\x1c\n" +
+	"\texitOrder\x18\v \x01(\x05R\texitOrder\x1a8\n" +
 	"\n" +
 	"FilesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +

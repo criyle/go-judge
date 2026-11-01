@@ -11,10 +11,11 @@ import (
 var _ envexec.Process = &process{}
 
 type process struct {
-	done     chan struct{}
-	result   envexec.RunnerResult
-	hJob     windows.Handle
-	hProcess windows.Handle
+	done       chan struct{}
+	result     envexec.RunnerResult
+	finishedAt int64
+	hJob       windows.Handle
+	hProcess   windows.Handle
 }
 
 func (p *process) Done() <-chan struct{} {
@@ -24,6 +25,11 @@ func (p *process) Done() <-chan struct{} {
 func (p *process) Result() envexec.RunnerResult {
 	<-p.done
 	return p.result
+}
+
+func (p *process) FinishedAt() int64 {
+	<-p.done
+	return p.finishedAt
 }
 
 func (p *process) Usage() envexec.Usage {

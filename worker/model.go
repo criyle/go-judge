@@ -54,6 +54,7 @@ type Request struct {
 // Result defines single command response
 type Result struct {
 	Status     envexec.Status
+	ExitOrder  int
 	ExitStatus int
 	Error      string
 	Time       time.Duration
@@ -75,6 +76,7 @@ type Response struct {
 func (r Result) String() string {
 	type Result struct {
 		Status     envexec.Status
+		ExitOrder  int
 		ExitStatus int
 		Error      string
 		Time       time.Duration
@@ -87,6 +89,7 @@ func (r Result) String() string {
 	}
 	d := Result{
 		Status:     r.Status,
+		ExitOrder:  r.ExitOrder,
 		ExitStatus: r.ExitStatus,
 		Error:      r.Error,
 		Time:       r.Time,

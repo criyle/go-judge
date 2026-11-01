@@ -600,6 +600,7 @@ func generateHandleVersion(_ *config.Config, _ map[string]any) func(*gin.Context
 			"copyOutTruncate":   true,
 			"pipeProxyZeroCopy": true,
 			"fixSymlinkEscape":  true,
+			"exitOrder":         true,
 		})
 	}
 }

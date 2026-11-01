@@ -390,6 +390,12 @@ func mergeDefaults(base, override Cmd) Cmd {
 	if override.StackLimit > 0 {
 		res.StackLimit = override.StackLimit
 	}
+	if override.ProcLimit > 0 {
+		res.ProcLimit = override.ProcLimit
+	}
+	if override.CPUSetLimit != "" {
+		res.CPUSetLimit = override.CPUSetLimit
+	}
 
 	if override.CopyOutMax > 0 {
 		res.CopyOutMax = override.CopyOutMax

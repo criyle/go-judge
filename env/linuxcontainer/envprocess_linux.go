@@ -29,7 +29,7 @@ func newProcess(run func() runner.Result, cg Cgroup, cgPool CgroupPool) *process
 		if p.finishedAt == 0 {
 			var ts unix.Timespec
 			if err := unix.ClockGettime(unix.CLOCK_MONOTONIC, &ts); err == nil {
-				p.finishedAt = ts.Sec*1e9 + ts.Nsec
+				p.finishedAt = int64(ts.Sec)*1e9 + int64(ts.Nsec)
 			}
 		}
 		p.collectUsage()

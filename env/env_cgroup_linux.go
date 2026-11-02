@@ -2,8 +2,11 @@ package env
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
+	"syscall"
+	"time"
 
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/criyle/go-judge/env/linuxcontainer"
@@ -137,7 +140,8 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, noFallback bool,
 		return nil, nil, nil
 	}
 	logger.Info("creating nesting api cgroup", zap.Any("cgroup", cgb))
-	if _, err = cgb.Nest("api"); err != nil {
+	cgb, err = nestAPICgroup(prefix, ct, cgb, logger)
+	if err != nil {
 		if os.Getuid() != 0 {
 			logger.Warn("creating api cgroup with error, falling back to rlimit / rusage mode", zap.Error(err))
 			cgb.Destroy()
@@ -146,6 +150,7 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, noFallback bool,
 			}
 			return nil, nil, nil
 		}
+		return nil, nil, fmt.Errorf("failed to create nesting api cgroup: %w", err)
 	}
 
 	logger.Info("creating containers cgroup")
@@ -167,6 +172,31 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, noFallback bool,
 		logger.Warn("pid cgroup is not enabled, proc limit does not have effect")
 	}
 	return cg, ct, nil
+}
+
+// nestAPICgroup retries transient cgroup v2 EBUSY failures. Nest first moves
+// the processes it observed into api, then enables controllers on the parent.
+// A process entering the shared parent between those operations can make that
+// write fail with EBUSY. V2 caches subtree-control errors per handle, so each
+// retry must reopen the parent to make a fresh attempt.
+func nestAPICgroup(prefix string, ct *cgroup.Controllers, parent cgroup.Cgroup, logger *zap.Logger) (cgroup.Cgroup, error) {
+	const retries = 3
+	delays := [...]time.Duration{5 * time.Millisecond, 20 * time.Millisecond, 50 * time.Millisecond}
+	for attempt := 0; ; attempt++ {
+		if _, err := parent.Nest("api"); err == nil {
+			return parent, nil
+		} else if cgroup.DetectedCgroupType != cgroup.TypeV2 || !errors.Is(err, syscall.EBUSY) || attempt >= retries {
+			return parent, err
+		} else {
+			logger.Warn("transient EBUSY while enabling cgroup v2 controllers; retrying API nesting", zap.Int("attempt", attempt+1), zap.Error(err))
+			time.Sleep(delays[attempt])
+			next, reopenErr := cgroup.New(prefix, ct)
+			if reopenErr != nil {
+				return parent, fmt.Errorf("reopen cgroup %q for nesting retry: %w", prefix, reopenErr)
+			}
+			parent = next
+		}
+	}
 }
 
 func prepareCgroupPool(cgb cgroup.Cgroup, c Config) linuxcontainer.CgroupPool {

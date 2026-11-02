@@ -8,7 +8,8 @@ import (
 
 var _ CgroupPool = &CachedCgroupPool{}
 
-// CachedCgroupPool implements cgroup pool but not actually do pool
+// CachedCgroupPool keeps freshly created cgroups ready and replaces returned
+// cgroups asynchronously.
 type CachedCgroupPool struct {
 	builder   CgroupBuilder
 	cfsPeriod time.Duration
@@ -20,13 +21,21 @@ type CachedCgroupPool struct {
 	err     error
 }
 
-// NewFakeCgroupPool creates FakeCgroupPool
+// NewCachedCgroupPool creates a cached pool with the default cache capacity.
 func NewCachedCgroupPool(builder CgroupBuilder, cfsPeriod time.Duration, workerCount int) CgroupPool {
+	return NewCachedCgroupPoolWithCapacity(builder, cfsPeriod, workerCount, 4)
+}
+
+// NewCachedCgroupPoolWithCapacity creates a cached pool with cacheSize ready
+// slots and workerCount background cgroup creators.
+func NewCachedCgroupPoolWithCapacity(builder CgroupBuilder, cfsPeriod time.Duration, workerCount, cacheSize int) CgroupPool {
+	workerCount = max(workerCount, 1)
+	cacheSize = max(cacheSize, 0)
 	p := &CachedCgroupPool{
 		builder:   builder,
 		cfsPeriod: cfsPeriod,
-		cache:     make(chan Cgroup, 4),
-		destroy:   make(chan Cgroup, 4),
+		cache:     make(chan Cgroup, cacheSize),
+		destroy:   make(chan Cgroup, max(cacheSize, workerCount)),
 		done:      make(chan struct{}),
 	}
 	p.wg.Add(workerCount)

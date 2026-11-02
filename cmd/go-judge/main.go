@@ -518,6 +518,7 @@ func newFileStore(conf *config.Config) (filestore.FileStore, func() error) {
 func newEnvBuilder(conf *config.Config) (pool.EnvBuilder, map[string]any) {
 	b, param, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  conf.ContainerInitPath,
+		Parallelism:        conf.Parallelism,
 		MountConf:          conf.MountConf,
 		TmpFsParam:         conf.TmpFsParam,
 		NetShare:           conf.NetShare,

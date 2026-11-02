@@ -5,6 +5,7 @@ import "time"
 // Config defines parameters to create environment builder
 type Config struct {
 	ContainerInitPath  string
+	Parallelism        int
 	TmpFsParam         string
 	NetShare           bool
 	MountConf          string

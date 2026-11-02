@@ -171,7 +171,14 @@ func createAndNestCgroup(prefix string, ct *cgroup.Controllers, noFallback bool,
 
 func prepareCgroupPool(cgb cgroup.Cgroup, c Config) linuxcontainer.CgroupPool {
 	if cgb != nil {
-		return linuxcontainer.NewFakeCgroupPool(cgb, c.CPUCfsPeriod)
+		// Keep one creator ahead of command demand while buffering up to the
+		// configured service parallelism in ready cgroups.
+		return linuxcontainer.NewCachedCgroupPoolWithCapacity(
+			cgb,
+			c.CPUCfsPeriod,
+			1,
+			max(c.Parallelism, 1),
+		)
 	}
 	return nil
 }

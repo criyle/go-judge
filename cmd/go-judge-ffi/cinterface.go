@@ -97,6 +97,7 @@ func Init(i *C.char) C.int {
 
 	b, _, err := env.NewBuilder(env.Config{
 		ContainerInitPath:  ip.CInitPath,
+		Parallelism:        ip.Parallelism,
 		MountConf:          ip.MountConf,
 		TmpFsParam:         ip.TmpFsParam,
 		NetShare:           ip.NetShare,

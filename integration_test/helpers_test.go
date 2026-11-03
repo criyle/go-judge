@@ -3,6 +3,7 @@
 package integration_test
 
 const serverURL = "http://localhost:5050/run"
+const configURL = "http://localhost:5050/config"
 const fileURL = "http://localhost:5050/file/"
 const dataSize = 1024 * 1024 // 1MB payload
 
@@ -54,10 +55,12 @@ type PipeIndex struct {
 }
 
 type Result struct {
-	Status  string            `json:"status"`
-	Time    uint64            `json:"time"`
-	RunTime uint64            `json:"runTime"`
-	Files   map[string]string `json:"files"`
-	FileIDs map[string]string `json:"fileIds"`
-	Error   string            `json:"error"`
+	Status     string            `json:"status"`
+	ExitStatus int               `json:"exitStatus"`
+	Time       uint64            `json:"time"`
+	RunTime    uint64            `json:"runTime"`
+	Memory     uint64            `json:"memory"`
+	Files      map[string]string `json:"files"`
+	FileIDs    map[string]string `json:"fileIds"`
+	Error      string            `json:"error"`
 }

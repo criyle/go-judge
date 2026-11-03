@@ -65,7 +65,7 @@ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, 
 		Seccomp:                 sandboxseccomp.Filter(seccomp),
 	}
 
-	cgb, ct, err := setupCgroup(c, logger)
+	cgb, ct, memorySwapLimit, err := setupCgroup(c, logger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -74,30 +74,32 @@ func NewBuilder(c Config, logger *zap.Logger) (pool.EnvBuilder, map[string]any, 
 	cgroupType, cgroupControllers := getCgroupInfo(cgb, ct)
 
 	conf := map[string]any{
-		"cgroupType":        cgroupType,
-		"seccomp":           len(seccomp) > 0,
-		"mount":             m,
-		"symbolicLink":      symbolicLinks,
-		"maskedPaths":       maskPaths,
-		"hostName":          hostName,
-		"domainName":        domainName,
-		"workDir":           workDir,
-		"uid":               cUID,
-		"gid":               cGID,
-		"cgroupControllers": cgroupControllers,
+		"cgroupType":             cgroupType,
+		"memorySwapLimitEnabled": memorySwapLimit,
+		"seccomp":                len(seccomp) > 0,
+		"mount":                  m,
+		"symbolicLink":           symbolicLinks,
+		"maskedPaths":            maskPaths,
+		"hostName":               hostName,
+		"domainName":             domainName,
+		"workDir":                workDir,
+		"uid":                    cUID,
+		"gid":                    cGID,
+		"cgroupControllers":      cgroupControllers,
 	}
 
-	if tryClone3Builder := tryClone3(c, b, cgb, cgroupType, cgroupPool, workDir, seccomp, logger); tryClone3Builder != nil {
+	if tryClone3Builder := tryClone3(c, b, cgb, cgroupType, cgroupPool, memorySwapLimit, workDir, seccomp, logger); tryClone3Builder != nil {
 		conf["clone3"] = true
 		return tryClone3Builder, conf, nil
 	}
 
 	return linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
-		Builder:    b,
-		CgroupPool: cgroupPool,
-		WorkDir:    workDir,
-		CPURate:    c.EnableCPURate,
-		Seccomp:    nil,
+		Builder:         b,
+		CgroupPool:      cgroupPool,
+		WorkDir:         workDir,
+		CPURate:         c.EnableCPURate,
+		MemorySwapLimit: memorySwapLimit,
+		Seccomp:         nil,
 	}), conf, nil
 }
 
@@ -221,6 +223,7 @@ func tryClone3(
 	cgb cgroup.Cgroup,
 	cgroupType int,
 	cgroupPool linuxcontainer.CgroupPool,
+	memorySwapLimit bool,
 	workDir string,
 	seccomp []syscall.SockFilter,
 	logger *zap.Logger,
@@ -233,12 +236,13 @@ func tryClone3(
 		zap.Int("major", major), zap.Int("minor", minor))
 
 	b := linuxcontainer.NewEnvBuilder(linuxcontainer.Config{
-		Builder:    envBuilder,
-		CgroupPool: cgroupPool,
-		WorkDir:    workDir,
-		CPURate:    c.EnableCPURate,
-		Seccomp:    nil,
-		CgroupFd:   true,
+		Builder:         envBuilder,
+		CgroupPool:      cgroupPool,
+		WorkDir:         workDir,
+		CPURate:         c.EnableCPURate,
+		MemorySwapLimit: memorySwapLimit,
+		Seccomp:         nil,
+		CgroupFd:        true,
 	})
 	e, err := b.Build()
 	if err != nil {

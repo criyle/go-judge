@@ -12,6 +12,7 @@ import (
 type Cgroup interface {
 	SetCpuset(string) error
 	SetMemoryLimit(envexec.Size) error
+	SetMemorySwapLimit(memory envexec.Size) error
 	SetProcLimit(uint64) error
 	SetCPURate(uint64) error // 1000 as 1
 

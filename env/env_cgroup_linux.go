@@ -15,14 +15,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func setupCgroup(c Config, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controllers, error) {
+func setupCgroup(c Config, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controllers, bool, error) {
 	prefix := c.CgroupPrefix
 	t := cgroup.DetectedCgroupType
 
 	ct, err := cgroup.GetAvailableController()
 	if err != nil {
 		logger.Error("failed to get available controllers", zap.Error(err))
-		return nil, nil, err
+		return nil, nil, false, err
 	}
 
 	if t == cgroup.TypeV2 {
@@ -30,16 +30,27 @@ func setupCgroup(c Config, logger *zap.Logger) (cgroup.Cgroup, *cgroup.Controlle
 		if err != nil {
 			if os.Getuid() != 0 {
 				if c.NoFallback {
-					return nil, nil, fmt.Errorf("failed to set up cgroup with no fallback: %w", err)
+					return nil, nil, false, fmt.Errorf("failed to set up cgroup with no fallback: %w", err)
 				}
 				logger.Warn("cgroup setup failed, falling back to rlimit / rusage mode", zap.Error(err))
-				return nil, nil, nil
+				return nil, nil, false, nil
 			}
-			return nil, nil, err
+			return nil, nil, false, err
 		}
 	}
 
-	return createAndNestCgroup(prefix, ct, c.NoFallback, logger)
+	cg, ct, err := createAndNestCgroup(prefix, ct, c.NoFallback, logger)
+	if err != nil || cg == nil || ct == nil || !ct.Memory {
+		return cg, ct, false, err
+	}
+	if err := cg.CheckMemorySwapLimit(); err != nil {
+		logger.Warn("memory swap accounting is not available; swap will not be restricted", zap.Error(err))
+		if c.NoFallback {
+			return nil, nil, false, fmt.Errorf("memory swap accounting is not available with no fallback: %w", err)
+		}
+		return cg, ct, false, nil
+	}
+	return cg, ct, true, nil
 }
 
 func setupCgroupV2(prefix string, logger *zap.Logger) (string, *cgroup.Controllers, error) {

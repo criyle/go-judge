@@ -30,6 +30,10 @@ func (c *wCgroup) SetMemoryLimit(s envexec.Size) error {
 	return c.cg.SetMemoryLimit(uint64(s))
 }
 
+func (c *wCgroup) SetMemorySwapLimit(memory envexec.Size) error {
+	return c.cg.SetMemorySwapLimit(uint64(memory))
+}
+
 func (c *wCgroup) SetProcLimit(l uint64) error {
 	return c.cg.SetProcLimit(l)
 }

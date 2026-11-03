@@ -20,11 +20,12 @@ var _ envexec.Environment = &environ{}
 // environ defines interface to access container resources
 type environ struct {
 	container.Environment
-	cgPool  CgroupPool
-	workDir string
-	seccomp []syscall.SockFilter
-	cpuRate bool
-	cgFd    bool
+	cgPool          CgroupPool
+	workDir         string
+	seccomp         []syscall.SockFilter
+	cpuRate         bool
+	memorySwapLimit bool
+	cgFd            bool
 }
 
 // Destroy destroys the environment
@@ -178,6 +179,11 @@ func (c *environ) setCgroupLimit(cg Cgroup, limit envexec.Limit) error {
 	}
 	if err := cg.SetMemoryLimit(limit.Memory); isCgroupSetHasError(err) {
 		return fmt.Errorf("execve: cgroup: failed to set memory limit: %w", err)
+	}
+	if c.memorySwapLimit && limit.Memory > 0 {
+		if err := cg.SetMemorySwapLimit(limit.Memory); err != nil && !errors.Is(err, cgroup.ErrNotInitialized) {
+			return fmt.Errorf("execve: cgroup: failed to set memory swap limit: %w", err)
+		}
 	}
 	if err := cg.SetProcLimit(limit.Proc); isCgroupSetHasError(err) {
 		return fmt.Errorf("execve: cgroup: failed to set process limit: %w", err)

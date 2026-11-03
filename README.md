@@ -40,6 +40,8 @@ A REST service to run program in restricted environment (Listening on `localhost
 
 [Example Request & Response](https://docs.goj.ac/example)
 
+When go-judge applies a memory cgroup limit, it also disables swap for that cgroup when the kernel exposes swap accounting. If swap accounting is unavailable, go-judge warns during startup and leaves swap unrestricted; with `-no-fallback`, startup fails instead. The rlimit/rusage fallback cannot enforce this policy.
+
 ## Documentation
 
 ### Prerequisite

@@ -19,8 +19,12 @@ const (
 )
 
 func TestMemoryLimitDoesNotPermitSwapEscape(t *testing.T) {
-	if !serverMemoryCgroupEnabled(t) {
+	memoryCgroupEnabled, memorySwapLimitEnabled := serverCgroupMemoryConfig(t)
+	if !memoryCgroupEnabled {
 		t.Skip("go-judge server is not using a memory cgroup")
+	}
+	if !memorySwapLimitEnabled {
+		t.Skip("go-judge server did not enable cgroup swap limits")
 	}
 	if !swapControllerEnabled(t) {
 		t.Skip("kernel does not expose swap accounting in this process's cgroup (v1 memory.memsw or v2 memory.swap)")
@@ -44,7 +48,7 @@ func TestMemoryLimitDoesNotPermitSwapEscape(t *testing.T) {
 	}
 }
 
-func serverMemoryCgroupEnabled(t *testing.T) bool {
+func serverCgroupMemoryConfig(t *testing.T) (memoryCgroupEnabled, memorySwapLimitEnabled bool) {
 	t.Helper()
 	resp, err := http.Get(configURL)
 	if err != nil {
@@ -56,8 +60,9 @@ func serverMemoryCgroupEnabled(t *testing.T) bool {
 	}
 	var config struct {
 		RunnerConfig struct {
-			CgroupType        int      `json:"cgroupType"`
-			CgroupControllers []string `json:"cgroupControllers"`
+			CgroupType             int      `json:"cgroupType"`
+			CgroupControllers      []string `json:"cgroupControllers"`
+			MemorySwapLimitEnabled bool     `json:"memorySwapLimitEnabled"`
 		} `json:"runnerConfig"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
@@ -65,10 +70,11 @@ func serverMemoryCgroupEnabled(t *testing.T) bool {
 	}
 	for _, controller := range config.RunnerConfig.CgroupControllers {
 		if controller == "memory" && config.RunnerConfig.CgroupType != 0 {
-			return true
+			memoryCgroupEnabled = true
+			break
 		}
 	}
-	return false
+	return memoryCgroupEnabled, config.RunnerConfig.MemorySwapLimitEnabled
 }
 
 func runMemorySwapProbe(t *testing.T, allocation uint64) Result {

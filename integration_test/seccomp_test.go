@@ -98,7 +98,7 @@ int main() {
 		Args:     []string{"/usr/bin/g++", "-O2", "seccomp.cc", "-o", "seccomp", "-std=c++11"},
 		Env:      []string{"PATH=/usr/bin:/bin"},
 		Files:    []*CmdFile{{Src: "/dev/null"}, {Name: "stdout", Max: 10240}, {Name: "stderr", Max: 10240}},
-		CPULimit: 3 * 1000 * 1000 * 1000, MemoryLimit: 256 * 1024 * 1024, ProcLimit: 50,
+		CPULimit: 10 * 1000 * 1000 * 1000, MemoryLimit: 256 * 1024 * 1024, ProcLimit: 50,
 		CopyIn: map[string]CmdFile{"seccomp.cc": {Content: source}}, CopyOutCached: []string{"seccomp"},
 	}}}
 	compileResults := postSeccompRequest(t, client, compileReq)

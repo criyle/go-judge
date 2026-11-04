@@ -38,7 +38,7 @@ int main() {
 				{Name: "stdout", Max: 10240},
 				{Name: "stderr", Max: 10240},
 			},
-			CPULimit:    3 * 1000 * 1000 * 1000,
+			CPULimit:    10 * 1000 * 1000 * 1000,
 			MemoryLimit: 256 * 1024 * 1024,
 			ProcLimit:   50,
 			CopyIn: map[string]CmdFile{
@@ -162,7 +162,7 @@ int main() {
 				{Name: "stdout", Max: 10240},
 				{Name: "stderr", Max: 10240},
 			},
-			CPULimit:    3 * 1000 * 1000 * 1000,
+			CPULimit:    10 * 1000 * 1000 * 1000,
 			MemoryLimit: 256 * 1024 * 1024,
 			ProcLimit:   50,
 			CopyIn: map[string]CmdFile{

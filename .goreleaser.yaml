@@ -163,6 +163,7 @@ changelog:
       - "^docs:"
       - "^test:"
 release:
+  draft: true
   github:
     owner: criyle
     name: go-judge

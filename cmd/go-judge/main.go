@@ -618,6 +618,7 @@ func generateHandleConfig(conf *config.Config, builderParam map[string]any) func
 			"copyOutTruncate":   true,
 			"pipeProxyZeroCopy": true,
 			"fixSymlinkEscape":  true,
+			"exitOrder":         true,
 			"fileStorePath":     conf.Dir,
 			"runnerConfig":      builderParam,
 		})

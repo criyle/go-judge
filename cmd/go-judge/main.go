@@ -60,7 +60,12 @@ func main() {
 	initLogger(conf)
 	defer logger.Sync()
 	if ce := logger.Check(zap.InfoLevel, "Config loaded"); ce != nil {
-		ce.Write(zap.String("config", fmt.Sprintf("%+v", conf)))
+		// log a copy without the auth token
+		logConf := *conf
+		if logConf.AuthToken != "" {
+			logConf.AuthToken = "[redacted]"
+		}
+		ce.Write(zap.String("config", fmt.Sprintf("%+v", &logConf)))
 	}
 	warnIfNotLinux()
 
@@ -331,7 +336,7 @@ func initHTTPMux(conf *config.Config, work worker.Worker, fs filestore.FileStore
 	// Add auth token
 	if conf.AuthToken != "" {
 		r.Use(tokenAuth(conf.AuthToken))
-		logger.Info("Attach token auth", zap.String("token", conf.AuthToken))
+		logger.Info("Attach token auth")
 	}
 
 	// Rest Handle
